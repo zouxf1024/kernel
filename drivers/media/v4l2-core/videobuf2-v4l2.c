@@ -194,7 +194,7 @@ static int __fill_v4l2_buffer(struct vb2_buffer *vb, void *pb)
 	b->timestamp = vbuf->timestamp;
 	b->timecode = vbuf->timecode;
 	b->sequence = vbuf->sequence;
-	b->reserved2 = 0;
+	b->config_store = vb->v4l2_buf.config_store;
 	b->reserved = 0;
 
 	if (q->is_multiplanar) {
@@ -232,6 +232,7 @@ static int __fill_v4l2_buffer(struct vb2_buffer *vb, void *pb)
 		else if (q->memory == VB2_MEMORY_DMABUF)
 			b->m.fd = vb->planes[0].m.fd;
 	}
+	b->config_store = vb->v4l2_buf.config_store;
 
 	/*
 	 * Clear any buffer state related flags.
@@ -404,6 +405,8 @@ static int __fill_vb2_buffer(struct vb2_buffer *vb,
 
 	/* Zero flags that the vb2 core handles */
 	vbuf->flags = b->flags & ~V4L2_BUFFER_MASK_FLAGS;
+	vb->v4l2_buf.config_store = b->config_store;
+
 	if ((vb->vb2_queue->timestamp_flags & V4L2_BUF_FLAG_TIMESTAMP_MASK) !=
 	    V4L2_BUF_FLAG_TIMESTAMP_COPY || !V4L2_TYPE_IS_OUTPUT(b->type)) {
 		/*
