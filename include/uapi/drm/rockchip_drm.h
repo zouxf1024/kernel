@@ -45,6 +45,7 @@ struct drm_rockchip_gem_map_off {
 	uint64_t offset;
 };
 
+<<<<<<< HEAD
 /* acquire type definitions. */
 enum drm_rockchip_gem_cpu_acquire_type {
 	DRM_ROCKCHIP_GEM_CPU_ACQUIRE_SHARED = 0x0,

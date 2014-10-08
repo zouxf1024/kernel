@@ -17,6 +17,7 @@
 #include <drm/drm_gem.h>
 #include <drm/drm_sync_helper.h>
 #include <drm/drm_vma_manager.h>
+#include <drm/rockchip_drm.h>
 
 #include <linux/completion.h>
 #include <linux/dma-attrs.h>
