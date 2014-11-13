@@ -723,7 +723,6 @@ long drm_ioctl(struct file *filp,
 		  (long)old_encode_dev(file_priv->minor->kdev->devt),
 		  file_priv->authenticated, ioctl->name);
 
-	extern u32 drm_master_relax;
 	flags = ioctl->flags;
 	if (drm_master_relax) {
 		if (nr == DRM_IOCTL_NR(DRM_IOCTL_SET_MASTER))
