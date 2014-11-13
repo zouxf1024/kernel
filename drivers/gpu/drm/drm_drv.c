@@ -55,6 +55,10 @@ static struct idr drm_minors_idr;
 
 static struct dentry *drm_debugfs_root;
 
+/* When set to 1, allow set/drop master ioctls as normal user */
+u32 drm_master_relax;
+EXPORT_SYMBOL(drm_master_relax);
+
 void drm_err(const char *format, ...)
 {
 	struct va_format vaf;
@@ -150,14 +154,16 @@ int drm_setmaster_ioctl(struct drm_device *dev, void *data,
 	if (file_priv->is_master)
 		goto out_unlock;
 
-	if (file_priv->minor->master) {
-		ret = -EINVAL;
-		goto out_unlock;
-	}
+	if (!drm_master_relax || !capable(CAP_SYS_ADMIN)) {
+		if (file_priv->minor->master) {
+			ret = -EINVAL;
+			goto out_unlock;
+		}
 
-	if (!file_priv->master) {
-		ret = -EINVAL;
-		goto out_unlock;
+		if (!file_priv->master) {
+			ret = -EINVAL;
+			goto out_unlock;
+		}
 	}
 
 	file_priv->minor->master = drm_master_get(file_priv->master);
@@ -867,9 +873,6 @@ out_unlock:
 	mutex_unlock(&drm_global_mutex);
 	return err;
 }
-
-/* When set to 1, allow set/drop master ioctls as normal user */
-u32 drm_master_relax;
 
 static const struct file_operations drm_stub_fops = {
 	.owner = THIS_MODULE,
