@@ -1760,6 +1760,15 @@ static void clk_change_rate(struct clk_core *clk)
 	else if (clk->parent)
 		best_parent_rate = clk->parent->rate;
 
+	if (clk->flags & CLK_SET_RATE_UNGATE) {
+		unsigned long flags;
+
+		clk_prepare(clk);
+		flags = clk_enable_lock();
+		clk_enable(clk);
+		clk_enable_unlock(flags);
+	}
+
 	if (clk->new_parent && clk->new_parent != clk->parent) {
 		old_parent = __clk_set_parent_before(clk, clk->new_parent);
 		trace_clk_set_parent(clk, clk->new_parent);
@@ -1785,6 +1794,15 @@ static void clk_change_rate(struct clk_core *clk)
 	trace_clk_set_rate_complete(clk, clk->new_rate);
 
 	clk->rate = clk_recalc(clk, best_parent_rate);
+
+	if (clk->flags & CLK_SET_RATE_UNGATE) {
+		unsigned long flags;
+
+		flags = clk_enable_lock();
+		clk_disable(clk);
+		clk_enable_unlock(flags);
+		clk_unprepare(clk);
+	}
 
 	if (clk->notifier_count && old_rate != clk->rate)
 		__clk_notify(clk, POST_RATE_CHANGE, old_rate, clk->rate);

@@ -21,7 +21,6 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int dai_fmt = rtd->dai_link->dai_fmt;
 	int mclk, ret;
-	static int flag = 0;
 
 	dev_info(rtd->dev, "codec machine: %s\n", __func__);
 
