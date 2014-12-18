@@ -1763,9 +1763,9 @@ static void clk_change_rate(struct clk_core *clk)
 	if (clk->flags & CLK_SET_RATE_UNGATE) {
 		unsigned long flags;
 
-		clk_prepare(clk);
+		clk_prepare(clk->hw->clk);
 		flags = clk_enable_lock();
-		clk_enable(clk);
+		clk_enable(clk->hw->clk);
 		clk_enable_unlock(flags);
 	}
 
@@ -1799,9 +1799,9 @@ static void clk_change_rate(struct clk_core *clk)
 		unsigned long flags;
 
 		flags = clk_enable_lock();
-		clk_disable(clk);
+		clk_disable(clk->hw->clk);
 		clk_enable_unlock(flags);
-		clk_unprepare(clk);
+		clk_unprepare(clk->hw->clk);
 	}
 
 	if (clk->notifier_count && old_rate != clk->rate)
