@@ -241,7 +241,7 @@ static inline int disk_max_parts(struct gendisk *disk)
 {
 	if (disk->flags & GENHD_FL_EXT_DEVT)
 		return DISK_MAX_PARTS;
-	return disk->minors;
+	return 32;//disk->minors;
 }
 
 static inline bool disk_part_scan_enabled(struct gendisk *disk)
