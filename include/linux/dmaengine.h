@@ -672,6 +672,7 @@ struct dma_device {
 
 	int (*device_config)(struct dma_chan *chan,
 			     struct dma_slave_config *config);
+	int (*device_get_quirks)(struct dma_chan *chan);
 	int (*device_pause)(struct dma_chan *chan);
 	int (*device_resume)(struct dma_chan *chan);
 	int (*device_terminate_all)(struct dma_chan *chan);
@@ -687,6 +688,14 @@ static inline int dmaengine_slave_config(struct dma_chan *chan,
 {
 	if (chan->device->device_config)
 		return chan->device->device_config(chan, config);
+
+	return -ENOSYS;
+}
+
+static inline int dmaengine_get_quirks(struct dma_chan *chan)
+{
+	if (chan->device->device_get_quirks)
+		return chan->device->device_get_quirks(chan);
 
 	return -ENOSYS;
 }
