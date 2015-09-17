@@ -34,12 +34,16 @@
 
 static void __iomem *scu_base_addr;
 static void __iomem *sram_base_addr;
+static void __iomem *cru_base_addr;
+
 static int ncores;
 
 #define PMU_PWRDN_CON		0x08
 #define PMU_PWRDN_ST		0x0c
 
 #define PMU_PWRDN_SCU		4
+
+#define RK3036_SOFTRST_CON(x)	((x) * 0x4 + 0x110)
 
 static struct regmap *pmu;
 
@@ -342,3 +346,141 @@ static struct smp_operations rockchip_smp_ops __initdata = {
 #endif
 };
 CPU_METHOD_OF_DECLARE(rk3066_smp, "rockchip,rk3066-smp", &rockchip_smp_ops);
+
+/* for RK3036 */
+
+static int rk3036_set_power_domain(int pd, bool on)
+{
+	struct reset_control *rstc = rockchip_get_core_reset(pd);
+	u32 val;
+
+	/* there are 2cpus on rk3036 soc, we just need to be care cpu1 */
+	if (pd != 1)
+		return 0;
+
+	if (IS_ERR(rstc) && read_cpuid_part() != ARM_CPU_PART_CORTEX_A9) {
+		pr_err("%s: could not get reset control for core %d\n",
+		       __func__, pd);
+		return PTR_ERR(rstc);
+	}
+
+	/*
+	 * We need to soft reset the cpu when we turn off the cpu power domain,
+	 * or else the active processors might be stalled when the individual
+	 * processor is powered down.
+	 */
+	if (!IS_ERR(rstc) && !on)
+		reset_control_assert(rstc);
+
+	val = (on) ? 0 : 1;
+	val = (val << pd) | BIT(pd + 16);
+	writel_relaxed(val, cru_base_addr + RK3036_SOFTRST_CON(0));
+
+	dsb();
+
+	if (!IS_ERR(rstc)) {
+		if (on)
+			reset_control_deassert(rstc);
+		reset_control_put(rstc);
+	}
+
+	return 0;
+}
+
+static void __init rk3036_smp_prepare_cpus(unsigned int max_cpus)
+{
+	struct device_node *node;
+	unsigned int l2ctlr;
+	unsigned int i, cpu;
+
+	/* get cru_base_addr */
+	node = of_find_compatible_node(NULL, NULL, "rockchip,rk3036-cru");
+	if (!node) {
+		pr_err("%s: could not find cru dt node\n", __func__);
+		return;
+	}
+
+	cru_base_addr = of_iomap(node, 0);
+	if (!cru_base_addr) {
+		pr_err("%s: could not map cru registers\n", __func__);
+		return;
+	}
+
+	/* get sram_base_addr */
+	node = of_find_compatible_node(NULL, NULL, "rockchip,rk3036-smp-sram");
+	if (!node) {
+		pr_err("%s: could not find sram dt node\n", __func__);
+		return;
+	}
+
+	sram_base_addr = of_iomap(node, 0);
+	if (!sram_base_addr) {
+		pr_err("%s: could not map sram registers\n", __func__);
+		return;
+	}
+
+	/* get ncores */
+	asm ("mrc p15, 1, %0, c9, c0, 2\n" : "=r" (l2ctlr));
+	ncores = ((l2ctlr >> 24) & 0x3) + 1;
+	cpu = MPIDR_AFFINITY_LEVEL(read_cpuid_mpidr(), 0);
+
+	/* Make sure that all cores except the first are really off */
+	for (i = 1; i < ncores; i++)
+		rk3036_set_power_domain(0 + i, false);
+}
+
+static int rk3036_boot_secondary(unsigned int cpu, struct task_struct *idle)
+{
+	if (cpu >= ncores) {
+		pr_err("%s: cpu %d outside maximum number of cpus %d\n",
+			__func__, cpu, ncores);
+		return -ENXIO;
+	}
+
+	/* start the core */
+	rk3036_set_power_domain(0 + cpu, true);
+
+	/*
+	 * We need to wait a moment after soft reset CPUx on rk3036,
+	 * otherwise, CPUx will startup failed.
+	 */
+	udelay(10);
+	writel(virt_to_phys(secondary_startup), sram_base_addr + 8);
+	writel(0xDEADBEAF, sram_base_addr + 4);
+	dsb_sev();
+
+	return 0;
+}
+
+#ifdef CONFIG_HOTPLUG_CPU
+static int rk3066_cpu_kill(unsigned int cpu)
+{
+	/*
+	 * We need a delay here to ensure that the dying CPU can finish
+	 * executing v7_coherency_exit() and reach the WFI/WFE state
+	 * prior to having the power domain disabled.
+	 */
+	mdelay(1);
+
+	rk3036_set_power_domain(0 + cpu, false);
+
+	return 1;
+}
+
+static void rk3066_cpu_die(unsigned int cpu)
+{
+	v7_exit_coherency_flush(louis);
+	while (1)
+		cpu_do_idle();
+}
+#endif
+
+static struct smp_operations rk3036_smp_ops __initdata = {
+	.smp_prepare_cpus	= rk3036_smp_prepare_cpus,
+	.smp_boot_secondary	= rk3036_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_kill		= rk3066_cpu_kill,
+	.cpu_die		= rk3066_cpu_die,
+#endif
+};
+CPU_METHOD_OF_DECLARE(rk3036_smp, "rockchip,rk3036-smp", &rk3036_smp_ops);
