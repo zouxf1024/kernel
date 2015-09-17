@@ -39,7 +39,6 @@
 #define SCLK_TIMER2		87
 #define SCLK_TIMER3		88
 #define SCLK_OTGPHY0		93
-#define SCLK_OTGPHY1		94
 #define SCLK_LCDC		100
 #define SCLK_HDMI		109
 #define SCLK_HEVC		111
@@ -86,6 +85,7 @@
 #define PCLK_PERI		363
 #define PCLK_DDRUPCTL		364
 #define PCLK_WDT		368
+#define PCLK_ACODEC		369
 
 /* hclk gates */
 #define HCLK_OTG0		449
