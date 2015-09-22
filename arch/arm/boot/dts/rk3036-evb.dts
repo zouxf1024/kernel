@@ -45,6 +45,12 @@
 / {
 	model = "Rockchip RK3036 Evaluation board";
 	compatible = "rockchip,rk3036-evb", "rockchip,rk3036";
+
+	usb_control {
+		compatible = "rockchip,rk3036-usb-control";
+		host_drv_gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
+		otg_drv_gpio = <&gpio0 26 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &i2c1 {

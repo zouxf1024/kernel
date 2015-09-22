@@ -268,3 +268,8 @@ config USB_CHAOSKEY
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called chaoskey.
+
+config USB_ROCKCHIP_PWR_CONTROL
+	tristate "USB Rockchip power control"
+	help
+	  This driver is for configuare power for USB otg and host ports.
