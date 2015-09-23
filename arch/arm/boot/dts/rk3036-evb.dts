@@ -95,6 +95,8 @@
 
 &usb_otg {
 	status = "okay";
+};
 
-	dr_mode = "host";
+&usbphy {
+	status = "okay";
 };

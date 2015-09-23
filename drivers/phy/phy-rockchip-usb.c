@@ -137,6 +137,7 @@ static int rockchip_usb_phy_probe(struct platform_device *pdev)
 
 static const struct of_device_id rockchip_usb_phy_dt_ids[] = {
 	{ .compatible = "rockchip,rk3288-usb-phy" },
+	{ .compatible = "rockchip,rk3036-usb-phy" },
 	{}
 };
 
