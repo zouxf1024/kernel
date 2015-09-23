@@ -378,6 +378,48 @@
 		clocks = <&cru PCLK_I2C0>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2c0_xfer>;
+	};
+
+	usbphy: phy {
+		compatible = "rockchip,rk3036-usb-phy";
+		rockchip,grf = <&grf>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+
+		usbphy0: usb-phy0 {
+			#phy-cells = <0>;
+			reg = <0x17c>;
+			clocks = <&cru SCLK_OTGPHY0>;
+			clock-names = "phyclk";
+		};
+	};
+
+	usb_otg: usb@10180000 {
+		compatible = "rockchip,rk3288-usb", "rockchip,rk3066-usb",
+				"snps,dwc2";
+		reg = <0x10180000 0x40000>;
+		interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru HCLK_OTG0>;
+		clock-names = "otg";
+		dr_mode = "otg";
+		g-np-tx-fifo-size = <16>;
+		g-rx-fifo-size = <275>;
+		g-tx-fifo-size = <256 128 128 64 64 32>;
+		g-use-dma;
+		phys = <&usbphy0>;
+		phy-names = "usb2-phy";
+		status = "disabled";
+	};
+
+	usb_host: usb@101c0000 {
+		compatible = "rockchip,rk3288-usb", "rockchip,rk3066-usb",
+				"snps,dwc2";
+		reg = <0x101c0000 0x40000>;
+		interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru HCLK_OTG1>;
+		clock-names = "otg";
+		dr_mode = "host";
 		status = "disabled";
 	};
 

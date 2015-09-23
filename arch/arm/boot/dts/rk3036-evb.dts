@@ -66,3 +66,15 @@
 &uart2 {
 	status = "okay";
 };
+
+&usb_host {
+	status = "okay";
+};
+
+&usb_otg {
+	status = "okay";
+};
+
+&usbphy {
+	status = "okay";
+};
