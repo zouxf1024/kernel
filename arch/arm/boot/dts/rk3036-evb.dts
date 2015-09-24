@@ -46,11 +46,26 @@
 	model = "Rockchip RK3036 Evaluation board";
 	compatible = "rockchip,rk3036-evb", "rockchip,rk3036";
 
+	sound {
+		compatible = "rockchip,rockchip-audio-rk3036";
+		rockchip,model = "I2S-INNO-RK3036";
+		rockchip,i2s-controller = <&i2s>;
+		rockchip,audio-codec = <&acodec>;
+	};
+
 	usb_control {
 		compatible = "rockchip,rk3036-usb-control";
 		host_drv_gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
 		otg_drv_gpio = <&gpio0 26 GPIO_ACTIVE_LOW>;
 	};
+};
+
+&acodec {
+	status = "okay";
+};
+
+&i2s {
+	status = "okay";
 };
 
 &i2c1 {
