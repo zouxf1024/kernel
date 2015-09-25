@@ -32,12 +32,12 @@ struct rk3036_codec_priv {
 
 
 static int rk3036_codec_dai_set_sysclk(struct snd_soc_dai *dai, int clk_id,
-				   unsigned int fre, int dir)
+				   unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = dai->codec;
 
-	dev_dbg(codec->dev, "rk3036_codec dai set sysclk: fre %d, dir %d\n",
-		fre, dir);
+	dev_dbg(codec->dev, "rk3036_codec dai set sysclk: freq %d, dir %d\n",
+		freq, dir);
 	/*TODO */
 	return 0;
 }
@@ -159,7 +159,7 @@ static int rk3036_codec_dai_hw_params(struct snd_pcm_substream *substream,
 	reg02_val |= INNO_REG_02_LRCP_NORMAL;
 	reg03_val |= INNO_REG_03_FWL_32BIT | INNO_REG_03_DACR_WORK;
 
-	snd_soc_update_bits(codec, INNO_REG_02, INNO_REG_02_LSR_MASK |
+	snd_soc_update_bits(codec, INNO_REG_02, INNO_REG_02_LRCP_MASK |
 			    INNO_REG_02_VWL_MASK, reg02_val);
 	snd_soc_update_bits(codec, INNO_REG_03, INNO_REG_03_DACR_MASK |
 			    INNO_REG_03_FWL_MASK, reg03_val);
@@ -176,17 +176,16 @@ static int rk3036_codec_dai_hw_params(struct snd_pcm_substream *substream,
 /*TODO: the detail of the format bits, LE/BE, U20/S20 ?*/
 #define RK3036_CODEC_FMTS (SNDRV_PCM_FMTBIT_S16_LE  | \
 			   SNDRV_PCM_FMTBIT_S20_3LE | \
-			   SNDRV_PCM_FMTBIT_S24_LE  | \
-			   SNDRV_PCM_FMTBIT_S32_LE)
+			   SNDRV_PCM_FMTBIT_S24_LE)
 
-struct snd_soc_dai_ops rk3036_codec_dai_ops = {
+static struct snd_soc_dai_ops rk3036_codec_dai_ops = {
 	.set_sysclk	= rk3036_codec_dai_set_sysclk,
 	.set_fmt	= rk3036_codec_dai_set_fmt,
 	.digital_mute	= rk3036_codec_dai_digital_mute,
 	.hw_params	= rk3036_codec_dai_hw_params,
 };
 
-struct snd_soc_dai_driver rk3036_codec_dai_driver[] = {
+static struct snd_soc_dai_driver rk3036_codec_dai_driver[] = {
 	{
 		.name = "rk3036-codec-dai",
 		.playback = {
@@ -343,7 +342,7 @@ static struct regmap_bus codec_regmap_bus = {
 
 static struct regmap_config rk3036_codec_regmap_config = {
 	.reg_bits = 32,
-	.reg_stride = 32,
+	.reg_stride = 4,
 	.val_bits = 8,
 };
 
@@ -401,7 +400,7 @@ static int rk3036_codec_platform_probe(struct platform_device *pdev)
 	ret = snd_soc_register_codec(&pdev->dev, &rk3036_codec_driver,
 				      rk3036_codec_dai_driver,
 				      ARRAY_SIZE(rk3036_codec_dai_driver));
-	if (!ret) {
+	if (ret < 0) {
 		clk_disable_unprepare(priv->pclk);
 		dev_set_drvdata(&pdev->dev, NULL);
 	}

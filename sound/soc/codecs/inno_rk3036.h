@@ -34,9 +34,9 @@
 #define INNO_REG_01_PINDIR_IN_SLAVE	(0x0 << 5) /*direction of pin*/
 #define INNO_REG_01_PINDIR_OUT_MASTER	(0x1 << 5)
 
-#define INNO_REG_02_LSR_MASK		(0x3 << 2)
-#define INNO_REG_02_LSR_NORMAL		(0x0 << 2) /*DAC Left Right Swap*/
-#define INNO_REG_02_LSR_SWAP		(0x1 << 2)
+#define INNO_REG_02_LRS_MASK		(0x3 << 2)
+#define INNO_REG_02_LRS_NORMAL		(0x0 << 2) /*DAC Left Right Swap*/
+#define INNO_REG_02_LRS_SWAP		(0x1 << 2)
 #define INNO_REG_02_DACM_MASK		(0x3 << 3)
 #define INNO_REG_02_DACM_PCM		(0x3 << 3) /*DAC Mode*/
 #define INNO_REG_02_DACM_I2S		(0x2 << 3)

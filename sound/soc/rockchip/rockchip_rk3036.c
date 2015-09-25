@@ -5,8 +5,6 @@
  * Author: Zheng ShunQian<zhengsq@rock-chips.com>
  */
 
-#define DEBUG
-
 #include <linux/device.h>
 #include <linux/of.h>
 #include <linux/module.h>
@@ -23,8 +21,10 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int dai_fmt = rtd->dai_link->dai_fmt;
 	int mclk, ret;
+	static int flag = 0;
 
 	dev_info(rtd->dev, "codec machine: %s\n", __func__);
+
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, dai_fmt);
 	if (ret < 0) {
@@ -43,6 +43,7 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	case 24000:
 	case 32000:
 	case 48000:
+	case 96000:
 		mclk = 12288000;
 		break;
 	case 11025:
@@ -55,18 +56,21 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	/*Set the system clk for codec*/
-	ret = snd_soc_dai_set_sysclk(codec_dai, 0, mclk, SND_SOC_CLOCK_IN);
+	ret = snd_soc_dai_set_sysclk(cpu_dai, 0, mclk, SND_SOC_CLOCK_OUT);
 	if (ret < 0) {
+		dev_err(codec_dai->dev, "Can't set codec clock out %d\n", ret);
 		return ret;
 	}
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, 0, mclk, SND_SOC_CLOCK_OUT);
+	ret = snd_soc_dai_set_sysclk(codec_dai, 0, mclk, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
+		dev_err(codec_dai->dev, "Can't set codec clock in %d\n", ret);
 		return ret;
 	}
 
 	return 0;
 }
+
 static struct snd_soc_ops rk3036_ops = {
 	  .hw_params = rk3036_hw_params,
 };
@@ -89,6 +93,7 @@ static struct snd_soc_dai_link rk3036_dai = {
 
 static struct snd_soc_card rockchip_rk3036_snd_card = {
 	.name = "I2S-INNO-RK3036",
+	.owner = THIS_MODULE,
 	.dai_link = &rk3036_dai,
 	.num_links = 1,
 };
@@ -149,7 +154,6 @@ static struct platform_driver rockchip_rk3036_audio_driver = {
 	.remove     = rockchip_rk3036_audio_remove,
 };
 module_platform_driver(rockchip_rk3036_audio_driver);
-
 
 MODULE_AUTHOR("Rockchip Inc.");
 MODULE_DESCRIPTION("Rockchip rk3036 codec driver");
