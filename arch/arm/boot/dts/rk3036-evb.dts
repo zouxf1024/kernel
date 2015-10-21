@@ -72,3 +72,13 @@
 &emmc {
 	status = "okay";
 };
+
+&usb_host {
+	status = "okay";
+};
+
+&usb_otg {
+	status = "okay";
+
+	dr_mode = "host";
+};
