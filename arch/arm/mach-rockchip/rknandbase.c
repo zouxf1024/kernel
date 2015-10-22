@@ -45,7 +45,6 @@ struct rk_nandc_info {
 	int	clk_rate;
 	struct clk	*clk;	/* flash clk*/
 	struct clk	*hclk;	/* nandc clk*/
-	struct clk	*gclk;	/*flash clk gate*/
 };
 
 struct rknand_info *gpNandInfo = NULL;
@@ -239,11 +238,9 @@ static int rknand_probe(struct platform_device *pdev)
 
 	g_nandc_info[id].hclk = devm_clk_get(&pdev->dev, "hclk_nandc");
 	g_nandc_info[id].clk = devm_clk_get(&pdev->dev, "clk_nandc");
-	g_nandc_info[id].gclk = devm_clk_get(&pdev->dev, "g_clk_nandc");
 
 	if (unlikely(IS_ERR(g_nandc_info[id].clk))
-		|| unlikely(IS_ERR(g_nandc_info[id].hclk))
-	|| unlikely(IS_ERR(g_nandc_info[id].gclk))) {
+		|| unlikely(IS_ERR(g_nandc_info[id].hclk))) {
 		printk("rknand_probe get clk error\n");
 		return -1;
 	}
@@ -255,7 +252,7 @@ static int rknand_probe(struct platform_device *pdev)
 
 	clk_prepare_enable(g_nandc_info[id].clk);
 	clk_prepare_enable(g_nandc_info[id].hclk);
-	clk_prepare_enable(g_nandc_info[id].gclk);
+
 	return 0;
 }
 
