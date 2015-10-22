@@ -310,6 +310,18 @@
 		status = "disabled";
 	};
 
+	nandc: nandc@10500000 {
+		compatible = "rockchip,rk-nandc";
+		reg = <0x10500000 0x4000>;
+		interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+		nandc_id = <0>;
+		clocks = <&cru SCLK_NANDC>, <&cru HCLK_NANDC>;
+		clock-names = "clk_nandc", "hclk_nandc";
+		pinctrl-names = "default";
+		pinctrl-0 = <&nandc_ale &nandc_cle &nandc_wrn &nandc_rdn &nandc_rdy &nandc_cs0 &nandc_data>;
+		status = "disabled";
+	};
+
 	usb_otg: usb@10180000 {
 		compatible = "rockchip,rk3288-usb", "rockchip,rk3066-usb",
 				"snps,dwc2";
@@ -458,6 +470,43 @@
 						<1 29 RK_FUNC_2 &pcfg_pull_none>,
 						<1 30 RK_FUNC_2 &pcfg_pull_none>,
 						<1 31 RK_FUNC_2 &pcfg_pull_none>;
+			};
+		};
+
+		nandc {
+			nandc_ale: nandc-ale {
+				rockchip,pins = <2 0 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_cle: nandc-cle {
+				rockchip,pins = <2 1 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_wrn: nandc-wrn {
+				rockchip,pins = <2 2 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_rdn: nandc-rdn {
+				rockchip,pins = <2 3 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_rdy: nandc-rdy {
+				rockchip,pins = <2 4 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_cs0: nandc-cs0 {
+				rockchip,pins = <2 6 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			nandc_data: nandc-data {
+				rockchip,pins = <1 24 RK_FUNC_1 &pcfg_pull_none>,
+						<1 25 RK_FUNC_1 &pcfg_pull_none>,
+						<1 26 RK_FUNC_1 &pcfg_pull_none>,
+						<1 27 RK_FUNC_1 &pcfg_pull_none>,
+						<1 28 RK_FUNC_1 &pcfg_pull_none>,
+						<1 29 RK_FUNC_1 &pcfg_pull_none>,
+						<1 30 RK_FUNC_1 &pcfg_pull_none>,
+						<1 31 RK_FUNC_1 &pcfg_pull_none>;
 			};
 		};
 
