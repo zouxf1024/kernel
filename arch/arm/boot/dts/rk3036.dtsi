@@ -491,7 +491,8 @@
 			};
 
 			nandc_rdy: nandc-rdy {
-				rockchip,pins = <2 4 RK_FUNC_1 &pcfg_pull_none>;
+				/* nandc rdy should be pull up, low level indicate busy */
+				rockchip,pins = <2 4 RK_FUNC_1 &pcfg_pull_up>;
 			};
 
 			nandc_cs0: nandc-cs0 {
