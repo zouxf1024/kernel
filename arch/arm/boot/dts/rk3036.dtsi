@@ -57,7 +57,7 @@
 		serial2 = &uart2;
 	};
 
-	memory {
+	memory: memory {
 		device_type = "memory";
 		reg = <0x60000000 0x40000000>;
 	};
