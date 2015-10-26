@@ -23,6 +23,14 @@
 
 #ifdef CONFIG_IOCTL_CFG80211
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+#define STATION_INFO_SIGNAL		BIT(NL80211_STA_INFO_SIGNAL)
+#define STATION_INFO_TX_BITRATE		BIT(NL80211_STA_INFO_TX_BITRATE)
+#define STATION_INFO_RX_PACKETS		BIT(NL80211_STA_INFO_RX_PACKETS)
+#define STATION_INFO_TX_PACKETS		BIT(NL80211_STA_INFO_TX_PACKETS)
+#define STATION_INFO_ASSOC_REQ_IES	0
+#endif /* Linux kernel >= 4.0.0 */
+
 #include <rtw_wifi_regd.h>
 
 #define RTW_MAX_MGMT_TX_CNT (8)
@@ -3905,6 +3913,11 @@ static int
 	#else
 		char *name,
 	#endif
+
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+		unsigned char name_assign_type,
+	#endif
+
 		enum nl80211_iftype type, u32 *flags, struct vif_params *params)
 {
 	int ret = 0;
@@ -4221,8 +4234,10 @@ exit:
 static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,16,0))
 				u8 *mac
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0))
 				const u8 *mac
+#else
+				struct station_del_parameters *params
 #endif
 			       )
 {
@@ -4230,12 +4245,19 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	_irqL irqL;
 	_list	*phead, *plist;
 	u8 updated = _FALSE;
+	const u8 *target_mac;
 	struct sta_info *psta = NULL;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(ndev);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct sta_priv *pstapriv = &padapter->stapriv;
 
 	DBG_871X("+"FUNC_NDEV_FMT"\n", FUNC_NDEV_ARG(ndev));
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0))
+	target_mac = mac;
+#else
+	target_mac = params->mac;
+#endif
 
 	if(check_fwstate(pmlmepriv, (_FW_LINKED|WIFI_AP_STATE)) != _TRUE)		
 	{
@@ -4244,7 +4266,7 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	}
 
 
-	if(!mac)
+	if (!target_mac)
 	{
 		DBG_8192C("flush all sta, and cam_entry\n");
 
@@ -4256,11 +4278,11 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	}	
 
 
-	DBG_8192C("free sta macaddr =" MAC_FMT "\n", MAC_ARG(mac));
+	DBG_8192C("free sta macaddr =" MAC_FMT "\n", MAC_ARG(target_mac));
 
-	if (mac[0] == 0xff && mac[1] == 0xff &&
-	    mac[2] == 0xff && mac[3] == 0xff &&
-	    mac[4] == 0xff && mac[5] == 0xff) 
+	if (target_mac[0] == 0xff && target_mac[1] == 0xff &&
+	    target_mac[2] == 0xff && target_mac[3] == 0xff &&
+	    target_mac[4] == 0xff && target_mac[5] == 0xff)
 	{
 		return -EINVAL;	
 	}
@@ -4276,9 +4298,9 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *ndev
 	{
 		psta = LIST_CONTAINOR(plist, struct sta_info, asoc_list);
 		
-		plist = get_next(plist);	
+		plist = get_next(plist);
 	
-		if(_rtw_memcmp((u8 *)mac, psta->hwaddr, ETH_ALEN))		
+		if(_rtw_memcmp((u8 *)target_mac, psta->hwaddr, ETH_ALEN))
 		{
 			if(psta->dot8021xalg == 1 && psta->bpairwise_key_installed == _FALSE)
 			{
@@ -4329,7 +4351,8 @@ static int	cfg80211_rtw_change_station(struct wiphy *wiphy, struct net_device *n
 
 struct sta_info *rtw_sta_info_get_by_idx(const int idx, struct sta_priv *pstapriv)
 
-{
+{
+
 	_list	*phead, *plist;
 	struct sta_info *psta = NULL;
 	int i = 0;

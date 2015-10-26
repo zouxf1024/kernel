@@ -27,16 +27,30 @@
 #if defined(RTW_ENABLE_WIFI_CONTROL_FUNC)
 #include <linux/platform_device.h>
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
-#include <linux/wlan_plat.h>
+// #include <linux/wlan_plat.h>
 #else
 #include <linux/wifi_tiwlan.h>
 #endif
 #endif /* defined(RTW_ENABLE_WIFI_CONTROL_FUNC) */
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+#define strnicmp	strncasecmp
+#endif /* Linux kernel >= 4.0.0 */
+
 #ifdef CONFIG_GPIO_WAKEUP
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #endif
+
+struct wifi_platform_data {
+	int (*set_power)(int val);
+	int (*set_reset)(int val);
+	int (*set_carddetect)(int val);
+	void *(*mem_prealloc)(int section, unsigned long size);
+	int (*get_mac_addr)(unsigned char *buf);
+	int (*get_wake_irq)(void);
+	void *(*get_country_code)(char *ccode);
+};
 
 extern void macstr2num(u8 *dst, u8 *src);
 
