@@ -52,6 +52,11 @@
 		rockchip,i2s-controller = <&i2s>;
 		rockchip,audio-codec = <&acodec>;
 	};
+
+	usb_control {
+		compatible = "rockchip,rk3036-usb-control";
+		host_drv_gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
+	};
 };
 
 &memory {
