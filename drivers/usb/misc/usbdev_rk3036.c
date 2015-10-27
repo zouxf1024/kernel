@@ -19,6 +19,24 @@ struct dwc_otg_control_usb {
 
 static struct dwc_otg_control_usb *control_usb;
 
+static int rk_wifi_power_on(struct platform_device *pdev)
+{
+	struct gpio_desc *wifipwr_gpiod;
+
+	wifipwr_gpiod = devm_gpiod_get(&pdev->dev, "wifipwr");
+
+	if (IS_ERR_OR_NULL(wifipwr_gpiod)) {
+		dev_err(&pdev->dev, "%s: invalid wifipwr gpiod\n", __func__);
+		return -ENXIO;
+	}
+
+	dev_info(&pdev->dev, "%s: will set wifipwr high\n", __func__);
+
+	gpiod_direction_output(wifipwr_gpiod, 1);
+
+	return 0;
+}
+
 static int rk_usb_control_probe(struct platform_device *pdev)
 {
 	int gpio, err;
@@ -82,6 +100,8 @@ static int rk_usb_control_probe(struct platform_device *pdev)
 
 		gpio_direction_output(control_usb->otg_gpios->gpio, 1);
 	}
+
+	rk_wifi_power_on(pdev);
 
 out:
 	return ret;
