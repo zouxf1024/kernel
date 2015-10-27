@@ -1,6 +1,12 @@
 config RTL8821AU
 	tristate "Realtek 8821A USB WiFi"
-	depends on USB
+	depends on USB && WLAN
+	select WIRELESS_EXT
+	select WEXT_PRIV
+	select CFG80211
+	# select IEEE80211
+	default n
+
 	---help---
-	  Help message of RTL8821AU
+	Help message of RTL8821AU
 

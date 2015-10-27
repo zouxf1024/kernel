@@ -72,7 +72,7 @@ CONFIG_AP_WOWLAN = n
 ######### Notify SDIO Host Keep Power During Syspend ##########
 CONFIG_RTW_SDIO_PM_KEEP_POWER = y
 ###################### Platform Related #######################
-CONFIG_PLATFORM_I386_PC = y
+CONFIG_PLATFORM_I386_PC = n
 CONFIG_PLATFORM_ANDROID_X86 = n
 CONFIG_PLATFORM_ANDROID_INTEL_X86 = n
 CONFIG_PLATFORM_JB_X86 = n
@@ -95,6 +95,7 @@ CONFIG_PLATFORM_ARM_TCC8900 = n
 CONFIG_PLATFORM_ARM_TCC8920 = n
 CONFIG_PLATFORM_ARM_TCC8920_JB42 = n
 CONFIG_PLATFORM_ARM_RK2818 = n
+CONFIG_PLATFORM_ARM_RK3036 = y
 CONFIG_PLATFORM_ARM_RK3066 = n
 CONFIG_PLATFORM_ARM_RK3188 = n
 CONFIG_PLATFORM_ARM_URBETTER = n
@@ -141,7 +142,6 @@ endif
 ifeq ($(CONFIG_PCI_HCI), y)
 HCI_NAME = pci
 endif
-
 
 _OS_INTFS_FILES :=	os_dep/osdep_service.o \
 			os_dep/linux/os_intfs.o \
@@ -1178,6 +1178,24 @@ KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
 MODULE_NAME := wlan
 endif
 
+ifeq ($(CONFIG_PLATFORM_ARM_RK3036), y)
+EXTRA_CFLAGS += -DCONFIG_PLATFORM_LINUX
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID -DCONFIG_PLATFORM_ROCKCHIPS
+# default setting for Android 4.1, 4.2, 4.3, 4.4
+EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
+EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+# default setting for Power control
+EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
+# default setting for Special function
+EXTRA_CFLAGS += -DCONFIG_P2P_IPS
+ARCH := arm
+CROSS_COMPILE := /usr/bin/arm-linux-gnueabi-
+#CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3066sdk/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.6/bin/arm-linux-androideabi-
+KSRC := $(TopDIR)/../../../
+# KSRC := /media/chromium_mirror/src/third_party/kernel/rkgithub/
+MODULE_NAME := wlan
+endif
+
 ifeq ($(CONFIG_PLATFORM_ARM_RK3066), y)
 EXTRA_CFLAGS += -DCONFIG_PLATFORM_ARM_RK3066
 EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
@@ -1540,7 +1558,10 @@ ifeq ($(CONFIG_RTL8821A), y)
 $(MODULE_NAME)-$(CONFIG_MP_INCLUDED)+= core/rtw_bt_mp.o
 endif
 
+# export CONFIG_RTL8821AU = m
+
 obj-$(CONFIG_RTL8821AU) := $(MODULE_NAME).o
+$(warning $(CONFIG_RTL8821AU) $(MODULE_NAME))
 
 else
 

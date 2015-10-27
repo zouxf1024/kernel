@@ -46,6 +46,8 @@ source "drivers/staging/rtl8188eus_rtl/Kconfig"
 
 source "drivers/staging/rtl8723au/Kconfig"
 
+source "drivers/staging/rtl8821au/Kconfig"
+
 source "drivers/staging/rts5208/Kconfig"
 
 source "drivers/staging/octeon/Kconfig"
