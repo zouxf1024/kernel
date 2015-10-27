@@ -1,5 +1,8 @@
 config RTL8188EU
 	tristate "Realtek 8188E USB WiFi"
+	select WIRELESS_EXT
+	select WEXT_PRIV
+	select CFG80211
 	depends on USB
 	---help---
 	  Help message of RTL8188EU
