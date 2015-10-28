@@ -63,31 +63,31 @@ uint config_msg_level = CONFIG_ERROR_LEVEL;
 #define BCM4356A2_CHIP_REV      2
 
 const static char *bcm4330b2_fw_name[] = {
-	"fw_RK903b2.bin",
-	"fw_RK903b2_apsta.bin",
-	"fw_RK903b2_p2p.bin",
-	"fw_RK903b2_mfg.bin"
+	"fw_bcm4330b2.bin",
+	"fw_bcm4330b2_apsta.bin",
+	"fw_bcm4330b2_p2p.bin",
+	"fw_bcm4330b2_mfg.bin"
 };
 
 const static char *bcm4330b2_ag_fw_name[] = {
-	"fw_RK903_ag.bin",
-	"fw_RK903_ag_apsta.bin",
-	"fw_RK903_ag_p2p.bin",
-	"fw_RK903_ag_mfg.bin"
+	"fw_bcm4330b2_ag.bin",
+	"fw_bcm4330b2_ag_apsta.bin",
+	"fw_bcm4330b2_ag_p2p.bin",
+	"fw_bcm4330b2_ag_mfg.bin"
 };
 
 const static char *bcm43362a0_fw_name[] = {
-	"fw_RK901a0.bin",
-	"fw_RK901a0_apsta.bin",
-	"fw_RK901a0_p2p.bin",
-	"fw_RK901a0_mfg.bin"
+	"fw_bcm43362a0.bin",
+	"fw_bcm43362a0_apsta.bin",
+	"fw_bcm43362a0_p2p.bin",
+	"fw_bcm43362a0_mfg.bin"
 };
 
 const static char *bcm43362a2_fw_name[] = {
-	"fw_RK901a2.bin",
-	"fw_RK901a2_apsta.bin",
-	"fw_RK901a2_p2p.bin",
-	"fw_RK901a2_mfg.bin"
+	"fw_bcm43362a2.bin",
+	"fw_bcm43362a2_apsta.bin",
+	"fw_bcm43362a2_p2p.bin",
+	"fw_bcm43362a2_mfg.bin"
 };
 
 const static char *bcm43438a0_fw_name[] = {
@@ -458,7 +458,7 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 			} else {
 				if (chiprev == BCM4330B2_CHIP_REV)
 					strcpy(&fw_path[i+1], bcm4330b2_ag_fw_name[fw_type]);
-				strcpy(&nv_path[j+1], "nvram_AP6330.txt");
+				strcpy(&nv_path[j+1], "nvram_ap6330.txt");
 				break;
 			}
 		case BCM43362_CHIP_ID:
@@ -466,7 +466,7 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 				strcpy(&fw_path[i+1], bcm43362a0_fw_name[fw_type]);
 			else
 				strcpy(&fw_path[i+1], bcm43362a2_fw_name[fw_type]);
-			strcpy(&nv_path[j+1], "nvram_AP6210.txt");
+			strcpy(&nv_path[j+1], "nvram_ap6210.txt");
 			break;
 		case BCM43430_CHIP_ID:
 			if (chiprev == BCM43430A0_CHIP_REV)
@@ -499,7 +499,7 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 		case BCM4339_CHIP_ID:
 			if (chiprev == BCM4339A0_CHIP_REV)
 				strcpy(&fw_path[i+1], bcm4339a0_ag_fw_name[fw_type]);
-			strcpy(&nv_path[j+1], "nvram_AP6335.txt");
+			strcpy(&nv_path[j+1], "nvram_ap6335.txt");
 			break;
 		case BCM4354_CHIP_ID:
 			if (chiprev == BCM4354A1_CHIP_REV) {

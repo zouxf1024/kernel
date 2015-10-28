@@ -365,6 +365,18 @@
 		status = "disabled";
 	};
 
+    sdio: dwmmc@10218000 {
+        compatible = "rockchip,rk3288-dw-mshc";
+        clock-freq-min-max = <400000 37500000>;
+        clocks = <&cru HCLK_SDIO>, <&cru SCLK_SDIO>,
+             <&cru SCLK_SDIO_DRV>, <&cru SCLK_SDIO_SAMPLE>;
+        clock-names = "biu", "ciu", "ciu_drv", "ciu_sample";
+        fifo-depth = <0x100>;
+        interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+        reg = <0x10218000 0x4000>;
+        status = "disabled";
+    };
+
 	pinctrl: pinctrl {
 		compatible = "rockchip,rk3036-pinctrl";
 		rockchip,grf = <&grf>;
@@ -557,6 +569,27 @@
 						<1 19 RK_FUNC_2 &pcfg_pull_none>;
 			};
 			/* no rts / cts for uart2 */
+		};
+
+		sdio {
+			sdio_bus1: sdio-bus1 {
+				rockchip,pins = <0 11 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			sdio_bus4: sdio-bus4 {
+				rockchip,pins = <0 11 RK_FUNC_1 &pcfg_pull_none>,
+						<0 12 RK_FUNC_1 &pcfg_pull_none>,
+						<0 13 RK_FUNC_1 &pcfg_pull_none>,
+						<0 14 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			sdio_cmd: sdio-cmd {
+				rockchip,pins = <0 8 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			sdio_clk: sdio-clk {
+				rockchip,pins = <0 9 RK_FUNC_1 &pcfg_pull_none>;
+			};
 		};
 	};
 };

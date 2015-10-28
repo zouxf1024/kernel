@@ -51,17 +51,16 @@ endif
 
 DHDCFLAGS += -DEXAMPLE_GET_MAC
 
-#ifeq ($(CONFIG_MACH_ODROID_4210),y)
+ifeq ($(CONFIG_ARCH_ROCKCHIP),y)
 DHDOFILES += dhd_gpio.o
 DHDCFLAGS += -DCUSTOMER_HW -DDHD_OF_SUPPORT -DGET_CUSTOM_MAC_ENABLE
-#DHDCFLAGS += -DBCMWAPI_WPI -DBCMWAPI_WAI
-#endif
+endif
 
 #DHDCFLAGS += -DBAND_AG
 
 ifeq ($(CONFIG_DHD_USE_STATIC_BUF),y)
 # add dhd_static_buf to kernel image build
-#obj-y += dhd_static_buf.o
+obj-y += dhd_static_buf.o
 DHDCFLAGS += -DSTATIC_WL_PRIV_STRUCT -DENHANCED_STATIC_BUF
 endif
 

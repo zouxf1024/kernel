@@ -318,7 +318,7 @@ static s32 wl_cfg80211_join_ibss(struct wiphy *wiphy, struct net_device *dev,
 static s32 wl_cfg80211_leave_ibss(struct wiphy *wiphy,
 	struct net_device *dev);
 static s32 wl_cfg80211_get_station(struct wiphy *wiphy,
-	struct net_device *dev, u8 *mac,
+	struct net_device *dev, const u8 *mac,
 	struct station_info *sinfo);
 static s32 wl_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 	struct net_device *dev, bool enabled,
@@ -362,9 +362,9 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy);
 static s32 wl_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 	bcm_struct_cfgdev *cfgdev, u64 cookie);
 static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
-	struct net_device *ndev, u8* mac_addr);
+	struct net_device *ndev, struct station_del_parameters* params);
 static s32 wl_cfg80211_change_station(struct wiphy *wiphy,
-	struct net_device *dev, u8 *mac, struct station_parameters *params);
+	struct net_device *dev, const u8 *mac, struct station_parameters *params);
 #endif /* WL_SUPPORT_BACKPORTED_KPATCHES || KERNEL_VER >= KERNEL_VERSION(3, 2, 0)) */
 static s32 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)
@@ -386,17 +386,11 @@ void wl_cfg80211_scan_abort(struct bcm_cfg80211 *cfg);
 static s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 	struct net_device *ndev, bool aborted, bool fw_abort);
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 2, 0)) || defined(WL_COMPAT_WIRELESS)
-#if defined(CONFIG_ARCH_MSM) && defined(TDLS_MGMT_VERSION2)
 static s32 wl_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, u8 action_code, u8 dialog_token, u16 status_code,
-	u32 peer_capability, const u8 *data, size_t len);
-#else
-static s32 wl_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, u8 action_code, u8 dialog_token, u16 status_code, const u8 *data,
-	size_t len);
-#endif /* CONFIG_ARCH_MSM && TDLS_MGMT_VERSION2 */
+	const u8 *peer, u8 action_code, u8 dialog_token, u16 status_code,
+	u32 peer_capability, bool initiator, const u8 *data, size_t len);
 static s32 wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, enum nl80211_tdls_operation oper);
+	const u8 *peer, enum nl80211_tdls_operation oper);
 #endif /* LINUX_VERSION > KERNEL_VERSION(3,2,0) || WL_COMPAT_WIRELESS */
 #ifdef WL_SCHED_SCAN
 static int wl_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *dev);
@@ -1362,8 +1356,9 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 #if defined(WL_CFG80211_P2P_DEV_IF)
 	const char *name,
 #else
-	char *name,
+	const char *name,
 #endif /* WL_CFG80211_P2P_DEV_IF */
+	unsigned char name_assign_type,
 	enum nl80211_iftype type, u32 *flags,
 	struct vif_params *params)
 {
@@ -5058,7 +5053,7 @@ wl_cfg80211_get_key(struct wiphy *wiphy, struct net_device *dev,
 	swap_key_to_BE(&key);
 	memset(&params, 0, sizeof(params));
 	params.key_len = (u8) min_t(u8, DOT11_MAX_KEY_SIZE, key.len);
-	memcpy(params.key, key.data, params.key_len);
+	memcpy((void *)params.key, key.data, params.key_len);
 
 	err = wldev_iovar_getint_bsscfg(dev, "wsec", &wsec, bssidx);
 	if (unlikely(err)) {
@@ -5132,7 +5127,7 @@ wl_cfg80211_config_default_mgmt_key(struct wiphy *wiphy,
 
 static s32
 wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
-	u8 *mac, struct station_info *sinfo)
+	const u8 *mac, struct station_info *sinfo)
 {
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	scb_val_t scb_val;
@@ -7843,7 +7838,7 @@ static s32
 wl_cfg80211_del_station(
 	struct wiphy *wiphy,
 	struct net_device *ndev,
-	u8* mac_addr)
+	struct station_del_parameters* params)
 {
 	struct net_device *dev;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
@@ -7854,6 +7849,7 @@ wl_cfg80211_del_station(
 		sizeof(struct ether_addr) + sizeof(uint)] = {0};
 	struct maclist *assoc_maclist = (struct maclist *)mac_buf;
 	int num_associated = 0;
+	const u8* mac_addr = params->mac;
 
 	WL_DBG(("Entry\n"));
 	if (mac_addr == NULL) {
@@ -7901,7 +7897,7 @@ static s32
 wl_cfg80211_change_station(
 	struct wiphy *wiphy,
 	struct net_device *dev,
-	u8 *mac,
+	const u8 *mac,
 	struct station_parameters *params)
 {
 	int err;
@@ -7913,13 +7909,13 @@ wl_cfg80211_change_station(
 		return -ENOTSUPP;
 
 	if (!(params->sta_flags_set & BIT(NL80211_STA_FLAG_AUTHORIZED))) {
-		err = wldev_ioctl(primary_ndev, WLC_SCB_DEAUTHORIZE, mac, ETH_ALEN, true);
+		err = wldev_ioctl(primary_ndev, WLC_SCB_DEAUTHORIZE, (void *)mac, ETH_ALEN, true);
 		if (err)
 			WL_ERR(("WLC_SCB_DEAUTHORIZE error (%d)\n", err));
 		return err;
 	}
 
-	err = wldev_ioctl(primary_ndev, WLC_SCB_AUTHORIZE, mac, ETH_ALEN, true);
+	err = wldev_ioctl(primary_ndev, WLC_SCB_AUTHORIZE, (void *)mac, ETH_ALEN, true);
 	if (err)
 		WL_ERR(("WLC_SCB_AUTHORIZE error (%d)\n", err));
 	return err;
@@ -10352,7 +10348,7 @@ wl_notify_rx_mgmt_frame(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 	u8 bsscfgidx = e->bsscfgidx;
 	u32 mgmt_frame_len = ntoh32(e->datalen) - sizeof(wl_event_rx_frame_data_t);
 	u16 channel = ((ntoh16(rxframe->channel) & WL_CHANSPEC_CHAN_MASK));
-	bool retval;
+	bool retval = false;
 
 	memset(&bssid, 0, ETHER_ADDR_LEN);
 
@@ -14302,15 +14298,9 @@ wl_tdls_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 2, 0)) || defined(WL_COMPAT_WIRELESS)
 static s32
-#if defined(CONFIG_ARCH_MSM) && defined(TDLS_MGMT_VERSION2)
 wl_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
-        u8 *peer, u8 action_code, u8 dialog_token, u16 status_code,
-        u32 peer_capability, const u8 *data, size_t len)
-#else
-wl_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, u8 action_code, u8 dialog_token, u16 status_code, const u8 *data,
-	size_t len)
-#endif  /* CONFIG_ARCH_MSM && TDLS_MGMT_VERSION2 */
+		const u8 *peer, u8 action_code, u8 dialog_token, u16 status_code,
+		u32 peer_capability, bool initiator, const u8 *data, size_t len)
 {
 	s32 ret = 0;
 #ifdef WLTDLS
@@ -14358,7 +14348,7 @@ out:
 
 static s32
 wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, enum nl80211_tdls_operation oper)
+	const u8 *peer, enum nl80211_tdls_operation oper)
 {
 	s32 ret = 0;
 #ifdef WLTDLS

@@ -5190,8 +5190,12 @@ bool dhd_update_fw_nv_path(dhd_info_t *dhdinfo)
 	const char *fw = NULL;
 	const char *nv = NULL;
 	const char *conf = NULL;
+#ifndef CONFIG_BCMDHD_FW_PATH
 	char firmware[100] = {0};
+#endif
+#ifndef CONFIG_BCMDHD_NVRAM_PATH
 	char nvram[100] = {0};
+#endif
 	wifi_adapter_info_t *adapter = dhdinfo->adapter;
 
 

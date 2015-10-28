@@ -32,6 +32,8 @@ static int rk_wifi_power_on(struct platform_device *pdev)
 
 	dev_info(&pdev->dev, "%s: will set wifipwr high\n", __func__);
 
+	gpiod_direction_output(wifipwr_gpiod, 0);
+	mdelay(50);
 	gpiod_direction_output(wifipwr_gpiod, 1);
 
 	return 0;

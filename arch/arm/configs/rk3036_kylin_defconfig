@@ -84,6 +84,8 @@ CONFIG_STMMAC_ETH=y
 # CONFIG_NET_VENDOR_WIZNET is not set
 CONFIG_SMSC_PHY=y
 CONFIG_BCMDHD=y
+CONFIG_BCMDHD_FW_PATH="/system/vendor/firmware/fw_bcm43362a2.bin"
+CONFIG_BCMDHD_NVRAM_PATH="/system/vendor/firmware/nvram_ap6210.txt"
 # CONFIG_BCMDHD_OOB is not set
 CONFIG_BCMDHD_SDIO_IRQ=y
 # CONFIG_INPUT_MOUSEDEV_PSAUX is not set

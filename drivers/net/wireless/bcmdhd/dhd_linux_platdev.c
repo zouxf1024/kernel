@@ -432,6 +432,9 @@ static int wifi_ctrlfunc_register_drv(void)
 
 #if !defined(CONFIG_DTS)
 	if (dts_enabled) {
+#ifndef CUSTOMER_HW
+		struct resource *resource;
+#endif
 		adapter->wifi_plat_data = (void *)&dhd_wlan_control;
 #ifdef CUSTOMER_HW
 		bcm_wlan_set_plat_data();
@@ -440,7 +443,6 @@ static int wifi_ctrlfunc_register_drv(void)
 		adapter->intr_flags = bcm_wlan_get_oob_irq_flags();
 #endif
 #else
-		struct resource *resource;
 		resource = &dhd_wlan_resources;
 		adapter->irq_num = resource->start;
 		adapter->intr_flags = resource->flags & IRQF_TRIGGER_MASK;
