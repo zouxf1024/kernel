@@ -243,6 +243,20 @@
 		status = "disabled";
 	};
 
+	spdif: sound@10204000 {
+		compatible = "rockchip,rk3036-spdif";
+		reg = <0x10204000 0x1000>;
+		#sound-dai-cells = <0>;
+		clock-names = "mclk";
+		clocks = <&cru SCLK_SPDIF>;
+		dmas = <&pdma 13>;
+		dma-names = "tx";
+		interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&spdif_tx>;
+		status = "disabled";
+	};
+
 	uart0: serial@20060000 {
 		compatible = "rockchip,rk3036-uart", "snps,dw-apb-uart";
 		reg = <0x20060000 0x100>;
@@ -537,6 +551,12 @@
 						<1 29 RK_FUNC_1 &pcfg_pull_none>,
 						<1 30 RK_FUNC_1 &pcfg_pull_none>,
 						<1 31 RK_FUNC_1 &pcfg_pull_none>;
+			};
+		};
+
+		spdif {
+			spdif_tx: spdif-tx {
+				rockchip,pins = <0 28 RK_FUNC_1 &pcfg_pull_none>;
 			};
 		};
 

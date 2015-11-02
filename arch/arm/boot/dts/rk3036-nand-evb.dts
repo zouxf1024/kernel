@@ -53,6 +53,18 @@
 		rockchip,audio-codec = <&acodec>;
 	};
 
+	sound_spdif {
+		compatible = "rockchip,rockchip-spdif-card";
+		rockchip,model = "SPDIFCARD-ROCKCHIP";
+		rockchip,spdif-controller = <&spdif>;
+		rockchip,audio-codec = <&spdif_out>;
+	};
+
+	spdif_out: spdif-out {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+
 	usb_control {
 		compatible = "rockchip,rk3036-usb-control";
 		host_drv_gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
@@ -83,6 +95,10 @@
 		clock-frequency = <32768>;
 		clock-output-names = "xin32k";
 	};
+};
+
+&spdif {
+	status = "okay";
 };
 
 &uart2 {
