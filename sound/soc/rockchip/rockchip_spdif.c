@@ -25,6 +25,7 @@
 #include "rockchip_spdif.h"
 
 enum rk_spdif_type {
+	RK_SPDIF_RK3036,
 	RK_SPDIF_RK3066,
 	RK_SPDIF_RK3188,
 	RK_SPDIF_RK3288,
@@ -44,6 +45,8 @@ struct rk_spdif_dev {
 };
 
 static const struct of_device_id rk_spdif_match[] = {
+	{ .compatible = "rockchip,rk3036-spdif",
+	  .data = (void *) RK_SPDIF_RK3036 },
 	{ .compatible = "rockchip,rk3066-spdif",
 	  .data = (void *) RK_SPDIF_RK3066 },
 	{ .compatible = "rockchip,rk3188-spdif",
@@ -92,6 +95,9 @@ static int rk_spdif_hw_params(struct snd_pcm_substream *substream,
 	unsigned int val = SPDIF_CFGR_HALFWORD_ENABLE;
 	int srate, mclk;
 	int ret;
+
+	dev_info(spdif->dev, "%s - line = %d, params_rate = %d HZ\n",
+		__func__, __LINE__, params_rate(params));
 
 	srate = params_rate(params);
 	switch (srate) {
@@ -300,15 +306,21 @@ static int rk_spdif_probe(struct platform_device *pdev)
 	if (!spdif)
 		return -ENOMEM;
 
-	spdif->hclk = devm_clk_get(&pdev->dev, "hclk");
-	if (IS_ERR(spdif->hclk)) {
-		dev_err(&pdev->dev, "Can't retrieve rk_spdif bus clock\n");
-		return PTR_ERR(spdif->hclk);
-	}
-	ret = clk_prepare_enable(spdif->hclk);
-	if (ret) {
-		dev_err(spdif->dev, "hclock enable failed %d\n", ret);
-		return ret;
+	dev_info(&pdev->dev, "%s -- match data type is: %d\n",
+		__func__, (int) match->data);
+
+	/* rk3036 have not spdif hclk gate node in clock tree explicitly */
+	if ((int) match->data != RK_SPDIF_RK3036) {
+		spdif->hclk = devm_clk_get(&pdev->dev, "hclk");
+		if (IS_ERR(spdif->hclk)) {
+			dev_err(&pdev->dev, "Can't retrieve rk_spdif bus clock\n");
+			return PTR_ERR(spdif->hclk);
+		}
+		ret = clk_prepare_enable(spdif->hclk);
+		if (ret) {
+			dev_err(spdif->dev, "hclock enable failed %d\n", ret);
+			return ret;
+		}
 	}
 
 	spdif->mclk = devm_clk_get(&pdev->dev, "mclk");
@@ -328,7 +340,12 @@ static int rk_spdif_probe(struct platform_device *pdev)
 	if (IS_ERR(regs))
 		return PTR_ERR(regs);
 
-	spdif->regmap = devm_regmap_init_mmio_clk(&pdev->dev, "hclk", regs,
+	/* rk3036 have not spdif hclk gate node in clock tree explicitly */
+	if ((int) match->data == RK_SPDIF_RK3036)
+		spdif->regmap = devm_regmap_init_mmio(&pdev->dev, regs,
+						  &rk_spdif_regmap_config);
+	else
+		spdif->regmap = devm_regmap_init_mmio_clk(&pdev->dev, "hclk", regs,
 						  &rk_spdif_regmap_config);
 	if (IS_ERR(spdif->regmap)) {
 		dev_err(&pdev->dev,
