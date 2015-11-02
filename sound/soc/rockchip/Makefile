@@ -7,5 +7,7 @@ obj-$(CONFIG_SND_SOC_ROCKCHIP_SPDIF) += snd-soc-rockchip-spdif.o
 
 # ROCKCHIP Machine Support
 snd-soc-rockchip-rk3036-objs := rockchip_rk3036.o
+snd-soc-rockchip-spdif-card-objs := rockchip_spdif_card.o
 
 obj-$(CONFIG_SND_SOC_ROCKCHIP_RK3036) += snd-soc-rockchip-rk3036.o
+obj-$(CONFIG_SND_SOC_ROCKCHIP_SPDIF_CARD) += snd-soc-rockchip-spdif-card.o
