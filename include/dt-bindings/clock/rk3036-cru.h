@@ -56,8 +56,6 @@
 #define SCLK_MACREF		152
 #define SCLK_SFC		160
 
-#define DCLK_LCDC		190
-
 /* aclk gates */
 #define ACLK_DMAC2		194
 #define ACLK_LCDC		197

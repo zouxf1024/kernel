@@ -134,7 +134,7 @@ PNAME(mux_uart0_p)	= { "uart0_src", "uart0_frac", "xin24m" };
 PNAME(mux_uart1_p)	= { "uart1_src", "uart1_frac", "xin24m" };
 PNAME(mux_uart2_p)	= { "uart2_src", "uart2_frac", "xin24m" };
 PNAME(mux_mac_p)	= { "mac_pll_src", "ext_gmac" };
-PNAME(mux_dclk_p)	= { "dclk_lcdc", "dclk_hdmi_src" };
+PNAME(mux_dclk_p)	= { "dclk_lcdc", "dclk_cru" };
 
 static struct rockchip_pll_clock rk3036_pll_clks[] __initdata = {
 	[apll] = PLL(pll_rk3036, PLL_APLL, "apll", mux_pll_p, 0, RK2928_PLL_CON(0),
@@ -268,7 +268,7 @@ static struct rockchip_clk_branch rk3036_clk_branches[] __initdata = {
 	COMPOSITE(0, "hclk_disp_pre", mux_pll_src_3plls_p, 0,
 			RK2928_CLKSEL_CON(30), 14, 2, MFLAGS, 8, 5, DFLAGS,
 			RK2928_CLKGATE_CON(0), 11, GFLAGS),
-	COMPOSITE(DCLK_LCDC, "dclk_lcdc", mux_pll_src_3plls_p, 0,
+	COMPOSITE(SCLK_LCDC, "dclk_lcdc", mux_pll_src_3plls_p, 0,
 			RK2928_CLKSEL_CON(28), 0, 2, MFLAGS, 8, 8, DFLAGS,
 			RK2928_CLKGATE_CON(3), 2, GFLAGS),
 
@@ -352,13 +352,6 @@ static struct rockchip_clk_branch rk3036_clk_branches[] __initdata = {
 			RK2928_CLKSEL_CON(21), 9, 5, DFLAGS,
 			RK2928_CLKGATE_CON(2), 6, GFLAGS),
 
-	/* HDMI */
-	/* total clks: pin_sys_clk / pin_sck / pin_mclk / pin_vclk / pin_vclk_pllref */
-	/* the same with dclk_lcdc */
-	COMPOSITE(0, "dclk_hdmi_src", mux_pll_src_3plls_p, 0,
-			RK2928_CLKSEL_CON(28), 0, 2, MFLAGS, 8, 8, DFLAGS,
-			RK2928_CLKGATE_CON(3), 2, GFLAGS),
-	/* hdmi dclk from dclk_lcdc directly */
 	MUX(SCLK_HDMI, "dclk_hdmi", mux_dclk_p, 0,
 			RK2928_CLKSEL_CON(31), 0, 1, MFLAGS),
 
@@ -387,7 +380,7 @@ static struct rockchip_clk_branch rk3036_clk_branches[] __initdata = {
 	GATE(HCLK_LCDC, "hclk_lcdc", "hclk_disp_pre", 0, RK2928_CLKGATE_CON(9), 5, GFLAGS),
 
 	/* aclk_video gates */
-	GATE(HCLK_LCDC, "hclk_vcodec", "hclk_disp_pre", 0, RK2928_CLKGATE_CON(3), 12, GFLAGS),
+	GATE(HCLK_VCODEC, "hclk_vcodec", "hclk_disp_pre", 0, RK2928_CLKGATE_CON(3), 12, GFLAGS),
 
 	/* xin24m gates */
 	GATE(SCLK_PVTM_CORE, "sclk_pvtm_core", "xin24m", 0, RK2928_CLKGATE_CON(10), 0, GFLAGS),
