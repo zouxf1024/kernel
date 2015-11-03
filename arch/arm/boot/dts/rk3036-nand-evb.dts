@@ -77,6 +77,18 @@
 	status = "okay";
 };
 
+&lcdc {
+	status = "okay";
+};
+
+&lcdc_mmu {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
 &acodec {
 	status = "okay";
 };
