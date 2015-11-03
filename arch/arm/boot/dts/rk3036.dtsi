@@ -145,6 +145,33 @@
 		};
 	};
 
+	lcdc_mmu: iommu@10118300 {
+		compatible = "rockchip,iommu";
+		reg = <0x10118300 0x100>;
+		interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "lcdc_mmu";
+		#iommu-cells = <0>;
+		status = "disabled";
+	};
+
+	lcdc: lcdc@10118000 {
+		compatible = "rockchip,rk3036-lcdc";
+		reg = <0x10118000 0x19c>;
+		interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru ACLK_LCDC>, <&cru SCLK_LCDC>, <&cru HCLK_LCDC>;
+		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
+		resets = <&cru SRST_LCDC1_A>, <&cru SRST_LCDC1_H>, <&cru SRST_LCDC1_D>;
+		reset-names = "axi", "ahb", "dclk";
+		iommus = <&lcdc_mmu>;
+
+		status = "disabled";
+	};
+
+	display-subsystem {
+		compatible = "rockchip,display-subsystem";
+		ports = <&lcdc_out>;
+	};
+
 	gic: interrupt-controller@10139000 {
 		compatible = "arm,gic-400";
 		interrupt-controller;
