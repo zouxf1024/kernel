@@ -1504,31 +1504,22 @@ static int vop_initial(struct vop *vop)
 		return PTR_ERR(vop->dclk);
 	}
 
-	ret = clk_prepare(vop->hclk);
+	ret = clk_prepare_enable(vop->hclk);
 	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare hclk\n");
+		dev_err(vop->dev, "failed to prepare/enable hclk\n");
 		return ret;
+	}
+
+	ret = clk_prepare_enable(vop->aclk);
+	if (ret < 0) {
+		dev_err(vop->dev, "failed to prepare/enable aclk\n");
+		goto err_disabled_hclk;
 	}
 
 	ret = clk_prepare(vop->dclk);
 	if (ret < 0) {
 		dev_err(vop->dev, "failed to prepare dclk\n");
-		goto err_unprepare_hclk;
-	}
-
-	ret = clk_prepare(vop->aclk);
-	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare aclk\n");
-		goto err_unprepare_dclk;
-	}
-
-	/*
-	 * enable hclk, so that we can config vop register.
-	 */
-	ret = clk_enable(vop->hclk);
-	if (ret < 0) {
-		dev_err(vop->dev, "failed to prepare aclk\n");
-		goto err_unprepare_aclk;
+		goto err_disabled_aclk;
 	}
 
 	memcpy(vop->regsbak, vop->regs, vop->len);
@@ -1544,20 +1535,18 @@ static int vop_initial(struct vop *vop)
 
 	vop_cfg_done(vop);
 
+	clk_disable(vop->aclk);
 	clk_disable(vop->hclk);
 
 	vop->is_enabled = false;
 
 	return 0;
 
-err_disable_hclk:
+err_disabled_aclk:
+	clk_disable(vop->aclk);
+err_disabled_hclk:
 	clk_disable(vop->hclk);
-err_unprepare_aclk:
-	clk_unprepare(vop->aclk);
-err_unprepare_dclk:
-	clk_unprepare(vop->dclk);
-err_unprepare_hclk:
-	clk_unprepare(vop->hclk);
+
 	return ret;
 }
 
