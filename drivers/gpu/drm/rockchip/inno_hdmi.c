@@ -448,10 +448,6 @@ static int inno_hdmi_config_video_timing(struct inno_hdmi *hdmi,
 	hdmi_writeb(hdmi, PHY_FEEDBACK_DIV_RATIO_LOW, 0x2c);
 	hdmi_writeb(hdmi, PHY_FEEDBACK_DIV_RATIO_HIGH, 0x01);
 
-	/* Disable video and audio output */
-	hdmi_modb(hdmi, AV_MUTE, m_AUDIO_MUTE | m_VIDEO_BLACK,
-		  v_AUDIO_MUTE(0) | v_VIDEO_MUTE(0));
-
 	return 0;
 }
 
@@ -473,7 +469,7 @@ static int inno_hdmi_setup(struct inno_hdmi *hdmi,
 	else
 		hdmi->hdmi_data.colorimetry = HDMI_COLORIMETRY_ITU_709;
 
-	/* Disable video and audio output */
+	/* Mute video and audio output */
 	hdmi_modb(hdmi, AV_MUTE, m_AUDIO_MUTE | m_VIDEO_BLACK,
 		  v_AUDIO_MUTE(1) | v_VIDEO_MUTE(1));
 
@@ -507,6 +503,10 @@ static int inno_hdmi_setup(struct inno_hdmi *hdmi,
 	 */
 	hdmi->tmds_rate = mode->clock * 1000;
 	inno_hdmi_i2c_init(hdmi);
+
+	/* Unmute video and audio output */
+	hdmi_modb(hdmi, AV_MUTE, m_AUDIO_MUTE | m_VIDEO_BLACK,
+		  v_AUDIO_MUTE(0) | v_VIDEO_MUTE(0));
 
 	return 0;
 }
