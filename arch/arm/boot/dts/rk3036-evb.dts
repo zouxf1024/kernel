@@ -47,6 +47,18 @@
 	compatible = "rockchip,rk3036-evb", "rockchip,rk3036";
 };
 
+&lcdc {
+	status = "okay";
+};
+
+&lcdc_mmu {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
 &emmc {
 	status = "okay";
 };

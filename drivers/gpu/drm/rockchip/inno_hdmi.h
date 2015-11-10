@@ -72,7 +72,7 @@ enum {
 #define DDC_BUS_FREQ_L			0x4b
 #define DDC_BUS_FREQ_H			0x4c
 
-#define SYS_CTRL			0x00
+#define SYS_CTRL		0x00
 #define m_RST_ANALOG		(1 << 6)
 #define v_RST_ANALOG		(0 << 6)
 #define v_NOT_RST_ANALOG	(1 << 6)
