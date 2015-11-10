@@ -695,14 +695,15 @@ static irqreturn_t inno_hdmi_i2c_irq(struct inno_hdmi *hdmi)
 static irqreturn_t inno_hdmi_hardirq(int irq, void *dev_id)
 {
 	struct inno_hdmi *hdmi = dev_id;
-	u8 interrupt;
 	irqreturn_t ret = IRQ_NONE;
+	u8 interrupt;
 
 	if (hdmi->i2c)
 		ret = inno_hdmi_i2c_irq(hdmi);
 
 	hdmi_readb(hdmi, HDMI_STATUS, &interrupt);
 	if (interrupt & m_INT_HOTPLUG) {
+		hdmi_modb(hdmi, HDMI_STATUS, m_INT_HOTPLUG, m_INT_HOTPLUG);
 		ret = IRQ_WAKE_THREAD;
 	}
 
@@ -712,14 +713,8 @@ static irqreturn_t inno_hdmi_hardirq(int irq, void *dev_id)
 static irqreturn_t inno_hdmi_irq(int irq, void *dev_id)
 {
 	struct inno_hdmi *hdmi = dev_id;
-	u8 interrupt;
 
-	hdmi_readb(hdmi, HDMI_STATUS, &interrupt);
-	if (interrupt & m_INT_HOTPLUG) {
-		hdmi_modb(hdmi, HDMI_STATUS, m_INT_HOTPLUG,
-			  m_INT_HOTPLUG);
-		drm_helper_hpd_irq_event(hdmi->connector.dev);
-	}
+	drm_helper_hpd_irq_event(hdmi->connector.dev);
 
 	return IRQ_HANDLED;
 }
