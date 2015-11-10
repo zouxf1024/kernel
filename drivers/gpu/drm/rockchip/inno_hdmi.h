@@ -61,7 +61,6 @@ enum {
 					       */
 };
 
-
 #define AUTO_DEFINE_CSC
 #ifdef RK616_USE_MCLK_12M
 #define HDMI_SYS_FREG_CLK        12000000
