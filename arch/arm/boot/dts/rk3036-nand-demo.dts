@@ -53,6 +53,18 @@
 		rockchip,audio-codec = <&acodec>;
 	};
 
+	sound_spdif {
+		compatible = "rockchip,rockchip-spdif-card";
+		rockchip,model = "SPDIFCARD-ROCKCHIP";
+		rockchip,spdif-controller = <&spdif>;
+		rockchip,audio-codec = <&spdif_out>;
+	};
+
+	spdif_out: spdif-out {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+
 	usb_control {
 		compatible = "rockchip,rk3036-usb-control";
 		wifipwr-gpios = <&gpio2 7 GPIO_ACTIVE_LOW>;
@@ -73,6 +85,10 @@
 };
 
 &i2s {
+	status = "okay";
+};
+
+&spdif {
 	status = "okay";
 };
 
