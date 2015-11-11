@@ -21,22 +21,46 @@ static struct dwc_otg_control_usb *control_usb;
 
 static int rk_wifi_power_on(struct platform_device *pdev)
 {
-	struct gpio_desc *wifipwr_gpiod;
+	struct device_node *np = pdev->dev.of_node;
+	struct gpio *wifi_gpios =
+		devm_kzalloc(&pdev->dev, sizeof(struct gpio), GFP_KERNEL);
+	enum of_gpio_flags en_flag;
+	int gpio, err;
+	int ret = 0;
 
-	wifipwr_gpiod = devm_gpiod_get(&pdev->dev, "wifipwr");
-
-	if (IS_ERR_OR_NULL(wifipwr_gpiod)) {
-		dev_err(&pdev->dev, "%s: invalid wifipwr gpiod\n", __func__);
-		return -ENXIO;
+	if (!wifi_gpios) {
+		dev_err(&pdev->dev, "unable to alloc memory for wifipwr-gpios\n");
+		ret = -ENOMEM;
+		goto out;
 	}
 
-	dev_info(&pdev->dev, "%s: will set wifipwr high\n", __func__);
+	gpio = of_get_named_gpio_flags(np, "wifipwr-gpios", 0, &en_flag);
 
-	gpiod_direction_output(wifipwr_gpiod, 0);
-	mdelay(50);
-	gpiod_direction_output(wifipwr_gpiod, 1);
+	wifi_gpios->gpio = gpio;
 
-	return 0;
+	if (!gpio_is_valid(gpio)) {
+		dev_err(&pdev->dev, "invalid otg gpio%d\n", gpio);
+	} else {
+		int en_pin = !en_flag;
+
+		err = devm_gpio_request(&pdev->dev, gpio, "wifipwr-gpios");
+		if (err) {
+			dev_err(&pdev->dev,
+				"failed to request GPIO%d for wifipwr-gpios\n", gpio);
+			ret = err;
+			goto out;
+		}
+
+		gpio_direction_output(wifi_gpios->gpio, en_pin);
+
+		dev_info(&pdev->dev, "%s: set wifi control pin active is %s\n",
+			 __func__, en_pin ? "high" : "low");
+	}
+
+	dev_info(&pdev->dev, "%s: exit, ret = %d\n", __func__, ret);
+
+out:
+	return ret;
 }
 
 static int rk_usb_control_probe(struct platform_device *pdev)
