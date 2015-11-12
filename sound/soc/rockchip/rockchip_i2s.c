@@ -28,6 +28,7 @@ struct rk_i2s_dev {
 
 	struct clk *hclk;
 	struct clk *mclk;
+	struct clk *mclk_out;
 
 	struct snd_dmaengine_dai_dma_data capture_dma_data;
 	struct snd_dmaengine_dai_dma_data playback_dma_data;
@@ -47,6 +48,9 @@ static int i2s_runtime_suspend(struct device *dev)
 {
 	struct rk_i2s_dev *i2s = dev_get_drvdata(dev);
 
+	if (!IS_ERR(i2s->mclk_out))
+		clk_disable_unprepare(i2s->mclk_out);
+
 	clk_disable_unprepare(i2s->mclk);
 
 	return 0;
@@ -61,6 +65,14 @@ static int i2s_runtime_resume(struct device *dev)
 	if (ret) {
 		dev_err(i2s->dev, "clock enable failed %d\n", ret);
 		return ret;
+	}
+
+	if (!IS_ERR(i2s->mclk_out)) {
+		ret = clk_prepare_enable(i2s->mclk_out);
+		if (ret) {
+			dev_err(i2s->dev, "out clock enable failed %d\n", ret);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -444,6 +456,11 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 		return PTR_ERR(i2s->mclk);
 	}
 
+	i2s->mclk_out = devm_clk_get(&pdev->dev, "i2s_clk_out");
+	if (IS_ERR(i2s->mclk_out)) {
+		dev_err(&pdev->dev, "Can't retrieve i2s master out clock (ignored)\n");
+	}
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	regs = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(regs))
@@ -509,6 +526,9 @@ static int rockchip_i2s_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 	if (!pm_runtime_status_suspended(&pdev->dev))
 		i2s_runtime_suspend(&pdev->dev);
+
+	if (!IS_ERR(i2s->mclk_out))
+		clk_disable_unprepare(i2s->mclk_out);
 
 	clk_disable_unprepare(i2s->mclk);
 	clk_disable_unprepare(i2s->hclk);
