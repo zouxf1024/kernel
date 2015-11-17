@@ -83,6 +83,8 @@
 
 #define HYM8563_TMR_CNT		0x0f
 
+static int clkout_force = 1;
+
 struct hym8563 {
 	struct i2c_client	*client;
 	struct rtc_device	*rtc;
@@ -374,7 +376,8 @@ static int hym8563_clkout_prepare(struct clk_hw *hw)
 
 static void hym8563_clkout_unprepare(struct clk_hw *hw)
 {
-	hym8563_clkout_control(hw, 0);
+	if (!clkout_force)
+		hym8563_clkout_control(hw, 0);
 }
 
 static int hym8563_clkout_is_prepared(struct clk_hw *hw)
@@ -578,6 +581,9 @@ static int hym8563_probe(struct i2c_client *client,
 #ifdef CONFIG_COMMON_CLK
 	hym8563_clkout_register_clk(hym8563);
 #endif
+
+	if (clkout_force)
+		hym8563_clkout_control(&hym8563->clkout_hw, 1);
 
 	return 0;
 }
