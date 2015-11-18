@@ -337,7 +337,6 @@ phy_BB8812_Config_ParaFile(
 	IN	PADAPTER	Adapter
 	)
 {
-	EEPROM_EFUSE_PRIV	*pEEPROM = GET_EEPROM_EFUSE_PRIV(Adapter);
 	HAL_DATA_TYPE		*pHalData = GET_HAL_DATA(Adapter);
 	int			rtStatus = _SUCCESS;
 
@@ -495,7 +494,6 @@ PHY_BBConfig8812(
 	int	rtStatus = _SUCCESS;
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 	u8	TmpU1B=0;
-	u8	CrystalCap;
 
 	phy_InitBBRFRegisterDefinition(Adapter);
 
@@ -523,18 +521,7 @@ PHY_BBConfig8812(
 	//
 	rtStatus = phy_BB8812_Config_ParaFile(Adapter);
 
-	if(IS_HARDWARE_TYPE_8812(Adapter))
-	{
-		// write 0x2C[30:25] = 0x2C[24:19] = CrystalCap
-		CrystalCap = pHalData->CrystalCap & 0x3F;
-		PHY_SetBBReg(Adapter, REG_MAC_PHY_CTRL, 0x7FF80000, (CrystalCap | (CrystalCap << 6)));
-	}
-	else if (IS_HARDWARE_TYPE_8821(Adapter))
-	{
-		// 0x2C[23:18] = 0x2C[17:12] = CrystalCap
-		CrystalCap = pHalData->CrystalCap & 0x3F;
-		PHY_SetBBReg(Adapter, REG_MAC_PHY_CTRL, 0xFFF000, (CrystalCap | (CrystalCap << 6)));	
-	}
+	hal_set_crystal_cap(Adapter, pHalData->CrystalCap);
 
 	if(IS_HARDWARE_TYPE_JAGUAR(Adapter))
 	{
@@ -552,7 +539,7 @@ PHY_RFConfig8812(
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 	int		rtStatus = _SUCCESS;
 
-	if (Adapter->bSurpriseRemoved)
+	if (RTW_CANNOT_RUN(Adapter))
 		return _FAIL;
 
 	switch(pHalData->rf_chip)
@@ -1013,14 +1000,14 @@ u32 PHY_GetTxBBSwing_8812A(
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(GetDefaultAdapter(Adapter));
 	PDM_ODM_T		pDM_Odm = &pHalData->odmpriv;
 	PODM_RF_CAL_T  	pRFCalibrateInfo = &(pDM_Odm->RFCalibrateInfo);
-	EEPROM_EFUSE_PRIV	*pEEPROM = GET_EEPROM_EFUSE_PRIV(Adapter);
+
 	s8	bbSwing_2G = -1 * GetRegTxBBSwing_2G(Adapter);
 	s8	bbSwing_5G = -1 * GetRegTxBBSwing_5G(Adapter);
 	u32	out = 0x200;
 	const s8	AUTO = -1;
 	
 
-	if (pEEPROM->bautoload_fail_flag) 
+	if (pHalData->bautoload_fail_flag) 
 	{
 		if ( Band == BAND_ON_2_4G ) {
 			pRFCalibrateInfo->BBSwingDiff2G = bbSwing_2G;
@@ -1274,7 +1261,7 @@ void phy_SetBBSwingByBand_8812A(
 			{
 				BBDiffBetweenBand = (pRFCalibrateInfo->BBSwingDiff2G - pRFCalibrateInfo->BBSwingDiff5G);
 				BBDiffBetweenBand = (Band == BAND_ON_2_4G) ? BBDiffBetweenBand : (-1 * BBDiffBetweenBand);
-				pDM_Odm->DefaultOfdmIndex += BBDiffBetweenBand*2;
+				pRFCalibrateInfo->DefaultOfdmIndex += BBDiffBetweenBand*2;
 			}
 
 			ODM_ClearTxPowerTrackingState(pDM_Odm);
@@ -1502,7 +1489,7 @@ phy_GetSecondaryChnl_8812(
 		else if(pHalData->nCur80MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_UPPER)
 			SCSettingOf40 = VHT_DATA_SC_40_UPPER_OF_80MHZ;
 		else
-			DBG_871X("SCMapping: Not Correct Primary80MHz Setting \n");
+			DBG_871X("SCMapping: DONOT CARE Mode Setting\n");
 		
 		if((pHalData->nCur40MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_LOWER) && (pHalData->nCur80MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_LOWER))
 			SCSettingOf20 = VHT_DATA_SC_20_LOWEST_OF_80MHZ;
@@ -1513,7 +1500,7 @@ phy_GetSecondaryChnl_8812(
 		else if((pHalData->nCur40MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_UPPER) && (pHalData->nCur80MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_UPPER))
 			SCSettingOf20 = VHT_DATA_SC_20_UPPERST_OF_80MHZ;
 		else
-			DBG_871X("SCMapping: Not Correct Primary80MHz Setting \n");
+			DBG_871X("SCMapping: DONOT CARE Mode Setting\n");
 	}
 	else if(pHalData->CurrentChannelBW == CHANNEL_WIDTH_40)
 	{
@@ -1524,10 +1511,10 @@ phy_GetSecondaryChnl_8812(
 		else if(pHalData->nCur40MhzPrimeSC == HAL_PRIME_CHNL_OFFSET_LOWER)
 			SCSettingOf20 = VHT_DATA_SC_20_LOWER_OF_80MHZ;
 		else
-			DBG_871X("SCMapping: Not Correct Primary40MHz Setting \n");
+			DBG_871X("SCMapping: DONOT CARE Mode Setting\n");
 	}
 
-	//DBG_871X("SCMapping: SC Value %x \n", ( (SCSettingOf40 << 4) | SCSettingOf20));
+	/*DBG_871X("SCMapping: SC Value %x\n", ((SCSettingOf40 << 4) | SCSettingOf20));*/
 	return  ( (SCSettingOf40 << 4) | SCSettingOf20);
 }
 
@@ -1730,17 +1717,20 @@ VOID phy_InitRssiTRSW(
 	}
 }
 
-// <20130806, Kordan> Referenced from "WB-20130801-YN-RL6286 Settings for Spur Issues.xls".
+/*Referenced from "WB-20130801-YN-RL6286 Settings for Spur Issues R02.xls"*/
 VOID
 phy_SpurCalibration_8812A(	
 	IN	PADAPTER	pAdapter,
-	IN	u8			Channel
+	IN	u8			Channel,
+	IN	u8			Bandwidth
 	)
 {
 	//RT_TRACE(COMP_SCAN, DBG_LOUD, ("===>phy_SpurCalibration_8812A()\n"));
 	
 	//2 1. Reset
-	PHY_SetBBReg(pAdapter, 0x878, BIT8|BIT7|BIT6, 0x3);
+	PHY_SetBBReg(pAdapter, 0x874, BIT0, 0);
+	PHY_SetBBReg(pAdapter, 0x874, BIT21 , 0);
+	PHY_SetBBReg(pAdapter, 0x878, BIT8|BIT7|BIT6, 0);
 	PHY_SetBBReg(pAdapter, 0x878, BIT0, 0);
 	PHY_SetBBReg(pAdapter, 0x87C, BIT13, 0);
 	PHY_SetBBReg(pAdapter, 0x880, bMaskDWord, 0);
@@ -1750,64 +1740,29 @@ phy_SpurCalibration_8812A(
 
 	
 	//2 2. Register Setting 1 (False Alarm)
-	switch (Channel)
-	{
-		case 149:
-		case 153:
-		case 151:
-		case 155:
-        {
-		    PHY_SetBBReg(pAdapter, 0x878, BIT8|BIT7|BIT6, 0x4);
-		    PHY_SetBBReg(pAdapter, 0x878, BIT0, 1);
-		    PHY_SetBBReg(pAdapter, 0x87C, BIT13, 1);
-		    break;
-        }
-		default:
-			break;
+	if (((Channel == 149 || Channel == 153) && Bandwidth == CHANNEL_WIDTH_20) ||
+		(Channel == 151 && Bandwidth == CHANNEL_WIDTH_40) ||
+			(Channel == 155 && Bandwidth == CHANNEL_WIDTH_80)) {
+
+		PHY_SetBBReg(pAdapter, 0x878, BIT6, 0);
+		PHY_SetBBReg(pAdapter, 0x878, BIT7, 0);
+		PHY_SetBBReg(pAdapter, 0x878, BIT8, 1);
+		PHY_SetBBReg(pAdapter, 0x878, BIT0, 1);
+		PHY_SetBBReg(pAdapter, 0x87C, BIT13, 1);
 	}
 	
 	//2 3. Register Setting 2 (SINR)
 	PHY_SetBBReg(pAdapter, 0x874, BIT21, 1);
 	PHY_SetBBReg(pAdapter, 0x874, BIT0 , 1);
 	
-	switch (Channel)
-	{
-		case 149:
-			PHY_SetBBReg(pAdapter, 0x884, bMaskDWord, 0x00010000);
-			break;
-		case 153:
-			PHY_SetBBReg(pAdapter, 0x89C, bMaskDWord, 0x00010000);
-			break;
-		case 165:
-			PHY_SetBBReg(pAdapter, 0x884, bMaskDWord, 0x00010000);
-			break;
-		case 169:
-			PHY_SetBBReg(pAdapter, 0x89C, bMaskDWord, 0x00010000);
-			break;
-		case 38:
-		case 54:
-		case 102:
-		case 118:
-		case 134:
-			//PHY_SetBBReg(pAdapter, 0x884, bMaskDWord, 0x00000001);
-			break;
-		case 151:
-		case 167:
-			PHY_SetBBReg(pAdapter, 0x880, bMaskDWord, 0x00010000);
-			break;
-		case 42:
-		case 58:
-		case 106:
-		case 122:
-		case 138:
-			PHY_SetBBReg(pAdapter, 0x89C, bMaskDWord, 0x00000001);
-			break;
-		case 155:
-			PHY_SetBBReg(pAdapter, 0x898, bMaskDWord, 0x00010000);
-			break;
-		default:
-		    break;
-	}
+	if (Channel == 149 && Bandwidth == CHANNEL_WIDTH_20) 
+		PHY_SetBBReg(pAdapter, 0x884, bMaskDWord, 0x00010000);
+	else if (Channel == 153 && Bandwidth == CHANNEL_WIDTH_20)
+		PHY_SetBBReg(pAdapter, 0x89C, bMaskDWord, 0x00010000);
+	else if (Channel == 151 && Bandwidth == CHANNEL_WIDTH_40)
+		PHY_SetBBReg(pAdapter, 0x880, bMaskDWord, 0x00010000);
+	else if (Channel == 155 && Bandwidth == CHANNEL_WIDTH_80)
+		PHY_SetBBReg(pAdapter, 0x898, bMaskDWord, 0x00010000);
 	//RT_TRACE(COMP_SCAN, DBG_LOUD, ("<===phy_SpurCalibration_8812A()\n"));
 
 }
@@ -1820,6 +1775,7 @@ phy_SwChnl8812(
 	u8	eRFPath = 0;
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
 	u8	channelToSW = pHalData->CurrentChannel;
+	u8	bandwidthToSw = pHalData->CurrentChannelBW;
 
 	if(phy_SwBand8812(pAdapter, channelToSW) == _FALSE)
 	{
@@ -1902,8 +1858,10 @@ phy_SwChnl8812(
 		}
 	}
 
-	if (IS_HARDWARE_TYPE_8812(pAdapter) && (pHalData->RFEType == 4 || pHalData->ExternalPA_5G == 0)) 
-		phy_SpurCalibration_8812A(pAdapter, channelToSW);
+	/*only for 8812A mp mode*/
+	if (IS_HARDWARE_TYPE_8812(pAdapter) && (pHalData->LNAType_5G == 0x00) 
+		&& pAdapter->registrypriv.mp_mode == _TRUE) 
+		phy_SpurCalibration_8812A(pAdapter, channelToSW, bandwidthToSw);
 }
 
 VOID
@@ -1924,10 +1882,9 @@ phy_SwChnlAndSetBwMode8812(
 			pHalData->CurrentChannelBW);
 	}
 
-	if((Adapter->bDriverStopped) || (Adapter->bSurpriseRemoved))
-	{
+	if (RTW_CANNOT_RUN(Adapter))
 		return;
-	}
+
 
 	if(pHalData->bSwChnl)
 	{
@@ -2067,10 +2024,8 @@ PHY_HandleSwChnlAndSetBW8812(
 	}
 
 	//Switch workitem or set timer to do switch channel or setbandwidth operation
-	if((!pDefAdapter->bDriverStopped) && (!pDefAdapter->bSurpriseRemoved))
-	{
+	if (!RTW_CANNOT_RUN(Adapter))
 		phy_SwChnlAndSetBwMode8812(Adapter);
-	}
 	else
 	{
 		if(pHalData->bSwChnl)

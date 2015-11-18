@@ -44,7 +44,7 @@
 	//#define CONFIG_DEBUG_CFG80211 
 	//#define CONFIG_DRV_ISSUE_PROV_REQ // IOT FOR S2
 	#define CONFIG_SET_SCAN_DENY_TIMER
-	#define CONFIG_IEEE80211_BAND_5GHZ
+	/*#define SUPPLICANT_RTK_VERSION_LOWER_THAN_JB42*/ /* wpa_supplicant realtek version <= jb42 will be defined this */
 #endif
 
 /*
@@ -111,7 +111,7 @@
 		//#define CONFIG_HWPORT_SWAP				//Port0->Sec , Port1 -> Pri
 		#define CONFIG_RUNTIME_PORT_SWITCH
 		//#define DBG_RUNTIME_PORT_SWITCH
-		#define CONFIG_STA_MODE_SCAN_UNDER_AP_MODE
+		#define CONFIG_SCAN_BACKOP
 		//#ifdef CONFIG_RTL8812A
 		//#define CONFIG_TSF_RESET_OFFLOAD 1		// For 2 PORT TSF SYNC.
 		//#endif
@@ -138,10 +138,7 @@
 		#define CONFIG_HOSTAPD_MLME	1
 	#endif			
 	#define CONFIG_FIND_BEST_CHANNEL	1
-	//#define CONFIG_NO_WIRELESS_HANDLERS	1
-
 	//#define	CONFIG_AUTO_AP_MODE
-
 #endif
 
 #define CONFIG_P2P	1
@@ -207,9 +204,8 @@
 //#define CONFIG_BACKGROUND_NOISE_MONITOR
 #endif
 #define RTW_NOTCH_FILTER 0 /* 0:Disable, 1:Enable, */
-#define CONFIG_DEAUTH_BEFORE_CONNECT
 
-#define CONFIG_TX_MCAST2UNI	1	// Support IP multicast->unicast
+#define CONFIG_TX_MCAST2UNI		/*Support IP multicast->unicast*/
 //#define CONFIG_CHECK_AC_LIFETIME 1	// Check packet lifetime of 4 ACs.
 
 #ifdef CONFIG_WOWLAN
@@ -267,13 +263,15 @@
  */
 #define RTL8812A_RX_PACKET_INCLUDE_CRC	0
 
+#define CONFIG_RX_PACKET_APPEND_FCS
+
 //#define CONFIG_ONLY_ONE_OUT_EP_TO_LOW	0
 
 #define CONFIG_OUT_EP_WIFI_MODE	0
 
 #define ENABLE_USB_DROP_INCORRECT_OUT
 
-#define RTL8192CU_ADHOC_WORKAROUND_SETTING	1
+#define CONFIG_ADHOC_WORKAROUND_SETTING	1
 
 #define ENABLE_NEW_RFE_TYPE	0
 
@@ -318,48 +316,14 @@
 	#endif
 	#ifndef CONFIG_USE_USB_BUFFER_ALLOC_RX
 		#define CONFIG_USE_USB_BUFFER_ALLOC_RX
+		#ifdef CONFIG_PREALLOC_RECV_SKB
+			#undef CONFIG_PREALLOC_RECV_SKB
+		#endif
 	#endif
 #endif
 
 
-/*
- * Outsource  Related Config
- */
 
-#define TESTCHIP_SUPPORT				0
-
-#define RTL8192CE_SUPPORT 				0
-#define RTL8192CU_SUPPORT 				0
-#define RTL8192C_SUPPORT 				(RTL8192CE_SUPPORT|RTL8192CU_SUPPORT)	
-
-#define RTL8192DE_SUPPORT 				0
-#define RTL8192DU_SUPPORT 				0
-#define RTL8192D_SUPPORT 				(RTL8192DE_SUPPORT|RTL8192DU_SUPPORT)	
-
-#define RTL8723AU_SUPPORT				0
-#define RTL8723AS_SUPPORT				0
-#define RTL8723AE_SUPPORT				0
-#define RTL8723A_SUPPORT				(RTL8723AU_SUPPORT|RTL8723AS_SUPPORT|RTL8723AE_SUPPORT)
-#define RTL8723_FPGA_VERIFICATION		0
-
-#define RTL8188E_SUPPORT				0
-#ifdef CONFIG_RTL8812A
-#define RTL8812A_SUPPORT				1
-#else
-#define RTL8812A_SUPPORT				0
-#endif
-#ifdef CONFIG_RTL8821A
-#define RTL8821A_SUPPORT				1
-#else
-#define RTL8821A_SUPPORT				0
-#endif
-#define RTL8723B_SUPPORT				0
-#define RTL8192E_SUPPORT				0
-#define RTL8814A_SUPPORT				0
-#define 	RTL8195A_SUPPORT				0
-
-#define RATE_ADAPTIVE_SUPPORT 			0
-#define POWER_TRAINING_ACTIVE			0
 
 #ifdef CONFIG_USB_TX_AGGREGATION
 //#define 	CONFIG_TX_EARLY_MODE
@@ -408,4 +372,5 @@
 //#define DBG_HAL_INIT_PROFILING
 
 //#define DBG_MEMORY_LEAK	1
+/*#define DBG_UDP_PKT_LOSE_11AC */
 

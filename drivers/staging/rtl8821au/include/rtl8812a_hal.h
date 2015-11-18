@@ -157,7 +157,14 @@ typedef struct _RT_FIRMWARE_8812 {
 
 //for 8812
 // TX 128K, RX 16K, Page size 512B for TX, 128B for RX
-#define MAX_RX_DMA_BUFFER_SIZE_8812	0x3E80   //0x3FFF	// RX 16K
+#define MAX_RX_DMA_BUFFER_SIZE_8812	0x3E80 /* RX 16K */
+
+#ifdef CONFIG_WOWLAN
+#define RESV_FMWF	WKFMCAM_SIZE*MAX_WKFM_NUM /* 16 entries, for each is 24 bytes*/
+#else
+#define RESV_FMWF	0
+#endif
+
 #ifdef CONFIG_FW_C2H_DEBUG 
 #define RX_DMA_RESERVED_SIZE_8812	0x100	// 256B, reserved for c2h debug message
 #else
@@ -178,7 +185,7 @@ typedef struct _RT_FIRMWARE_8812 {
 #define TX_TOTAL_PAGE_NUMBER_8812	(0xFF - BCNQ_PAGE_NUM_8812 - WOWLAN_PAGE_NUM_8812)
 #define TX_PAGE_BOUNDARY_8812			(TX_TOTAL_PAGE_NUMBER_8812 + 1)
 
-#define TX_PAGE_BOUNDARY_WOWLAN_8812		0xE0
+#define TX_PAGE_BOUNDARY_WOWLAN_8812		(0xFF - BCNQ_PAGE_NUM_8812 - WOWLAN_PAGE_NUM_8812 + 1)
 
 #define WMM_NORMAL_TX_TOTAL_PAGE_NUMBER_8812	TX_PAGE_BOUNDARY_8812
 #define WMM_NORMAL_TX_PAGE_BOUNDARY_8812		(WMM_NORMAL_TX_TOTAL_PAGE_NUMBER_8812 + 1)
@@ -199,7 +206,8 @@ typedef struct _RT_FIRMWARE_8812 {
 #define PAGE_SIZE_TX_8821A					256
 #define PAGE_SIZE_RX_8821A					128
 
-#define MAX_RX_DMA_BUFFER_SIZE_8821			0x3E80	// RX 16K
+#define MAX_RX_DMA_BUFFER_SIZE_8821			0x3E80 /* RX 16K */
+
 #ifdef CONFIG_FW_C2H_DEBUG 
 #define RX_DMA_RESERVED_SIZE_8821	0x100	// 256B, reserved for c2h debug message
 #else
@@ -245,7 +253,7 @@ typedef struct _RT_FIRMWARE_8812 {
 #define	EFUSE_HIDDEN_812AU_VL				2
 #define	EFUSE_HIDDEN_812AU_VN				3
 
-#ifdef CONFIG_PCI_HCI
+#if 0
 #define EFUSE_REAL_CONTENT_LEN_JAGUAR		1024
 #define HWSET_MAX_SIZE_JAGUAR					1024
 #else
@@ -312,6 +320,7 @@ int 	FirmwareDownloadBT(PADAPTER Adapter, PRT_MP_FIRMWARE pFirmware);
 void	Hal_ReadRemoteWakeup_8812A(PADAPTER padapter, u8* hwinfo, BOOLEAN AutoLoadFail);
 
 BOOLEAN HalDetectPwrDownMode8812(PADAPTER Adapter);
+void Hal_EfuseParseKFreeData_8821A(PADAPTER Adapter, u8 *PROMContent, BOOLEAN AutoloadFail);
 	
 #ifdef CONFIG_WOWLAN
 void Hal_DetectWoWMode(PADAPTER pAdapter);

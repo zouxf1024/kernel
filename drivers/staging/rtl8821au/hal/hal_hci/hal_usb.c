@@ -39,8 +39,7 @@ int	usb_init_recv_priv(_adapter *padapter, u16 ini_in_buf_sz)
 		(unsigned long)padapter);
 #endif /* PLATFORM_LINUX */
 
-#ifdef PLATFORM_FREEBSD
-	TASK_INIT(&precvpriv->recv_tasklet, 0, rtl8192du_recv_tasklet, padapter);
+#ifdef PLATFORM_FREEBSD	
 	#ifdef CONFIG_RX_INDICATE_QUEUE
 	TASK_INIT(&precvpriv->rx_indicate_tasklet, 0, rtw_rx_indicate_tasklet, padapter);
 	#endif /* CONFIG_RX_INDICATE_QUEUE */
@@ -71,6 +70,8 @@ int	usb_init_recv_priv(_adapter *padapter, u16 ini_in_buf_sz)
 	skb_queue_head_init(&precvpriv->free_recv_skb_queue);
 	#endif
 
+	DBG_871X("NR_RECVBUFF: %d\n", NR_RECVBUFF);
+	DBG_871X("MAX_RECVBUF_SZ: %d\n", MAX_RECVBUF_SZ);
 	precvpriv->pallocated_recv_buf = rtw_zmalloc(NR_RECVBUFF *sizeof(struct recv_buf) + 4);
 	if(precvpriv->pallocated_recv_buf==NULL){
 		res= _FAIL;
@@ -120,10 +121,15 @@ int	usb_init_recv_priv(_adapter *padapter, u16 ini_in_buf_sz)
 		SIZE_PTR alignment=0;
 		struct sk_buff *pskb=NULL;
 
+		DBG_871X("NR_PREALLOC_RECV_SKB: %d\n", NR_PREALLOC_RECV_SKB);
+#ifdef CONFIG_FIX_NR_BULKIN_BUFFER
+		DBG_871X("Enable CONFIG_FIX_NR_BULKIN_BUFFER\n");
+#endif
+		
 		for(i=0; i<NR_PREALLOC_RECV_SKB; i++)
 		{
 #ifdef CONFIG_PREALLOC_RX_SKB_BUFFER
-			pskb = rtw_alloc_skb_premem();
+			pskb = rtw_alloc_skb_premem(MAX_RECVBUF_SZ);
 #else
 			pskb = rtw_skb_alloc(MAX_RECVBUF_SZ + RECVBUFF_ALIGN_SZ);
 #endif //CONFIG_PREALLOC_RX_SKB_BUFFER
@@ -143,8 +149,6 @@ int	usb_init_recv_priv(_adapter *padapter, u16 ini_in_buf_sz)
 #endif
 				skb_queue_tail(&precvpriv->free_recv_skb_queue, pskb);
 			}
-
-			pskb=NULL;
 		}
 	}
 #endif /* CONFIG_PREALLOC_RECV_SKB */
@@ -305,65 +309,6 @@ int usb_async_write32(struct intf_hdl *pintfhdl, u32 addr, u32 val)
 }
 #endif /* CONFIG_USB_SUPPORT_ASYNC_VDN_REQ */
 
-
-
-#ifdef CONFIG_RTL8192D
-/*	This function only works in 92DU chip.		*/
-void usb_read_reg_rf_byfw(struct intf_hdl *pintfhdl, 
-				u16 byteCount, 
-				u32 registerIndex, 
-				PVOID buffer)
-{
-	u16	wPage = 0x0000, offset;
-	u32	BufferLengthRead;
-	PADAPTER	Adapter = pintfhdl->padapter;
-	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-	u8	RFPath=0,nPHY=0;
-
-	RFPath =(u8) ((registerIndex&0xff0000)>>16);
-	
-	if (pHalData->interfaceIndex!=0)
-	{ 
-		nPHY = 1; //MAC1
-		if(registerIndex&MAC1_ACCESS_PHY0)// MAC1 need to access PHY0
-			nPHY = 0;
-	}
-	else
-	{
-		if(registerIndex&MAC0_ACCESS_PHY1)
-			nPHY = 1;
-	}
-	registerIndex &= 0xFF;
-	wPage = ((nPHY<<7)|(RFPath<<5)|8)<<8;
-	offset = (u16)registerIndex;
-	
-	//
-	// IN a vendor request to read back MAC register.
-	//
-	usbctrl_vendorreq(pintfhdl, 0x05, offset, wPage, buffer, byteCount, 0x01);
-
-}
-#endif
-
-/*
-	92DU chip needs to remask "value" parameter,  this function only works in 92DU chip.
-*/
-static inline void usb_value_remask(struct intf_hdl *pintfhdl, u16 *value)
-{
-#ifdef CONFIG_RTL8192D
-	_adapter	*padapter = pintfhdl->padapter;
-	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
-
-	if ((IS_HARDWARE_TYPE_8192DU(padapter)) && (pHalData->interfaceIndex!=0))
-	{
-		if(*value<0x1000)
-			*value|=0x4000;
-		else if ((*value&MAC1_ACCESS_PHY0) && !(*value&0x8000))   // MAC1 need to access PHY0
-			*value &= 0xFFF;
-	}
-#endif
-}
-
 u8 usb_read8(struct intf_hdl *pintfhdl, u32 addr)
 {
 	u8 request;
@@ -381,7 +326,6 @@ u8 usb_read8(struct intf_hdl *pintfhdl, u32 addr)
 
 	wvalue = (u16)(addr&0x0000ffff);
 	len = 1;	
-	usb_value_remask(pintfhdl, &wvalue);
 	usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 					&data, len, requesttype);
 
@@ -407,7 +351,6 @@ u16 usb_read16(struct intf_hdl *pintfhdl, u32 addr)
 
 	wvalue = (u16)(addr&0x0000ffff);
 	len = 2;	
-	usb_value_remask(pintfhdl, &wvalue);
 	usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 					&data, len, requesttype);
 
@@ -434,17 +377,9 @@ u32 usb_read32(struct intf_hdl *pintfhdl, u32 addr)
 
 	wvalue = (u16)(addr&0x0000ffff);
 	len = 4;
-#ifdef CONFIG_RTL8192D
-	if ((IS_HARDWARE_TYPE_8192DU(pintfhdl->padapter)) && ((addr&0xff000000)>>24 == 0x66)) {
-		usb_read_reg_rf_byfw(pintfhdl, len, addr, &data);
-	} else 
-#endif
-	{
-		usb_value_remask(pintfhdl, &wvalue);
-		usbctrl_vendorreq(pintfhdl, request, wvalue, index,
+	usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 						&data, len, requesttype);
-	}
-
+	
 	_func_exit_;
 
 	return data;
@@ -469,8 +404,7 @@ int usb_write8(struct intf_hdl *pintfhdl, u32 addr, u8 val)
 	wvalue = (u16)(addr&0x0000ffff);
 	len = 1;
 	
-	data = val;	
-	usb_value_remask(pintfhdl, &wvalue);
+	data = val;
 	ret = usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 						&data, len, requesttype);
 	
@@ -499,7 +433,6 @@ int usb_write16(struct intf_hdl *pintfhdl, u32 addr, u16 val)
 	len = 2;
 	
 	data = val;
-	usb_value_remask(pintfhdl, &wvalue);
 	ret = usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 						&data, len, requesttype);
 	
@@ -527,8 +460,7 @@ int usb_write32(struct intf_hdl *pintfhdl, u32 addr, u32 val)
 
 	wvalue = (u16)(addr&0x0000ffff);
 	len = 4;
-	data =val;		
-	usb_value_remask(pintfhdl, &wvalue);
+	data =val;
 	ret = usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 						&data, len, requesttype);
 
@@ -557,7 +489,6 @@ int usb_writeN(struct intf_hdl *pintfhdl, u32 addr, u32 length, u8 *pdata)
 	wvalue = (u16)(addr&0x0000ffff);
 	len = length;
 	 _rtw_memcpy(buf, pdata, len );
-	usb_value_remask(pintfhdl, &wvalue);
 	ret = usbctrl_vendorreq(pintfhdl, request, wvalue, index,
 						buf, len, requesttype);
 	

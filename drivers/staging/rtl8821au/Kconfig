@@ -8,5 +8,5 @@ config RTL8821AU
 	default n
 
 	---help---
-	Help message of RTL8821AU
+	  Help message of RTL8821AU
 

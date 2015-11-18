@@ -25,7 +25,8 @@
 #ifdef CONFIG_BT_COEXIST_SOCKET_TRX
 
 #define NETLINK_USER 31
-#define CONNECT_PORT 30001
+#define CONNECT_PORT 30000
+#define CONNECT_PORT_BT 30001
 #define KERNEL_SOCKET_OK 0x01	
 #define NETLINK_SOCKET_OK 0x02
 
@@ -34,6 +35,8 @@
 #define RX_LEAVE_ACK 2
 #define RX_BT_LEAVE 3
 #define RX_INVITE_REQ 4
+#define RX_ATTEND_REQ 5
+#define RX_INVITE_RSP 6
 
 #define invite_req "INVITE_REQ"
 #define invite_rsp "INVITE_RSP"
@@ -253,6 +256,20 @@ typedef enum _BT_TRAFFIC_MODE_PROFILE{
 	BT_PROFILE_SCO		
 } BT_TRAFFIC_MODE_PROFILE;
 
+typedef enum _HCI_EXT_BT_OPERATION {
+	HCI_BT_OP_NONE				= 0x0,
+	HCI_BT_OP_INQUIRY_START		= 0x1,
+	HCI_BT_OP_INQUIRY_FINISH		= 0x2,
+	HCI_BT_OP_PAGING_START		= 0x3,
+	HCI_BT_OP_PAGING_SUCCESS		= 0x4,
+	HCI_BT_OP_PAGING_UNSUCCESS	= 0x5,
+	HCI_BT_OP_PAIRING_START		= 0x6,
+	HCI_BT_OP_PAIRING_FINISH		= 0x7,
+	HCI_BT_OP_BT_DEV_ENABLE		= 0x8,
+	HCI_BT_OP_BT_DEV_DISABLE		= 0x9,
+	HCI_BT_OP_MAX
+} HCI_EXT_BT_OPERATION, *PHCI_EXT_BT_OPERATION;
+
 typedef struct _BT_MGNT{
 	BOOLEAN				bBTConnectInProgress;
 	BOOLEAN				bLogLinkInProgress;
@@ -287,23 +304,18 @@ typedef struct _BT_MGNT{
 struct bt_coex_info {
 	/* For Kernel Socket */
 	struct socket *udpsock; 
-	struct sockaddr_in sin; 
-		
-	/* For Netlink Socket */
-	struct sock *nl_sk;
-	u32 pid;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-	struct netlink_kernel_cfg *pnl_cfg;
-#endif
+	struct sockaddr_in wifi_sockaddr; /*wifi socket*/
+	struct sockaddr_in bt_sockaddr;/* BT socket  */
+	struct sock *sk_store;/*back up socket for UDP RX int*/
+	
 	/* store which socket is OK */
 	u8 sock_open;
 		
 	u8 BT_attend;
-//	u8 WIFI_leave;
-	u8 is_exist; // socket exist
+	u8 is_exist; /* socket exist */
 	BT_MGNT BtMgnt;
-	//u8 bEnableWifiScanNotify;
-	//u16 HCIExtensionVer;
+	struct workqueue_struct *btcoex_wq;
+	struct delayed_work recvmsg_work;
 };
 #endif //CONFIG_BT_COEXIST_SOCKET_TRX
 
@@ -351,6 +363,7 @@ void rtw_btcoex_SetDBG(PADAPTER, u32 *pDbgModule);
 u32 rtw_btcoex_GetDBG(PADAPTER, u8 *pStrBuf, u32 bufSize);
 u8 rtw_btcoex_IncreaseScanDeviceNum(PADAPTER);
 u8 rtw_btcoex_IsBtLinkExist(PADAPTER);
+void rtw_btcoex_BTOffOnNotify(PADAPTER padapter, u8 bBTON);
 #ifdef CONFIG_BT_COEXIST_SOCKET_TRX
 void rtw_btcoex_SetBtPatchVersion(PADAPTER padapter,u16 btHciVer, u16 btPatchVer);
 void rtw_btcoex_SetHciVersion(PADAPTER  padapter, u16 hciVersion);
@@ -358,14 +371,10 @@ void rtw_btcoex_StackUpdateProfileInfo(void);
 void rtw_btcoex_init_socket(_adapter *padapter);
 void rtw_btcoex_close_socket(_adapter *padapter);
 void rtw_btcoex_dump_tx_msg(u8 *tx_msg, u8 len, u8 *msg_name);
-u8 rtw_btcoex_sendmsgbysocket(_adapter *padapter, u8 *msg, u8 msg_size);
-void rtw_btcoex_create_nl_socket(_adapter *padapter);
-void rtw_btcoex_close_nl_socket(_adapter *padapter);
-u8 rtw_btcoex_create_kernel_socket(_adapter *padapter, u8 is_invite);
+u8 rtw_btcoex_sendmsgbysocket(_adapter *padapter, u8 *msg, u8 msg_size, bool force);
+u8 rtw_btcoex_create_kernel_socket(_adapter *padapter);
 void rtw_btcoex_close_kernel_socket(_adapter *padapter);
-void rtw_btcoex_recvmsgbysocket(struct sock *sk, int bytes);
-s8 rtw_btcoex_sendmsgbynetlink(_adapter *padapter, u8 *msg, u8 msg_size);
-void rtw_btcoex_recvmsgbynetlink(struct sk_buff *skb);
+void rtw_btcoex_recvmsgbysocket(void *data);
 u16 rtw_btcoex_parse_recv_data(u8 *msg, u8 msg_size);
 u8 rtw_btcoex_btinfo_cmd(PADAPTER padapter, u8 *pbuf, u16 length);
 void rtw_btcoex_parse_hci_cmd(_adapter *padapter, u8 *cmd, u16 len);
