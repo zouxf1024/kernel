@@ -130,19 +130,15 @@
 };
 
 &sdio {
-    broken-cd;
-    bus-width = <4>;
-    //cap-sd-highspeed;
-    //sd-uhs-sdr12;
-    //sd-uhs-sdr25;
-    //sd-uhs-sdr50;
-    //sd-uhs-sdr104;
-    cap-sdio-irq;
-    keep-power-in-suspend;
-    non-removable;
-    num-slots = <1>;
-    default-sample-phase = <90>;
-    pinctrl-names = "default";
-    pinctrl-0 = <&sdio_clk &sdio_cmd &sdio_bus4>;
-    status = "okay";
+	status = "okay";
+
+	broken-cd;
+	bus-width = <4>;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	non-removable;
+	num-slots = <1>;
+	default-sample-phase = <90>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio_clk &sdio_cmd &sdio_bus4>;
 };
