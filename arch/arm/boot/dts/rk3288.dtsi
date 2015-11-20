@@ -59,6 +59,10 @@
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
 		i2c5 = &i2c5;
+		mmc0 = &emmc;
+		mmc1 = &sdmmc;
+		mmc2 = &sdio0;
+		mmc3 = &sdio1;
 		mshc0 = &emmc;
 		mshc1 = &sdmmc;
 		mshc2 = &sdio0;
@@ -782,7 +786,7 @@
 
 	vopb: vop@ff930000 {
 		compatible = "rockchip,rk3288-vop";
-		reg = <0xff930000 0x19c>;
+		reg = <0xff930000 0x19c>, <0xff931000 0x1000>;
 		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru ACLK_VOP0>, <&cru DCLK_VOP0>, <&cru HCLK_VOP0>;
 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
@@ -795,9 +799,12 @@
 		vopb_out: port {
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			vopb_out_hdmi: endpoint@0 {
+			vopb_out_edp: endpoint@0 {
 				reg = <0>;
+				remote-endpoint = <&edp_in_vopb>;
+			};
+			vopb_out_hdmi: endpoint@1 {
+				reg = <1>;
 				remote-endpoint = <&hdmi_in_vopb>;
 			};
 		};
@@ -815,7 +822,7 @@
 
 	vopl: vop@ff940000 {
 		compatible = "rockchip,rk3288-vop";
-		reg = <0xff940000 0x19c>;
+		reg = <0xff940000 0x19c>, <0xff941000 0x1000>;
 		interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru ACLK_VOP1>, <&cru DCLK_VOP1>, <&cru HCLK_VOP1>;
 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
@@ -828,11 +835,15 @@
 		vopl_out: port {
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			vopl_out_hdmi: endpoint@0 {
+			vopl_out_edp: endpoint@0 {
 				reg = <0>;
+				remote-endpoint = <&edp_in_vopl>;
+			};
+			vopl_out_hdmi: endpoint@1 {
+				reg = <1>;
 				remote-endpoint = <&hdmi_in_vopl>;
 			};
+
 		};
 	};
 
@@ -844,6 +855,33 @@
 		power-domains = <&power RK3288_PD_VIO>;
 		#iommu-cells = <0>;
 		status = "disabled";
+	};
+
+	edp: edp@ff970000 {
+		compatible = "rockchip,rk3288-edp";
+		reg = <0xff970000 0x4000>;
+		interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru SCLK_EDP>, <&cru SCLK_EDP_24M>, <&cru PCLK_EDP_CTRL>;
+		rockchip,grf = <&grf>;
+		clock-names = "clk_edp", "clk_edp_24m", "pclk_edp";
+		resets = <&cru 111>;
+		reset-names = "edp";
+		power-domains = <&power RK3288_PD_VIO>;
+		status = "disabled";
+		ports {
+			edp_in: port {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				edp_in_vopb: endpoint@0 {
+					reg = <0>;
+					remote-endpoint = <&vopb_out_edp>;
+				};
+				edp_in_vopl: endpoint@1 {
+					reg = <1>;
+					remote-endpoint = <&vopl_out_edp>;
+				};
+			};
+		};
 	};
 
 	hdmi: hdmi@ff980000 {
@@ -871,6 +909,33 @@
 				};
 			};
 		};
+	};
+
+
+	gpu: gpu@ffa30000 {
+		compatible = "arm,malit764",
+			     "arm,malit76x",
+			     "arm,malit7xx",
+			     "arm,mali-midgard";
+		reg = <0xffa30000 0x10000>;
+		interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "JOB", "MMU", "GPU";
+		clocks = <&cru ACLK_GPU>;
+		clock-names = "aclk_gpu";
+		operating-points = <
+			/* KHz uV */
+			600000 1250000
+			/* 500000 1200000 - See crosbug.com/p/33857 */
+			400000 1100000
+			300000 1000000
+			200000 950000
+			100000 950000
+		>;
+		#cooling-cells = <2>; /* min followed by max */
+		power-domains = <&power RK3288_PD_GPU>;
+		status = "disabled";
 	};
 
 	gic: interrupt-controller@ffc01000 {
