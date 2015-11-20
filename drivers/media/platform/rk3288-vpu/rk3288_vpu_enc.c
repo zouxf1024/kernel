@@ -362,8 +362,9 @@ static int vidioc_querycap(struct file *file, void *priv,
 	 * device capability flags are left only for backward compatibility
 	 * and are scheduled for removal.
 	 */
-	cap->capabilities = V4L2_CAP_VIDEO_M2M_MPLANE | V4L2_CAP_STREAMING |
+	cap->device_caps = V4L2_CAP_VIDEO_M2M_MPLANE | V4L2_CAP_STREAMING |
 	    V4L2_CAP_VIDEO_CAPTURE_MPLANE | V4L2_CAP_VIDEO_OUTPUT_MPLANE;
+	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 
 	vpu_debug_leave();
 
@@ -1059,7 +1060,7 @@ static const struct v4l2_ioctl_ops rk3288_vpu_enc_ioctl_ops = {
 };
 
 static int rk3288_vpu_queue_setup(struct vb2_queue *vq,
-				  const struct v4l2_format *fmt,
+				  const void *parg,
 				  unsigned int *buf_count,
 				  unsigned int *plane_count,
 				  unsigned int psize[], void *allocators[])
@@ -1322,7 +1323,7 @@ const struct v4l2_ioctl_ops *get_enc_v4l2_ioctl_ops(void)
 static void rk3288_vpu_enc_prepare_run(struct rk3288_vpu_ctx *ctx)
 {
 	struct vb2_buffer *vb2_src = &ctx->run.src->b;
-	unsigned config_store = vb2_src->v4l2_buf.config_store;
+	unsigned config_store = to_vb2_v4l2_buffer(vb2_src)->config_store;
 
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, config_store);
 

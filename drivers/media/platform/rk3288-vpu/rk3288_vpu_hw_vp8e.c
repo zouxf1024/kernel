@@ -88,7 +88,7 @@ void rk3288_vpu_vp8e_assemble_bitstream(struct rk3288_vpu_ctx *ctx,
 	memcpy(dst, dst_buf->vp8e.header, hdr_size);
 
 	/* Patch frame tag at first 32-bit word of the frame. */
-	if (dst_buf->b.v4l2_buf.flags & V4L2_BUF_FLAG_KEYFRAME) {
+	if (to_vb2_v4l2_buffer(&dst_buf->b)->flags & V4L2_BUF_FLAG_KEYFRAME) {
 		tag_size = VP8_KEY_FRAME_HDR_SIZE;
 		tag[0] &= ~VP8_FRAME_TAG_KEY_FRAME_BIT;
 	} else {
@@ -228,9 +228,9 @@ static void rk3288_vpu_vp8e_set_buffers(struct rk3288_vpu_dev *vpu,
 	ctx->run.dst->vp8e.hdr_size = params->hdr_len + (start_offset >> 3);
 
 	if (params->enc_ctrl & VEPU_REG_ENC_CTRL_KEYFRAME_BIT)
-		ctx->run.dst->b.v4l2_buf.flags |= V4L2_BUF_FLAG_KEYFRAME;
+		to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags |= V4L2_BUF_FLAG_KEYFRAME;
 	else
-		ctx->run.dst->b.v4l2_buf.flags &= ~V4L2_BUF_FLAG_KEYFRAME;
+		to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags &= ~V4L2_BUF_FLAG_KEYFRAME;
 
 	/*
 	 * We assume here that 1/10 of the buffer is enough for headers.
@@ -408,7 +408,7 @@ void rk3288_vpu_vp8e_run(struct rk3288_vpu_ctx *ctx)
 		| VEPU_REG_ENC_CTRL_ENC_MODE_VP8
 		| VEPU_REG_ENC_CTRL_EN_BIT;
 
-	if (ctx->run.dst->b.v4l2_buf.flags & V4L2_BUF_FLAG_KEYFRAME)
+	if (to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags & V4L2_BUF_FLAG_KEYFRAME)
 		reg |= VEPU_REG_ENC_CTRL_KEYFRAME_BIT;
 
 	vepu_write(vpu, reg, VEPU_REG_ENC_CTRL);
