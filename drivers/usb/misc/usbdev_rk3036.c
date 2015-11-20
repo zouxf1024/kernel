@@ -51,6 +51,8 @@ static int rk_wifi_power_on(struct platform_device *pdev)
 			goto out;
 		}
 
+		gpio_direction_output(wifi_gpios->gpio, !en_pin);
+		mdelay(50);
 		gpio_direction_output(wifi_gpios->gpio, en_pin);
 
 		dev_info(&pdev->dev, "%s: set wifi control pin active is %s\n",
