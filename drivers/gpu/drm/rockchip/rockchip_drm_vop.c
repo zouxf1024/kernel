@@ -750,21 +750,6 @@ static void vop_disable(struct drm_crtc *crtc)
 /*
  * Caller must hold vsync_mutex.
  */
-static struct drm_framebuffer *vop_win_last_pending_fb(struct vop_win *vop_win)
-{
-	struct vop_win_state *last;
-	struct vop_win_state *active = vop_win->active;
-
-	if (list_empty(&vop_win->pending))
-		return active ? active->fb : NULL;
-
-	last = list_last_entry(&vop_win->pending, struct vop_win_state, head);
-	return last ? last->fb : NULL;
-}
-
-/*
- * Caller must hold vsync_mutex.
- */
 static int vop_win_queue_fb(struct vop_win *vop_win,
 			    struct drm_framebuffer *fb, dma_addr_t yrgb_mst,
 			    struct drm_pending_vblank_event *event)
