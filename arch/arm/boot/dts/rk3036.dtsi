@@ -313,6 +313,21 @@
 		status = "disabled";
 	};
 
+	vmac: ethernet@10200000 {
+		compatible = "rockchip,vmac";
+		reg = <0x10200000 0x4000>;
+		rockchip,grf = <&grf>;
+		interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "macirq";
+                clock-names = "clk_mac_pll_div", "clk_mac_ref_div",
+			      "hclk_mac";
+                clocks = <&cru SCLK_MAC>, <&cru SCLK_MACREF>,
+			 <&cru HCLK_MAC>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&mac_clk &mac_txpins &mac_rxpins &mac_crs &mac_mdpins>;
+                status = "disabled";
+        };
+
 	i2s0: i2s0@10220000 {
 		compatible = "rockchip,rk3036-i2s", "rockchip,rk3066-i2s";
 		reg = <0x10220000 0x4000>;
@@ -756,6 +771,33 @@
 
 			sdio_clk: sdio-clk {
 				rockchip,pins = <0 9 RK_FUNC_1 &pcfg_pull_none>;
+			};
+		};
+
+		vmac {
+			mac_clk: mac-clk {
+				rockchip,pins = <2 14 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			mac_txpins: mac-txpins {
+				rockchip,pins = <2 13 RK_FUNC_1 &pcfg_pull_none>,
+						<2 18 RK_FUNC_1 &pcfg_pull_none>,
+						<2 19 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			mac_rxpins: mac-rxpins {
+				rockchip,pins = <2 15 RK_FUNC_1 &pcfg_pull_none>,
+						<2 16 RK_FUNC_1 &pcfg_pull_none>,
+						<2 17 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			mac_crs: mac-crs {
+				rockchip,pins = <2 10 RK_FUNC_1 &pcfg_pull_none>;
+			};
+
+			mac_mdpins: mac-mdpins {
+				rockchip,pins = <2 12 RK_FUNC_1 &pcfg_pull_none>,
+						<2 25 RK_FUNC_1 &pcfg_pull_none>;
 			};
 		};
 	};

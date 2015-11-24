@@ -73,6 +73,13 @@
 	};
 };
 
+&cpu0 {
+	operating-points = <
+		/* KHz    uV */
+		 800000 1000000
+	>;
+};
+
 &lcdc {
 	status = "okay";
 };
@@ -141,4 +148,13 @@
 	default-sample-phase = <90>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio_clk &sdio_cmd &sdio_bus4>;
+};
+
+&vmac {
+	status = "okay";
+
+	reset-gpio = <&gpio2 22 GPIO_ACTIVE_LOW>;
+
+	assigned-clocks = <&cru SCLK_MACPLL>;
+	assigned-clock-parents = <&cru PLL_APLL>;
 };
