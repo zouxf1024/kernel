@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <drm/drm.h>
 #include <drm/drmP.h>
+#include <drm/drm_atomic.h>
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_crtc_helper.h>
 
@@ -166,9 +167,73 @@ static void rockchip_drm_output_poll_changed(struct drm_device *dev)
 		drm_fb_helper_hotplug_event(fb_helper);
 }
 
+static void rockchip_atomic_wait_for_complete(struct drm_atomic_state *state)
+{
+	struct drm_crtc_state *crtc_state;
+	struct drm_crtc *crtc;
+	int i;
+
+	for_each_crtc_in_state(state, crtc, crtc_state, i) {
+		if (!crtc->state->active)
+			continue;
+
+		WARN_ON(drm_crtc_vblank_get(crtc));
+	}
+
+	for_each_crtc_in_state(state, crtc, crtc_state, i) {
+		if (!crtc->state->active)
+			continue;
+
+		rockchip_crtc_wait_for_update(crtc);
+	}
+
+	for_each_crtc_in_state(state, crtc, crtc_state, i) {
+		if (!crtc->state->active)
+			continue;
+
+		drm_crtc_vblank_put(crtc);
+	}
+}
+
+int rockchip_drm_atomic_commit(struct drm_device *dev,
+			       struct drm_atomic_state *state,
+			       bool async)
+{
+	int ret;
+
+	if (async)
+		return -EBUSY;
+
+	ret = drm_atomic_helper_prepare_planes(dev, state);
+	if (ret)
+		return ret;
+
+	drm_atomic_helper_swap_state(dev, state);
+
+	/*
+	 * TODO: do fence wait here.
+	 */
+
+	drm_atomic_helper_commit_modeset_disables(dev, state);
+
+	drm_atomic_helper_commit_planes(dev, state, false);
+
+	drm_atomic_helper_commit_modeset_enables(dev, state);
+
+	rockchip_atomic_wait_for_complete(state);
+
+	drm_atomic_helper_cleanup_planes(dev, state);
+
+	drm_atomic_state_free(state);
+
+	return 0;
+}
+
 static const struct drm_mode_config_funcs rockchip_drm_mode_config_funcs = {
 	.fb_create = rockchip_user_fb_create,
 	.output_poll_changed = rockchip_drm_output_poll_changed,
+	.atomic_check = drm_atomic_helper_check,
+	.atomic_commit = rockchip_drm_atomic_commit,
 };
 
 struct drm_framebuffer *
