@@ -1111,6 +1111,7 @@ static void vop_crtc_mode_set_nofb(struct drm_crtc *crtc)
 	u16 vact_end = vact_st + vdisplay;
 	uint32_t val;
 
+	vop_crtc_enable(crtc);
 	/*
 	 * If dclk rate is zero, mean that scanout is stop,
 	 * we don't need wait any more.
