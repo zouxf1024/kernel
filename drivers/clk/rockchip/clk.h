@@ -43,6 +43,13 @@
 #define RK2928_SOFTRST_CON(x)	(x * 0x4 + 0x110)
 #define RK2928_MISC_CON		0x134
 
+#define RK3036_SDMMC_CON0		0x144
+#define RK3036_SDMMC_CON1		0x148
+#define RK3036_SDIO_CON0		0x14c
+#define RK3036_SDIO_CON1		0x150
+#define RK3036_EMMC_CON0		0x154
+#define RK3036_EMMC_CON1		0x158
+
 #define RK3288_PLL_CON(x)		RK2928_PLL_CON(x)
 #define RK3288_MODE_CON			0x50
 #define RK3288_CLKSEL_CON(x)		(x * 0x4 + 0x60)
