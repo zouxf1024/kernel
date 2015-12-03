@@ -1169,8 +1169,7 @@ static void vop_crtc_mode_set_nofb(struct drm_crtc *crtc)
 	VOP_CTRL_SET(vop, standby, 0);
 }
 
-static void vop_crtc_atomic_flush(struct drm_crtc *crtc,
-				  struct drm_crtc_state *old_crtc_state)
+static void vop_crtc_atomic_flush(struct drm_crtc *crtc)
 {
 	struct vop *vop = to_vop(crtc);
 
