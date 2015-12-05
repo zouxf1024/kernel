@@ -1,0 +1,160 @@
+/*
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License as
+ *     published by the Free Software Foundation; either version 2 of the
+ *     License, or (at your option) any later version.
+ *
+ *     This file is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *  Or, alternatively,
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use,
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/dts-v1/;
+
+#include "rk3036.dtsi"
+
+/ {
+	model = "Rockchip RK3036 KylinBoard";
+	compatible = "rockchip,rk3036-kylin", "rockchip,rk3036";
+
+	sound {
+		compatible = "rockchip,rockchip-audio-rk3036";
+		rockchip,model = "I2S-INNO-RK3036";
+		rockchip,i2s-controller = <&i2s0>;
+		rockchip,audio-codec = <&acodec>;
+	};
+
+	sound_spdif {
+		compatible = "rockchip,rockchip-spdif-card";
+		rockchip,model = "SPDIFCARD-ROCKCHIP";
+		rockchip,spdif-controller = <&spdif>;
+		rockchip,audio-codec = <&spdif_out>;
+	};
+
+	spdif_out: spdif-out {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+
+	usb_control {
+		compatible = "rockchip,rk3036-usb-control";
+		host_drv_gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
+		otg_drv_gpio = <&gpio0 26 GPIO_ACTIVE_LOW>;
+		wifipwr-gpios = <&gpio2 30 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&cpu0 {
+	operating-points = <
+		/* KHz    uV */
+		 800000 1000000
+	>;
+};
+
+&lcdc {
+	status = "okay";
+};
+
+&lcdc_mmu {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&acodec {
+	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&i2c1 {
+	status = "okay";
+
+        hym8563: hym8563@51 {
+		compatible = "haoyu,hym8563";
+		reg = <0x51>;
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "xin32k";
+	};
+};
+
+&spdif {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&emmc {
+	status = "okay";
+};
+
+&usb_host {
+	status = "okay";
+};
+
+&usb_otg {
+	status = "okay";
+};
+
+&usbphy {
+	status = "okay";
+};
+
+&sdio {
+	status = "okay";
+
+	broken-cd;
+	bus-width = <4>;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	non-removable;
+	num-slots = <1>;
+	default-sample-phase = <90>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio_clk &sdio_cmd &sdio_bus4>;
+};
+
+&vmac {
+	status = "okay";
+
+	reset-gpio = <&gpio2 22 GPIO_ACTIVE_LOW>;
+
+	assigned-clocks = <&cru SCLK_MACPLL>;
+	assigned-clock-parents = <&cru PLL_APLL>;
+};
