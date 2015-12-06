@@ -47,10 +47,24 @@
 	compatible = "rockchip,rk3036-kylin", "rockchip,rk3036";
 
 	sound {
-		compatible = "rockchip,rockchip-audio-rk3036";
-		rockchip,model = "I2S-INNO-RK3036";
-		rockchip,i2s-controller = <&i2s0>;
-		rockchip,audio-codec = <&acodec>;
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "rockchip,rt5616-codec";
+		simple-audio-card,widgets =
+			"Microphone", "Microphone Jack",
+			"Headphone", "Headphone Jack";
+		simple-audio-card,routing =
+			"MIC1", "Microphone Jack",
+			"MIC2", "Microphone Jack",
+			"Microphone Jack", "micbias1",
+			"Headphone Jack", "HPOL",
+			"Headphone Jack", "HPOR";
+		simple-audio-card,cpu {
+			sound-dai = <&i2s0>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&rt5616>;
+		};
 	};
 
 	sound_spdif {
@@ -106,6 +120,7 @@
 };
 
 &i2s0 {
+	#sound-dai-cells = <0>;
 	status = "okay";
 };
 
@@ -298,6 +313,16 @@
 				};
 			};
 		};
+	};
+};
+
+&i2c2 {
+	status = "okay";
+
+	rt5616: rt5616@1b {
+		#sound-dai-cells = <0>;
+		compatible = "rt5616";
+		reg = <0x1b>;
 	};
 };
 
