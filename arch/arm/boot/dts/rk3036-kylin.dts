@@ -244,15 +244,15 @@
 				};
 			};
 
-			vdd10_lcd: LDO_REG6 {
+			vout5: LDO_REG6 {
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <1000000>;
-				regulator-max-microvolt = <1000000>;
-				regulator-name = "vdd10_lcd";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <2500000>;
+				regulator-name = "vout5";
 				regulator-state-mem {
 					regulator-on-in-suspend;
-					regulator-suspend-microvolt = <1000000>;
+					regulator-suspend-microvolt = <1800000>;
 				};
 			};
 
@@ -271,12 +271,12 @@
 			vcca_codec: LDO_REG8 {
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <3300000>;
-				regulator-max-microvolt = <3300000>;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
 				regulator-name = "vcca_codec";
 				regulator-state-mem {
 					regulator-on-in-suspend;
-					regulator-suspend-microvolt = <3300000>;
+					regulator-suspend-microvolt = <1800000>;
 				};
 			};
 
