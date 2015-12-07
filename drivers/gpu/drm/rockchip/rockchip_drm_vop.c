@@ -569,6 +569,7 @@ static const struct vop_ctrl rk3036_ctrl_data = {
 };
 
 static const struct vop_reg_data rk3036_vop_init_reg_table[] = {
+	{RK3036_DSP_CTRL1, 0x00000000},
 };
 
 static const struct vop_data rk3036_vop = {
