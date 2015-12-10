@@ -32,6 +32,7 @@
 #define RK3036_TIMER_PHYS 0x20044000
 
 #define RK3288_GRF_SOC_CON0 0x244
+#define RK3288_GRF_SOC_CON2 0x24c
 #define RK3288_TIMER6_7_PHYS 0xff810000
 
 static void rockchip_init_arch_timer_supply(resource_size_t phys, int offs)
@@ -67,8 +68,10 @@ static void __init rockchip_timer_init(void)
 		 * with the mmc controllers making them unreliable
 		 */
 		grf = syscon_regmap_lookup_by_compatible("rockchip,rk3288-grf");
-		if (!IS_ERR(grf))
+		if (!IS_ERR(grf)) {
 			regmap_write(grf, RK3288_GRF_SOC_CON0, 0x10000000);
+			regmap_write(grf, RK3288_GRF_SOC_CON2, BIT(0) | BIT(16));
+		}
 		else
 			pr_err("rockchip: could not get grf syscon\n");
 	} else if (of_machine_is_compatible("rockchip,rk3036")) {
