@@ -364,7 +364,7 @@ static struct rockchip_clk_branch rk3228_clk_branches[] __initdata = {
 			RK2928_CLKSEL_CON(29), 0, 3, DFLAGS),
 	DIV(0, "sclk_vop_pre", "sclk_vop_src", 0,
 			RK2928_CLKSEL_CON(27), 8, 8, DFLAGS),
-	MUX(0, "dclk_vop", mux_dclk_vop_p, 0,
+	MUX(DCLK_VOP, "dclk_vop", mux_dclk_vop_p, 0,
 			RK2928_CLKSEL_CON(27), 1, 1, MFLAGS),
 
 	COMPOSITE(0, "i2s0_src", mux_pll_src_2plls_p, 0,
@@ -503,7 +503,7 @@ static struct rockchip_clk_branch rk3228_clk_branches[] __initdata = {
 	GATE(0, "aclk_iep_noc", "aclk_iep_pre", 0,
 			RK2928_CLKGATE_CON(13), 9, GFLAGS),
 
-	GATE(0, "aclk_vop", "aclk_vop_pre", 0,
+	GATE(ACLK_VOP, "aclk_vop", "aclk_vop_pre", 0,
 			RK2928_CLKGATE_CON(13), 5, GFLAGS),
 	GATE(0, "aclk_vop_noc", "aclk_vop_pre", 0,
 			RK2928_CLKGATE_CON(13), 12, GFLAGS),
@@ -517,7 +517,7 @@ static struct rockchip_clk_branch rk3228_clk_branches[] __initdata = {
 			RK2928_CLKGATE_CON(13), 1, GFLAGS),
 	GATE(0, "hclk_iep", "hclk_vio_pre", 0,
 			RK2928_CLKGATE_CON(13), 3, GFLAGS),
-	GATE(0, "hclk_vop", "hclk_vio_pre", 0,
+	GATE(HCLK_VOP, "hclk_vop", "hclk_vio_pre", 0,
 			RK2928_CLKGATE_CON(13), 6, GFLAGS),
 	GATE(0, "hclk_vio_ahb_arbi", "hclk_vio_pre", 0,
 			RK2928_CLKGATE_CON(13), 7, GFLAGS),
