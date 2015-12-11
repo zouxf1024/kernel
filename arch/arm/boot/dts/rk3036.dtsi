@@ -213,7 +213,7 @@
 		#clock-cells = <1>;
 		#reset-cells = <1>;
 		assigned-clocks = <&cru PLL_GPLL>;
-		assigned-clock-rates = <594000000>;
+		assigned-clock-rates = <1188000000>;
 	};
 
 	grf: syscon@20008000 {

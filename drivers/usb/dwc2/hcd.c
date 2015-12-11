@@ -134,7 +134,7 @@ static void dwc2_kill_urbs_in_qh_list(struct dwc2_hsotg *hsotg,
 	list_for_each_entry_safe(qh, qh_tmp, qh_list, qh_list_entry) {
 		list_for_each_entry_safe(qtd, qtd_tmp, &qh->qtd_list,
 					 qtd_list_entry) {
-			dwc2_host_complete(hsotg, qtd, -ETIMEDOUT);
+			dwc2_host_complete(hsotg, qtd, -ECONNRESET);
 			dwc2_hcd_qtd_unlink_and_free(hsotg, qtd, qh);
 		}
 	}
@@ -357,12 +357,12 @@ void dwc2_hcd_stop(struct dwc2_hsotg *hsotg)
 	writel(0, hsotg->regs + HPRT0);
 }
 
+/* Caller must hold driver lock */
 static int dwc2_hcd_urb_enqueue(struct dwc2_hsotg *hsotg,
 				struct dwc2_hcd_urb *urb, void **ep_handle,
 				gfp_t mem_flags)
 {
 	struct dwc2_qtd *qtd;
-	unsigned long flags;
 	u32 intr_mask;
 	int retval;
 	int dev_speed;
@@ -413,11 +413,9 @@ static int dwc2_hcd_urb_enqueue(struct dwc2_hsotg *hsotg,
 			 */
 			return 0;
 
-		spin_lock_irqsave(&hsotg->lock, flags);
 		tr_type = dwc2_hcd_select_transactions(hsotg);
 		if (tr_type != DWC2_TRANSACTION_NONE)
 			dwc2_hcd_queue_transactions(hsotg, tr_type);
-		spin_unlock_irqrestore(&hsotg->lock, flags);
 	}
 
 	return 0;
@@ -2184,11 +2182,6 @@ void dwc2_host_complete(struct dwc2_hsotg *hsotg, struct dwc2_qtd *qtd,
 			 usb_pipein(urb->pipe) ? "IN" : "OUT", status,
 			 urb->actual_length);
 
-	if (usb_pipetype(urb->pipe) == PIPE_ISOCHRONOUS && dbg_perio()) {
-		for (i = 0; i < urb->number_of_packets; i++)
-			dev_vdbg(hsotg->dev, " ISO Desc %d status %d\n",
-				 i, urb->iso_frame_desc[i].status);
-	}
 
 	if (usb_pipetype(urb->pipe) == PIPE_ISOCHRONOUS) {
 		urb->error_count = dwc2_hcd_urb_get_error_count(qtd->urb);
@@ -2199,6 +2192,12 @@ void dwc2_host_complete(struct dwc2_hsotg *hsotg, struct dwc2_qtd *qtd,
 			urb->iso_frame_desc[i].status =
 				dwc2_hcd_urb_get_iso_desc_status(qtd->urb, i);
 		}
+	}
+
+	if (usb_pipetype(urb->pipe) == PIPE_ISOCHRONOUS && dbg_perio()) {
+		for (i = 0; i < urb->number_of_packets; i++)
+			dev_vdbg(hsotg->dev, " ISO Desc %d status %d\n",
+				 i, urb->iso_frame_desc[i].status);
 	}
 
 	urb->status = status;
@@ -2468,7 +2467,7 @@ static int _dwc2_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 				"%s: unaligned transfer with no transfer_buffer",
 				__func__);
 			retval = -EINVAL;
-			goto fail1;
+			goto fail0;
 		}
 	}
 
@@ -2496,7 +2495,6 @@ static int _dwc2_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 
 	spin_lock_irqsave(&hsotg->lock, flags);
 	retval = usb_hcd_link_urb_to_ep(hcd, urb);
-	spin_unlock_irqrestore(&hsotg->lock, flags);
 	if (retval)
 		goto fail1;
 
@@ -2505,22 +2503,22 @@ static int _dwc2_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 		goto fail2;
 
 	if (alloc_bandwidth) {
-		spin_lock_irqsave(&hsotg->lock, flags);
 		dwc2_allocate_bus_bandwidth(hcd,
 				dwc2_hcd_get_ep_bandwidth(hsotg, ep),
 				urb);
-		spin_unlock_irqrestore(&hsotg->lock, flags);
 	}
+
+	spin_unlock_irqrestore(&hsotg->lock, flags);
 
 	return 0;
 
 fail2:
-	spin_lock_irqsave(&hsotg->lock, flags);
 	dwc2_urb->priv = NULL;
 	usb_hcd_unlink_urb_from_ep(hcd, urb);
-	spin_unlock_irqrestore(&hsotg->lock, flags);
 fail1:
+	spin_unlock_irqrestore(&hsotg->lock, flags);
 	urb->hcpriv = NULL;
+fail0:
 	kfree(dwc2_urb);
 
 	return retval;
