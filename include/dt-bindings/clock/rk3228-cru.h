@@ -86,8 +86,8 @@
 #define HCLK_SDMMC		456
 #define HCLK_SDIO		457
 #define HCLK_EMMC		459
+#define HCLK_VOP		460
 #define HCLK_PERI		478
-#define HCLK_VOP		479
 
 #define CLK_NR_CLKS		(HCLK_PERI + 1)
 

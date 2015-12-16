@@ -570,7 +570,7 @@ static const struct vop_data rk3036_vop = {
 static const struct of_device_id vop_driver_dt_match[] = {
 	{ .compatible = "rockchip,rk3288-vop",
 	  .data = &rk3288_vop },
-	{ .compatible = "rockchip,rk3228-lcdc",
+	{ .compatible = "rockchip,rk3228-vop",
 	  .data = &rk3228_vop },
 	{ .compatible = "rockchip,rk3066a-lcdc",
 	  .data = &rk3066a_vop },
@@ -708,11 +708,13 @@ static void vop_enable(struct drm_crtc *crtc)
 	if (vop->is_enabled)
 		return;
 
+	/*
 	ret = pm_runtime_get_sync(vop->dev);
 	if (ret < 0) {
 		dev_err(vop->dev, "failed to get pm runtime: %d\n", ret);
 		return;
 	}
+	*/
 
 	ret = clk_enable(vop->hclk);
 	if (ret < 0) {
@@ -773,6 +775,8 @@ static void vop_disable(struct drm_crtc *crtc)
 {
 	struct vop *vop = to_vop(crtc);
 
+	return;
+
 	if (!vop->is_enabled)
 		return;
 
@@ -810,7 +814,7 @@ static void vop_disable(struct drm_crtc *crtc)
 	clk_disable(vop->dclk);
 	clk_disable(vop->aclk);
 	clk_disable(vop->hclk);
-	pm_runtime_put(vop->dev);
+	//pm_runtime_put(vop->dev);
 }
 
 /*
@@ -1564,20 +1568,22 @@ static int vop_initial(struct vop *vop)
 	const struct vop_reg_data *init_table = vop_data->init_table;
 	int i, ret;
 
-	vop->hclk = devm_clk_get(vop->dev, "hclk_vop");
-	if (IS_ERR(vop->hclk)) {
-		dev_err(vop->dev, "failed to get hclk source\n");
-		return PTR_ERR(vop->hclk);
+	vop->dclk = devm_clk_get(vop->dev, "dclk_vop");
+	if (IS_ERR(vop->dclk)) {
+		dev_err(vop->dev, "failed to get dclk source\n");
+		return PTR_ERR(vop->dclk);
 	}
+
 	vop->aclk = devm_clk_get(vop->dev, "aclk_vop");
 	if (IS_ERR(vop->aclk)) {
 		dev_err(vop->dev, "failed to get aclk source\n");
 		return PTR_ERR(vop->aclk);
 	}
-	vop->dclk = devm_clk_get(vop->dev, "dclk_vop");
-	if (IS_ERR(vop->dclk)) {
-		dev_err(vop->dev, "failed to get dclk source\n");
-		return PTR_ERR(vop->dclk);
+
+	vop->hclk = devm_clk_get(vop->dev, "hclk_vop");
+	if (IS_ERR(vop->hclk)) {
+		dev_err(vop->dev, "failed to get hclk source\n");
+		return PTR_ERR(vop->hclk);
 	}
 
 	ret = clk_prepare_enable(vop->hclk);
@@ -1655,22 +1661,26 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	size_t alloc_size;
 	int ret, irq;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	of_id = of_match_device(vop_driver_dt_match, dev);
 	vop_data = of_id->data;
 	if (!vop_data)
 		return -ENODEV;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	/* Allocate vop struct and its vop_win array */
 	alloc_size = sizeof(*vop) + sizeof(*vop->win) * vop_data->win_size;
 	vop = devm_kzalloc(dev, alloc_size, GFP_KERNEL);
 	if (!vop)
 		return -ENOMEM;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop->dev = dev;
 	vop->data = vop_data;
 	vop->drm_dev = drm_dev;
 	dev_set_drvdata(dev, vop);
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop_win_init(vop);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1679,6 +1689,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	if (IS_ERR(vop->regs))
 		return PTR_ERR(vop->regs);
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop->regsbak = devm_kzalloc(dev, vop->len, GFP_KERNEL);
 	if (!vop->regsbak)
 		return -ENOMEM;
@@ -1689,6 +1700,7 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 		return ret;
 	}
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(dev, "cannot find irq for vop\n");
@@ -1701,11 +1713,13 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 
 	mutex_init(&vop->vsync_mutex);
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	ret = devm_request_threaded_irq(dev, vop->irq, vop_isr, vop_isr_thread,
 					IRQF_SHARED, dev_name(dev), vop);
 	if (ret)
 		return ret;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	/* IRQ is initially disabled; it gets enabled in power_on */
 	disable_irq(vop->irq);
 
@@ -1713,7 +1727,8 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	if (ret)
 		return ret;
 
-	pm_runtime_enable(&pdev->dev);
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
+	//pm_runtime_enable(&pdev->dev);
 	return 0;
 }
 
@@ -1721,7 +1736,7 @@ static void vop_unbind(struct device *dev, struct device *master, void *data)
 {
 	struct vop *vop = dev_get_drvdata(dev);
 
-	pm_runtime_disable(dev);
+	//pm_runtime_disable(dev);
 	vop_destroy_crtc(vop);
 }
 
@@ -1734,11 +1749,13 @@ static int vop_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	if (!dev->of_node) {
 		dev_err(dev, "can't find vop devices\n");
 		return -ENODEV;
 	}
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	return component_add(dev, &vop_component_ops);
 }
 

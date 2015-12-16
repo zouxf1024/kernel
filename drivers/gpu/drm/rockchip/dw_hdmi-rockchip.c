@@ -28,6 +28,8 @@ struct rockchip_hdmi {
 	struct device *dev;
 	struct regmap *regmap;
 	struct drm_encoder encoder;
+	struct clk *dclk_phy;
+	struct clk *pclk_phy;
 };
 
 #define to_rockchip_hdmi(x)	container_of(x, struct rockchip_hdmi, x)
@@ -141,9 +143,11 @@ static const struct dw_hdmi_phy_config rockchip_phy_config[] = {
 	{ ~0UL,	     0x0000, 0x0000, 0x0000}
 };
 
-static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
+static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi,
+				  const struct dw_hdmi_plat_data *plat_data)
 {
 	struct device_node *np = hdmi->dev->of_node;
+	int ret;
 
 	hdmi->regmap = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR(hdmi->regmap)) {
@@ -151,10 +155,36 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 		return PTR_ERR(hdmi->regmap);
 	}
 
+	if (plat_data->dev_type == RK3228_HDMI) {
+		hdmi->dclk_phy = devm_clk_get(hdmi->dev, "dclkphy");
+		if (IS_ERR(hdmi->dclk_phy)) {
+			dev_err(hdmi->dev, "failed to get dclkphy clock\n");
+			return PTR_ERR(hdmi->dclk_phy);
+		}
+
+		hdmi->pclk_phy = devm_clk_get(hdmi->dev, "pclkphy");
+		if (IS_ERR(hdmi->pclk_phy)) {
+			dev_err(hdmi->dev, "failed to get pclkphy clock\n");
+			return PTR_ERR(hdmi->pclk_phy);
+		}
+
+		ret = clk_prepare_enable(hdmi->pclk_phy);
+		if (ret) {
+			dev_err(hdmi->dev, "Cannot enable HDMI pclkphy: %d\n", ret);
+			return ret;
+		}
+
+		ret = clk_prepare_enable(hdmi->dclk_phy);
+		if (ret) {
+			dev_err(hdmi->dev, "Cannot enable HDMI dclkphy: %d\n", ret);
+			return ret;
+		}
+	}
+
 	return 0;
 }
 
-static enum drm_mode_status
+	static enum drm_mode_status
 dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
 			    struct drm_display_mode *mode)
 {
@@ -163,6 +193,7 @@ dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
 	bool valid = false;
 	int i;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	for (i = 0; mpll_cfg[i].mpixelclock != (~0UL); i++) {
 		if (pclk == mpll_cfg[i].mpixelclock) {
 			valid = true;
@@ -201,6 +232,7 @@ static void dw_hdmi_rockchip_encoder_commit(struct drm_encoder *encoder)
 	u32 val;
 	int mux;
 
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	mux = rockchip_drm_encoder_get_mux_id(hdmi->dev->of_node, encoder);
 	if (mux)
 		val = HDMI_SEL_VOP_LIT | (HDMI_SEL_VOP_LIT << 16);
@@ -208,7 +240,7 @@ static void dw_hdmi_rockchip_encoder_commit(struct drm_encoder *encoder)
 		val = HDMI_SEL_VOP_LIT << 16;
 
 	regmap_write(hdmi->regmap, GRF_SOC_CON6, val);
-	dev_dbg(hdmi->dev, "vop %s output to hdmi\n",
+	dev_info(hdmi->dev, "vop %s output to hdmi\n",
 		(mux) ? "LIT" : "BIG");
 }
 
@@ -226,7 +258,7 @@ static struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
 	.disable    = dw_hdmi_rockchip_encoder_disable,
 };
 
-static const struct dw_hdmi_plat_data rockchip_hdmi_drv_data = {
+static const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 	.mode_valid = dw_hdmi_rockchip_mode_valid,
 	.mpll_cfg   = rockchip_mpll_cfg,
 	.cur_ctr    = rockchip_cur_ctr,
@@ -234,9 +266,20 @@ static const struct dw_hdmi_plat_data rockchip_hdmi_drv_data = {
 	.dev_type   = RK3288_HDMI,
 };
 
+static const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
+	.mode_valid = dw_hdmi_rockchip_mode_valid,
+	.mpll_cfg   = rockchip_mpll_cfg,
+	.cur_ctr    = rockchip_cur_ctr,
+	.phy_config = rockchip_phy_config,
+	.dev_type   = RK3228_HDMI,
+};
+
 static const struct of_device_id dw_hdmi_rockchip_dt_ids[] = {
 	{ .compatible = "rockchip,rk3288-dw-hdmi",
-	  .data = &rockchip_hdmi_drv_data
+	  .data = &rk3288_hdmi_drv_data
+	},
+	{ .compatible = "rockchip,rk3228-dw-hdmi",
+	  .data = &rk3228_hdmi_drv_data
 	},
 	{},
 };
@@ -287,7 +330,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	if (encoder->possible_crtcs == 0)
 		return -EPROBE_DEFER;
 
-	ret = rockchip_hdmi_parse_dt(hdmi);
+	ret = rockchip_hdmi_parse_dt(hdmi, plat_data);
 	if (ret) {
 		dev_err(hdmi->dev, "Unable to parse OF data\n");
 		return ret;
@@ -313,6 +356,7 @@ static const struct component_ops dw_hdmi_rockchip_ops = {
 
 static int dw_hdmi_rockchip_probe(struct platform_device *pdev)
 {
+	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	return component_add(&pdev->dev, &dw_hdmi_rockchip_ops);
 }
 
