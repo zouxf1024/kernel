@@ -277,6 +277,8 @@ void cfb_imageblit(struct fb_info *p, const struct fb_image *image)
 	start_index = bitstart & (32 - 1);
 	pitch_index = (p->fix.line_length & (bpl - 1)) * 8;
 
+	//printk("YAKIR: %s:%d, line_length = %d, bpl = %d\n", __func__, __LINE__, p->fix.line_length, bpl);
+
 	bitstart /= 8;
 	bitstart &= ~(bpl - 1);
 	dst1 = p->screen_base + bitstart;

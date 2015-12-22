@@ -489,7 +489,6 @@ static int rockchip_drm_platform_probe(struct platform_device *pdev)
 	struct device_node *port;
 	int i;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	if (!np)
 		return -ENODEV;
 	/*
@@ -511,13 +510,11 @@ static int rockchip_drm_platform_probe(struct platform_device *pdev)
 		of_node_put(port);
 	}
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	if (i == 0) {
 		dev_err(dev, "missing 'ports' property\n");
 		return -ENODEV;
 	}
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	if (!match) {
 		dev_err(dev, "No available vop found for display-subsystem.\n");
 		return -ENODEV;

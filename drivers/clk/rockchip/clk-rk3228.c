@@ -362,7 +362,7 @@ static struct rockchip_clk_branch rk3228_clk_branches[] __initdata = {
 			RK2928_CLKSEL_CON(27), 0, 1, MFLAGS),
 	DIV(DCLK_HDMI_PHY, "dclk_hdmiphy", "sclk_vop_src", 0,
 			RK2928_CLKSEL_CON(29), 0, 3, DFLAGS),
-	DIV(0, "sclk_vop_pre", "sclk_vop_src", 0,
+	DIV(SCLK_VOP_PRE, "sclk_vop_pre", "sclk_vop_src", 0,
 			RK2928_CLKSEL_CON(27), 8, 8, DFLAGS),
 	MUX(DCLK_VOP, "dclk_vop", mux_dclk_vop_p, 0,
 			RK2928_CLKSEL_CON(27), 1, 1, MFLAGS),

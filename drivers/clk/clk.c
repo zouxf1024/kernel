@@ -245,6 +245,8 @@ static int clk_disable_unused(void)
 {
 	struct clk_core *core;
 
+	return 0;
+
 	if (clk_ignore_unused) {
 		pr_warn("clk: Not disabling unused clocks\n");
 		return 0;
@@ -1767,14 +1769,20 @@ static int clk_core_set_parent(struct clk_core *core, struct clk_core *parent)
 	int p_index = 0;
 	unsigned long p_rate = 0;
 
+	printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	if (!core)
 		return 0;
 
 	/* prevent racing with updates to the clock topology */
 	clk_prepare_lock();
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	if (core->parent == parent)
 		goto out;
+
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
 
 	/* verify ops for for multi-parent clks */
 	if ((core->num_parents > 1) && (!core->ops->set_parent)) {
@@ -1782,33 +1790,45 @@ static int clk_core_set_parent(struct clk_core *core, struct clk_core *parent)
 		goto out;
 	}
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	/* check that we are allowed to re-parent if the clock is in use */
 	if ((core->flags & CLK_SET_PARENT_GATE) && core->prepare_count) {
 		ret = -EBUSY;
 		goto out;
 	}
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	/* try finding the new parent index */
 	if (parent) {
 		p_index = clk_fetch_parent_index(core, parent);
 		p_rate = parent->rate;
 		if (p_index < 0) {
-			pr_debug("%s: clk %s can not be parent of clk %s\n",
+			pr_info("%s: clk %s can not be parent of clk %s\n",
 					__func__, parent->name, core->name);
 			ret = p_index;
 			goto out;
 		}
 	}
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	/* propagate PRE_RATE_CHANGE notifications */
 	ret = __clk_speculate_rates(core, p_rate);
+
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
 
 	/* abort if a driver objects */
 	if (ret & NOTIFY_STOP_MASK)
 		goto out;
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 	/* do the re-parent */
 	ret = __clk_set_parent(core, parent, p_index);
+
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
 
 	/* propagate rate an accuracy recalculation accordingly */
 	if (ret) {
@@ -1818,8 +1838,13 @@ static int clk_core_set_parent(struct clk_core *core, struct clk_core *parent)
 		__clk_recalc_accuracies(core);
 	}
 
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
+
 out:
 	clk_prepare_unlock();
+
+	if (strcmp("dclk_vop", core->name) == 0)
+		printk("YAKIR: %s->%s %s:%d\n", core->name, parent->name, __func__, __LINE__);
 
 	return ret;
 }
@@ -1845,6 +1870,9 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 {
 	if (!clk)
 		return 0;
+
+	if (strcmp("dclk_vop", __clk_get_name(clk)) == 0)
+		printk("YAKIR: %s->%s %s:%d\n", __clk_get_name(clk), __clk_get_name(parent), __func__, __LINE__);
 
 	return clk_core_set_parent(clk->core, parent ? parent->core : NULL);
 }

@@ -43,6 +43,7 @@
 #define __REG_SET_RELAXED(x, off, mask, shift, v) \
 		vop_mask_write_relaxed(x, off, (mask) << shift, (v) << shift)
 #define __REG_SET_NORMAL(x, off, mask, shift, v) \
+		printk("--> YAKIR: %s:%d off = (%x), shift = %d, mask = %x, v = %x\n", __func__, __LINE__, off, shift, mask, v); \
 		vop_mask_write(x, off, (mask) << shift, (v) << shift)
 
 #define REG_SET(x, base, reg, v, mode) \
@@ -66,6 +67,7 @@
 		for (i = 0; i < vop->data->intr->nintrs; i++) { \
 			if (vop->data->intr->intrs[i] & type) \
 				reg |= (v >> type) << i; \
+				reg |= reg << 16; \
 		} \
 		VOP_INTR_SET(vop, name, reg); \
 	}while(0)
@@ -135,6 +137,8 @@ struct vop {
 
 	/* vop dclk reset */
 	struct reset_control *dclk_rst;
+	struct reset_control *aclk_rst;
+	struct reset_control *hclk_rst;
 
 	int pipe;
 
@@ -331,8 +335,6 @@ static const struct vop_data rk3288_vop = {
 	.win_size = ARRAY_SIZE(rk3288_vop_win_data),
 };
 
-//===================================================================
-
 static const uint32_t rk3228_formats_win01[] = {
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
@@ -385,21 +387,44 @@ static const struct vop_ctrl rk3228_ctrl_data = {
 	.vpost_st_end = VOP_REG(RK3228_POST_DSP_VACT_INFO, 0x1fff1fff, 0),
 };
 
+static const int rk3228_vop_intrs[] = {
+	FS_INTR,		//bit 0
+	INTR_DUMMY,
+	INTR_DUMMY,
+	LINE_FLAG_INTR,
+	INTR_DUMMY,		// bit 5
+	INTR_DUMMY,		//bit 4
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,		// bit 8
+	INTR_DUMMY,		//bit 9
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,
+	DSP_HOLD_VALID_INTR,	// bit 13
+};
+
+static const struct vop_intr rk3228_intr = {
+	.intrs = rk3228_vop_intrs,
+	.nintrs = ARRAY_SIZE(rk3228_vop_intrs),
+	.status = VOP_REG(RK3228_INTR_STATUS0, 0xffffffff, 0),
+	.clear = VOP_REG(RK3228_INTR_CLEAR0, 0xffffffff, 0),
+	.enable = VOP_REG(RK3228_INTR_EN0, 0xffffffff, 0),
+	.dsp_line_flag_num = VOP_REG(RK3228_LINE_FLAG, 0xfff, 0),
+};
+
 static const struct vop_reg_data rk3228_vop_init_reg_table[] = {
-	{RK3228_SYS_CTRL, 0x00c00000},
-	{RK3228_DSP_CTRL0, 0x00000000},
-	{RK3228_WIN0_CTRL0, 0x00000080},
-	{RK3228_WIN1_CTRL0, 0x00000080},
 };
 
 static const struct vop_data rk3228_vop = {
 	.init_table = rk3228_vop_init_reg_table,
 	.table_size = ARRAY_SIZE(rk3228_vop_init_reg_table),
+	.intr = &rk3228_intr,
 	.ctrl = &rk3228_ctrl_data,
 	.win = rk3228_vop_win_data,
 	.win_size = ARRAY_SIZE(rk3228_vop_win_data),
 };
-//=============================================================================
 
 static const uint32_t rk3066a_formats_win01[] = {
 	DRM_FORMAT_XRGB8888,
@@ -603,6 +628,10 @@ static inline void vop_mask_write(struct vop *vop, uint32_t offset,
 		uint32_t cached_val = vop->regsbak[offset >> 2];
 
 		cached_val = (cached_val & ~mask) | v;
+
+		if (offset == 0x280)
+			return;
+
 		writel(cached_val, vop->regs + offset);
 		vop->regsbak[offset >> 2] = cached_val;
 	}
@@ -969,9 +998,10 @@ static int vop_update_plane_event(struct drm_plane *plane,
 
 	spin_lock(&vop->reg_lock);
 
+	VOP_WIN_SET(vop, win, yrgb_mst, yrgb_mst);
 	VOP_WIN_SET(vop, win, format, format);
 	VOP_WIN_SET(vop, win, yrgb_vir, y_vir_stride);
-	VOP_WIN_SET(vop, win, yrgb_mst, yrgb_mst);
+
 	val = (actual_h - 1) << 16;
 	val |= (actual_w - 1) & 0xffff;
 	VOP_WIN_SET(vop, win, act_info, val);
@@ -996,6 +1026,7 @@ static int vop_update_plane_event(struct drm_plane *plane,
 	VOP_WIN_SET(vop, win, enable, 1);
 
 	vop_cfg_done(vop);
+
 	spin_unlock(&vop->reg_lock);
 
 	return 0;
@@ -1604,6 +1635,17 @@ static int vop_initial(struct vop *vop)
 		goto err_disabled_aclk;
 	}
 
+	vop->aclk_rst = devm_reset_control_get(vop->dev, "axi");
+	vop->hclk_rst = devm_reset_control_get(vop->dev, "ahb");
+
+	reset_control_assert(vop->aclk_rst);
+	usleep_range(10, 20);
+	reset_control_deassert(vop->aclk_rst);
+
+	reset_control_assert(vop->hclk_rst);
+	usleep_range(10, 20);
+	reset_control_deassert(vop->hclk_rst);
+
 	memcpy(vop->regsbak, vop->regs, vop->len);
 
 	for (i = 0; i < vop_data->table_size; i++)
@@ -1661,26 +1703,22 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	size_t alloc_size;
 	int ret, irq;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	of_id = of_match_device(vop_driver_dt_match, dev);
 	vop_data = of_id->data;
 	if (!vop_data)
 		return -ENODEV;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	/* Allocate vop struct and its vop_win array */
 	alloc_size = sizeof(*vop) + sizeof(*vop->win) * vop_data->win_size;
 	vop = devm_kzalloc(dev, alloc_size, GFP_KERNEL);
 	if (!vop)
 		return -ENOMEM;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop->dev = dev;
 	vop->data = vop_data;
 	vop->drm_dev = drm_dev;
 	dev_set_drvdata(dev, vop);
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop_win_init(vop);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1689,7 +1727,6 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	if (IS_ERR(vop->regs))
 		return PTR_ERR(vop->regs);
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	vop->regsbak = devm_kzalloc(dev, vop->len, GFP_KERNEL);
 	if (!vop->regsbak)
 		return -ENOMEM;
@@ -1700,7 +1737,6 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 		return ret;
 	}
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(dev, "cannot find irq for vop\n");
@@ -1713,13 +1749,11 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 
 	mutex_init(&vop->vsync_mutex);
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	ret = devm_request_threaded_irq(dev, vop->irq, vop_isr, vop_isr_thread,
 					IRQF_SHARED, dev_name(dev), vop);
 	if (ret)
 		return ret;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	/* IRQ is initially disabled; it gets enabled in power_on */
 	disable_irq(vop->irq);
 
@@ -1727,8 +1761,8 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	if (ret)
 		return ret;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	//pm_runtime_enable(&pdev->dev);
+
 	return 0;
 }
 
@@ -1749,13 +1783,11 @@ static int vop_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	if (!dev->of_node) {
 		dev_err(dev, "can't find vop devices\n");
 		return -ENODEV;
 	}
 
-	printk("=====> YAKIR: %s:%d\n", __func__, __LINE__);
 	return component_add(dev, &vop_component_ops);
 }
 

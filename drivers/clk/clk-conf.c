@@ -61,6 +61,9 @@ static int __set_clk_parents(struct device_node *node, bool clk_supplier)
 			goto err;
 		}
 
+		if (strcmp("dclk_vop", __clk_get_name(clk)) == 0)
+			printk("YAKIR: %s:%d\n", __func__, __LINE__);
+
 		rc = clk_set_parent(clk, pclk);
 		if (rc < 0)
 			pr_err("clk: failed to reparent %s to %s: %d\n",

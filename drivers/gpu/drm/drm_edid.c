@@ -2449,6 +2449,28 @@ do_detailed_mode(struct detailed_timing *timing, void *c)
 	}
 }
 
+static const struct drm_display_mode test_modes[] = {
+	/* 16 - 1920x1080@60Hz */
+	{ DRM_MODE("1920x1080", DRM_MODE_TYPE_DRIVER, 148500, 1920, 2008,
+		   2052, 2200, 0, 1080, 1084, 1089, 1125, 0,
+		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC),
+	  .vrefresh = 60, .picture_aspect_ratio = HDMI_PICTURE_ASPECT_16_9, },
+};
+
+static int add_test_modes(struct drm_connector *connector)
+{
+	struct drm_device *dev = connector->dev;
+	struct drm_display_mode *newmode;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(test_modes); i++) {
+		newmode = drm_mode_duplicate(dev, &edid_est_modes[i]);
+		drm_mode_probed_add(connector, newmode);
+	}
+
+	return ARRAY_SIZE(test_modes);
+}
+
 /*
  * add_detailed_modes - Add modes from detailed timings
  * @connector: attached connector
@@ -3875,6 +3897,8 @@ int drm_add_edid_modes(struct drm_connector *connector, struct edid *edid)
 
 	if (quirks & (EDID_QUIRK_PREFER_LARGE_60 | EDID_QUIRK_PREFER_LARGE_75))
 		edid_fixup_preferred(connector, quirks);
+
+	//num_modes += add_test_modes(connector);
 
 	drm_add_display_info(edid, &connector->display_info, connector);
 
