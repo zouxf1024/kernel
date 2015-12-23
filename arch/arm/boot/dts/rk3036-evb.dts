@@ -150,11 +150,27 @@
 	pinctrl-0 = <&sdio_clk &sdio_cmd &sdio_bus4>;
 };
 
-&vmac {
-	status = "okay";
-
-	reset-gpio = <&gpio2 22 GPIO_ACTIVE_LOW>;
-
+&emac {
 	assigned-clocks = <&cru SCLK_MACPLL>;
 	assigned-clock-parents = <&cru PLL_APLL>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emac_xfer>, <&emac_mdio>, <&rmii_rst>;
+	phy = <&phy0>;
+	status = "okay";
+
+	phy0: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+&pinctrl {
+	pcfg_output_high: pcfg-output-high {
+		output-high;
+	};
+
+	emac {
+		rmii_rst: rmii-rst {
+			rockchip,pins = <2 22 RK_FUNC_GPIO &pcfg_output_high>;
+		};
+	};
 };
