@@ -1,5 +1,5 @@
 /*
- * Rockchip RK3288 VPU codec driver
+ * Rockchip VPU codec driver
  *
  * Copyright (C) 2014 Google, Inc.
  *	Tomasz Figa <tfiga@chromium.org>

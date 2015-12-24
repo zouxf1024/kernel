@@ -1,5 +1,5 @@
 /*
- * Rockchip RK3288 VPU codec driver
+ * Rockchip VPU codec driver
  *
  * Copyright (C) 2014 Rockchip Electronics Co., Ltd.
  *	Alpha Lin <Alpha.Lin@rock-chips.com>
@@ -18,13 +18,13 @@
  * GNU General Public License for more details.
  */
 
-#include "rk3288_vpu_common.h"
+#include "rockchip_vpu_common.h"
 
 #include <linux/types.h>
 #include <linux/sort.h>
 
 #include "rk3288_vpu_regs.h"
-#include "rk3288_vpu_hw.h"
+#include "rockchip_vpu_hw.h"
 
 /* Various parameters specific to VP8 encoder. */
 #define VP8_CABAC_CTX_OFFSET			192
@@ -60,8 +60,8 @@ struct rk3288_vpu_vp8e_ctrl_buf {
  * Required buffer layout:
  *   |<--hdr-->|<--ext hdr-->|<---dct part---
  */
-void rk3288_vpu_vp8e_assemble_bitstream(struct rk3288_vpu_ctx *ctx,
-					struct rk3288_vpu_buf *dst_buf)
+void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
+					struct rockchip_vpu_buf *dst_buf)
 {
 	size_t ext_hdr_size = dst_buf->vp8e.ext_hdr_size;
 	size_t dct_size = dst_buf->vp8e.dct_size;
@@ -109,16 +109,16 @@ static inline unsigned int ref_luma_size(unsigned int w, unsigned int h)
 	return round_up(w, MB_DIM) * round_up(h, MB_DIM);
 }
 
-int rk3288_vpu_vp8e_init(struct rk3288_vpu_ctx *ctx)
+int rk3288_vpu_vp8e_init(struct rockchip_vpu_ctx *ctx)
 {
-	struct rk3288_vpu_dev *vpu = ctx->dev;
+	struct rockchip_vpu_dev *vpu = ctx->dev;
 	size_t height = ctx->src_fmt.height;
 	size_t width = ctx->src_fmt.width;
 	size_t ref_buf_size;
 	size_t mv_size;
 	int ret;
 
-	ret = rk3288_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.ctrl_buf,
+	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.ctrl_buf,
 				sizeof(struct rk3288_vpu_vp8e_ctrl_buf));
 	if (ret) {
 		vpu_err("failed to allocate ctrl buffer\n");
@@ -126,14 +126,14 @@ int rk3288_vpu_vp8e_init(struct rk3288_vpu_ctx *ctx)
 	}
 
 	mv_size = DIV_ROUND_UP(width, 16) * DIV_ROUND_UP(height, 16) / 4;
-	ret = rk3288_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.mv_buf, mv_size);
+	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.mv_buf, mv_size);
 	if (ret) {
 		vpu_err("failed to allocate MV buffer\n");
 		goto err_ctrl_buf;
 	}
 
 	ref_buf_size = ref_luma_size(width, height) * 3 / 2;
-	ret = rk3288_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.ext_buf,
+	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.vp8e.ext_buf,
 					2 * ref_buf_size);
 	if (ret) {
 		vpu_err("failed to allocate ext buffer\n");
@@ -143,23 +143,23 @@ int rk3288_vpu_vp8e_init(struct rk3288_vpu_ctx *ctx)
 	return 0;
 
 err_mv_buf:
-	rk3288_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.mv_buf);
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.mv_buf);
 err_ctrl_buf:
-	rk3288_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ctrl_buf);
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ctrl_buf);
 
 	return ret;
 }
 
-void rk3288_vpu_vp8e_exit(struct rk3288_vpu_ctx *ctx)
+void rk3288_vpu_vp8e_exit(struct rockchip_vpu_ctx *ctx)
 {
-	struct rk3288_vpu_dev *vpu = ctx->dev;
+	struct rockchip_vpu_dev *vpu = ctx->dev;
 
-	rk3288_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ext_buf);
-	rk3288_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.mv_buf);
-	rk3288_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ctrl_buf);
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ext_buf);
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.mv_buf);
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ctrl_buf);
 }
 
-static inline u32 enc_in_img_ctrl(struct rk3288_vpu_ctx *ctx)
+static inline u32 enc_in_img_ctrl(struct rockchip_vpu_ctx *ctx)
 {
 	struct v4l2_pix_format_mplane *pix_fmt = &ctx->src_fmt;
 	struct v4l2_rect *crop = &ctx->src_crop;
@@ -180,10 +180,10 @@ static inline u32 enc_in_img_ctrl(struct rk3288_vpu_ctx *ctx)
 			| VEPU_REG_IN_IMG_CTRL_FMT(ctx->vpu_src_fmt->enc_fmt);
 }
 
-static void rk3288_vpu_vp8e_set_buffers(struct rk3288_vpu_dev *vpu,
-					struct rk3288_vpu_ctx *ctx)
+static void rk3288_vpu_vp8e_set_buffers(struct rockchip_vpu_dev *vpu,
+					struct rockchip_vpu_ctx *ctx)
 {
-	const struct rk3288_vp8e_reg_params *params = ctx->run.vp8e.reg_params;
+	const struct rockchip_vp8e_reg_params *params = ctx->run.vp8e.reg_params;
 	dma_addr_t ref_buf_dma, rec_buf_dma;
 	dma_addr_t stream_dma;
 	size_t rounded_size;
@@ -201,7 +201,7 @@ static void rk3288_vpu_vp8e_set_buffers(struct rk3288_vpu_dev *vpu,
 		rec_buf_dma += rounded_size * 3 / 2;
 	ctx->hw.vp8e.ref_rec_ptr ^= 1;
 
-	if (rk3288_vpu_ctx_is_dummy_encode(ctx)) {
+	if (rockchip_vpu_ctx_is_dummy_encode(ctx)) {
 		dst_dma = vpu->dummy_encode_dst.dma;
 		dst_size = vpu->dummy_encode_dst.size;
 	} else {
@@ -271,7 +271,7 @@ static void rk3288_vpu_vp8e_set_buffers(struct rk3288_vpu_dev *vpu,
 				VEPU_REG_ADDR_REC_CHROMA);
 
 	/* Source buffer. */
-	if (rk3288_vpu_ctx_is_dummy_encode(ctx)) {
+	if (rockchip_vpu_ctx_is_dummy_encode(ctx)) {
 		vepu_write_relaxed(vpu, vpu->dummy_encode_src[PLANE_Y].dma,
 					VEPU_REG_ADDR_IN_LUMA);
 		vepu_write_relaxed(vpu, vpu->dummy_encode_src[PLANE_CB].dma,
@@ -294,10 +294,10 @@ static void rk3288_vpu_vp8e_set_buffers(struct rk3288_vpu_dev *vpu,
 	vepu_write_relaxed(vpu, enc_in_img_ctrl(ctx), VEPU_REG_IN_IMG_CTRL);
 }
 
-static void rk3288_vpu_vp8e_set_params(struct rk3288_vpu_dev *vpu,
-				       struct rk3288_vpu_ctx *ctx)
+static void rk3288_vpu_vp8e_set_params(struct rockchip_vpu_dev *vpu,
+				       struct rockchip_vpu_ctx *ctx)
 {
-	const struct rk3288_vp8e_reg_params *params = ctx->run.vp8e.reg_params;
+	const struct rockchip_vp8e_reg_params *params = ctx->run.vp8e.reg_params;
 	int i;
 
 	vepu_write_relaxed(vpu, params->enc_ctrl0, VEPU_REG_ENC_CTRL0);
@@ -363,9 +363,9 @@ static void rk3288_vpu_vp8e_set_params(struct rk3288_vpu_dev *vpu,
 					VEPU_REG_VP8_LOOP_FLT_DELTA(i));
 }
 
-void rk3288_vpu_vp8e_run(struct rk3288_vpu_ctx *ctx)
+void rk3288_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx)
 {
-	struct rk3288_vpu_dev *vpu = ctx->dev;
+	struct rockchip_vpu_dev *vpu = ctx->dev;
 	u32 reg;
 
 	/* The hardware expects the control buffer to be zeroed. */
@@ -375,7 +375,7 @@ void rk3288_vpu_vp8e_run(struct rk3288_vpu_ctx *ctx)
 	/*
 	 * Program the hardware.
 	 */
-	rk3288_vpu_power_on(vpu);
+	rockchip_vpu_power_on(vpu);
 
 	vepu_write_relaxed(vpu, VEPU_REG_ENC_CTRL_ENC_MODE_VP8,
 				VEPU_REG_ENC_CTRL);
@@ -414,7 +414,7 @@ void rk3288_vpu_vp8e_run(struct rk3288_vpu_ctx *ctx)
 	vepu_write(vpu, reg, VEPU_REG_ENC_CTRL);
 }
 
-void rk3288_vpu_vp8e_done(struct rk3288_vpu_ctx *ctx,
+void rk3288_vpu_vp8e_done(struct rockchip_vpu_ctx *ctx,
 			  enum vb2_buffer_state result)
 {
 	struct rk3288_vpu_vp8e_ctrl_buf *ctrl_buf = ctx->hw.vp8e.ctrl_buf.cpu;
@@ -423,14 +423,14 @@ void rk3288_vpu_vp8e_done(struct rk3288_vpu_ctx *ctx,
 	ctx->run.dst->vp8e.ext_hdr_size = ctrl_buf->ext_hdr_size;
 	ctx->run.dst->vp8e.dct_size = ctrl_buf->dct_size;
 
-	rk3288_vpu_run_done(ctx, result);
+	rockchip_vpu_run_done(ctx, result);
 }
 
 /*
  * WAR for encoder state corruption after decoding
  */
 
-static const struct rk3288_vp8e_reg_params dummy_encode_reg_params = {
+static const struct rockchip_vp8e_reg_params dummy_encode_reg_params = {
 	/* 00000014 */ .hdr_len = 0x00000000,
 	/* 00000038 */ .enc_ctrl = VEPU_REG_ENC_CTRL_KEYFRAME_BIT,
 	/* 00000040 */ .enc_ctrl0 = 0x00000000,
@@ -528,7 +528,7 @@ static const struct rk3288_vp8e_reg_params dummy_encode_reg_params = {
 	 */
 };
 
-const struct rk3288_vp8e_reg_params *rk3288_vpu_vp8e_get_dummy_params(void)
+const struct rockchip_vp8e_reg_params *rockchip_vpu_vp8e_get_dummy_params(void)
 {
 	return &dummy_encode_reg_params;
 }

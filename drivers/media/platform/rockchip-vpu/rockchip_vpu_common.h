@@ -1,5 +1,5 @@
 /*
- * Rockchip RK3288 VPU codec driver
+ * Rockchip VPU codec driver
  *
  * Copyright (C) 2014 Google, Inc.
  *	Tomasz Figa <tfiga@chromium.org>
@@ -18,8 +18,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef RK3288_VPU_COMMON_H_
-#define RK3288_VPU_COMMON_H_
+#ifndef ROCKCHIP_VPU_COMMON_H_
+#define ROCKCHIP_VPU_COMMON_H_
 
 /* Enable debugging by default for now. */
 #define DEBUG
@@ -34,35 +34,35 @@
 #include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 
-#include "rk3288_vpu_hw.h"
+#include "rockchip_vpu_hw.h"
 
-#define RK3288_VPU_NAME			"rk3288-vpu"
-#define RK3288_VPU_DEC_NAME		"rk3288-vpu-dec"
-#define RK3288_VPU_ENC_NAME		"rk3288-vpu-enc"
+#define ROCKCHIP_VPU_NAME			"rockchip-vpu"
+#define ROCKCHIP_VPU_DEC_NAME		"rockchip-vpu-dec"
+#define ROCKCHIP_VPU_ENC_NAME		"rockchip-vpu-enc"
 
 #define V4L2_CID_CUSTOM_BASE		(V4L2_CID_USER_BASE | 0x1000)
 
 #define DST_QUEUE_OFF_BASE		(TASK_SIZE / 2)
 
-#define RK3288_VPU_MAX_CTRLS		32
+#define ROCKCHIP_VPU_MAX_CTRLS		32
 
 #define MB_DIM				16
 #define MB_WIDTH(x_size)		DIV_ROUND_UP(x_size, MB_DIM)
 #define MB_HEIGHT(y_size)		DIV_ROUND_UP(y_size, MB_DIM)
 
-struct rk3288_vpu_variant;
-struct rk3288_vpu_ctx;
-struct rk3288_vpu_codec_ops;
+struct rockchip_vpu_variant;
+struct rockchip_vpu_ctx;
+struct rockchip_vpu_codec_ops;
 
 /**
- * enum rk3288_vpu_codec_mode - codec operating mode.
+ * enum rockchip_vpu_codec_mode - codec operating mode.
  * @RK_VPU_CODEC_NONE:	No operating mode. Used for RAW video formats.
  * @RK_VPU_CODEC_H264D:	H264 decoder.
  * @RK_VPU_CODEC_VP8D:	VP8 decoder.
  * @RK_VPU_CODEC_H264E: H264 encoder.
  * @RK_VPU_CODEC_VP8E:	VP8 encoder.
  */
-enum rk3288_vpu_codec_mode {
+enum rockchip_vpu_codec_mode {
 	RK_VPU_CODEC_NONE = -1,
 	RK_VPU_CODEC_H264D,
 	RK_VPU_CODEC_VP8D,
@@ -71,14 +71,14 @@ enum rk3288_vpu_codec_mode {
 };
 
 /**
- * enum rk3288_vpu_plane - indices of planes inside a VB2 buffer.
+ * enum rockchip_vpu_plane - indices of planes inside a VB2 buffer.
  * @PLANE_Y:		Plane containing luminance data (also denoted as Y).
  * @PLANE_CB_CR:	Plane containing interleaved chrominance data (also
  *			denoted as CbCr).
  * @PLANE_CB:		Plane containing CB part of chrominance data.
  * @PLANE_CR:		Plane containing CR part of chrominance data.
  */
-enum rk3288_vpu_plane {
+enum rockchip_vpu_plane {
 	PLANE_Y		= 0,
 	PLANE_CB_CR	= 1,
 	PLANE_CB	= 1,
@@ -98,16 +98,16 @@ struct rk3288_vpu_vp8e_buf_data {
 	size_t hdr_size;
 	size_t ext_hdr_size;
 	size_t dct_size;
-	u8 header[RK3288_HEADER_SIZE];
+	u8 header[ROCKCHIP_HEADER_SIZE];
 };
 
 /**
- * struct rk3288_vpu_buf - Private data related to each VB2 buffer.
+ * struct rockchip_vpu_buf - Private data related to each VB2 buffer.
  * @list:		List head for queuing in buffer queue.
  * @b:			Pointer to related VB2 buffer.
- * @flags:		Buffer state. See enum rk3288_vpu_buf_flags.
+ * @flags:		Buffer state. See enum rockchip_vpu_buf_flags.
  */
-struct rk3288_vpu_buf {
+struct rockchip_vpu_buf {
 	struct vb2_buffer b;
 	struct list_head list;
 
@@ -118,19 +118,19 @@ struct rk3288_vpu_buf {
 };
 
 /**
- * enum rk3288_vpu_state - bitwise flags indicating hardware state.
+ * enum rockchip_vpu_state - bitwise flags indicating hardware state.
  * @VPU_RUNNING:	The hardware has been programmed for operation
  *			and is running at the moment.
  * @VPU_SUSPENDED:	System is entering sleep state and no more runs
  *			should be executed on hardware.
  */
-enum rk3288_vpu_state {
+enum rockchip_vpu_state {
 	VPU_RUNNING	= BIT(0),
 	VPU_SUSPENDED	= BIT(1),
 };
 
 /**
- * struct rk3288_vpu_dev - driver data
+ * struct rockchip_vpu_dev - driver data
  * @v4l2_dev:		V4L2 device to register video devices for.
  * @vfd_dec:		Video device for decoder.
  * @vfd_enc:		Video device for encoder.
@@ -162,7 +162,7 @@ enum rk3288_vpu_state {
  * @dummy_encode_dst:	Desintation buffer used for dummy frame encoding.
  * @was_decoding:	Indicates whether last run context was a decoder.
  */
-struct rk3288_vpu_dev {
+struct rockchip_vpu_dev {
 	struct v4l2_device v4l2_dev;
 	struct video_device *vfd_dec;
 	struct video_device *vfd_enc;
@@ -181,27 +181,27 @@ struct rk3288_vpu_dev {
 	spinlock_t irqlock;
 	unsigned long state;
 	struct list_head ready_ctxs;
-	const struct rk3288_vpu_variant *variant;
-	struct rk3288_vpu_ctx *current_ctx;
+	const struct rockchip_vpu_variant *variant;
+	struct rockchip_vpu_ctx *current_ctx;
 	wait_queue_head_t run_wq;
 	struct delayed_work watchdog_work;
-	struct rk3288_vpu_ctx *dummy_encode_ctx;
-	struct rk3288_vpu_aux_buf dummy_encode_src[VIDEO_MAX_PLANES];
-	struct rk3288_vpu_aux_buf dummy_encode_dst;
+	struct rockchip_vpu_ctx *dummy_encode_ctx;
+	struct rockchip_vpu_aux_buf dummy_encode_src[VIDEO_MAX_PLANES];
+	struct rockchip_vpu_aux_buf dummy_encode_dst;
 	bool was_decoding;
 };
 
 /**
- * struct rk3288_vpu_run_ops - per context operations on run data.
+ * struct rockchip_vpu_run_ops - per context operations on run data.
  * @prepare_run:	Called when the context was selected for running
  *			to prepare operating mode specific data.
  * @run_done:		Called when hardware completed the run to collect
  *			operating mode specific data from hardware and
  *			finalize the processing.
  */
-struct rk3288_vpu_run_ops {
-	void (*prepare_run)(struct rk3288_vpu_ctx *);
-	void (*run_done)(struct rk3288_vpu_ctx *, enum vb2_buffer_state);
+struct rockchip_vpu_run_ops {
+	void (*prepare_run)(struct rockchip_vpu_ctx *);
+	void (*run_done)(struct rockchip_vpu_ctx *, enum vb2_buffer_state);
 };
 
 /**
@@ -210,7 +210,7 @@ struct rk3288_vpu_run_ops {
  *		by user space.
  */
 struct rk3288_vpu_vp8e_run {
-	const struct rk3288_vp8e_reg_params *reg_params;
+	const struct rockchip_vp8e_reg_params *reg_params;
 };
 
 /**
@@ -223,7 +223,7 @@ struct rk3288_vpu_vp8d_run {
 };
 
 /**
- * struct rk3288_vpu_h264d_run - per-run data specific to H264 decoding.
+ * struct rockchip_vpu_h264d_run - per-run data specific to H264 decoding.
  * @sps:		Pointer to a buffer containing H264 SPS.
  * @pps:		Pointer to a buffer containing H264 PPS.
  * @scaling_matrix:	Pointer to a buffer containing scaling matrix.
@@ -233,7 +233,7 @@ struct rk3288_vpu_vp8d_run {
  * @dpb_map:		Map of indices used in ref_pic_list_* into indices to
  *			reordered DPB array.
  */
-struct rk3288_vpu_h264d_run {
+struct rockchip_vpu_h264d_run {
 	const struct v4l2_ctrl_h264_sps *sps;
 	const struct v4l2_ctrl_h264_pps *pps;
 	const struct v4l2_ctrl_h264_scaling_matrix *scaling_matrix;
@@ -244,31 +244,31 @@ struct rk3288_vpu_h264d_run {
 };
 
 /**
- * struct rk3288_vpu_run - per-run data for hardware code.
+ * struct rockchip_vpu_run - per-run data for hardware code.
  * @src:		Source buffer to be processed.
  * @dst:		Destination buffer to be processed.
  * @priv_src:		Hardware private source buffer.
  * @priv_dst:		Hardware private destination buffer.
  */
-struct rk3288_vpu_run {
+struct rockchip_vpu_run {
 	/* Generic for more than one operating mode. */
-	struct rk3288_vpu_buf *src;
-	struct rk3288_vpu_buf *dst;
+	struct rockchip_vpu_buf *src;
+	struct rockchip_vpu_buf *dst;
 
-	struct rk3288_vpu_aux_buf priv_src;
-	struct rk3288_vpu_aux_buf priv_dst;
+	struct rockchip_vpu_aux_buf priv_src;
+	struct rockchip_vpu_aux_buf priv_dst;
 
 	/* Specific for particular operating modes. */
 	union {
 		struct rk3288_vpu_vp8e_run vp8e;
 		struct rk3288_vpu_vp8d_run vp8d;
-		struct rk3288_vpu_h264d_run h264d;
+		struct rockchip_vpu_h264d_run h264d;
 		/* Other modes will need different data. */
 	};
 };
 
 /**
- * struct rk3288_vpu_ctx - Context (instance) private data.
+ * struct rockchip_vpu_ctx - Context (instance) private data.
  *
  * @dev:		VPU driver data to which the context belongs.
  * @fh:			V4L2 file handler.
@@ -296,14 +296,14 @@ struct rk3288_vpu_run {
  * @run_ops:		Set of operations related to currently scheduled run.
  * @hw:			Structure containing hardware-related context.
  */
-struct rk3288_vpu_ctx {
-	struct rk3288_vpu_dev *dev;
+struct rockchip_vpu_ctx {
+	struct rockchip_vpu_dev *dev;
 	struct v4l2_fh fh;
 
 	/* Format info */
-	struct rk3288_vpu_fmt *vpu_src_fmt;
+	struct rockchip_vpu_fmt *vpu_src_fmt;
 	struct v4l2_pix_format_mplane src_fmt;
-	struct rk3288_vpu_fmt *vpu_dst_fmt;
+	struct rockchip_vpu_fmt *vpu_dst_fmt;
 	struct v4l2_pix_format_mplane dst_fmt;
 
 	/* VB2 queue data */
@@ -315,39 +315,39 @@ struct rk3288_vpu_ctx {
 	struct vb2_buffer *dst_bufs[VIDEO_MAX_FRAME];
 
 	/* Controls */
-	struct v4l2_ctrl *ctrls[RK3288_VPU_MAX_CTRLS];
+	struct v4l2_ctrl *ctrls[ROCKCHIP_VPU_MAX_CTRLS];
 	struct v4l2_ctrl_handler ctrl_handler;
 	unsigned num_ctrls;
 
 	/* Various runtime data */
 	struct list_head list;
 
-	struct rk3288_vpu_run run;
-	const struct rk3288_vpu_run_ops *run_ops;
-	struct rk3288_vpu_hw_ctx hw;
+	struct rockchip_vpu_run run;
+	const struct rockchip_vpu_run_ops *run_ops;
+	struct rockchip_vpu_hw_ctx hw;
 };
 
 /**
- * struct rk3288_vpu_fmt - information about supported video formats.
+ * struct rockchip_vpu_fmt - information about supported video formats.
  * @name:	Human readable name of the format.
  * @fourcc:	FourCC code of the format. See V4L2_PIX_FMT_*.
  * @codec_mode:	Codec mode related to this format. See
- *		enum rk3288_vpu_codec_mode.
+ *		enum rockchip_vpu_codec_mode.
  * @num_planes:	Number of planes used by this format.
  * @depth:	Depth of each plane in bits per pixel.
  * @enc_fmt:	Format identifier for encoder registers.
  */
-struct rk3288_vpu_fmt {
+struct rockchip_vpu_fmt {
 	char *name;
 	u32 fourcc;
-	enum rk3288_vpu_codec_mode codec_mode;
+	enum rockchip_vpu_codec_mode codec_mode;
 	int num_planes;
 	u8 depth[VIDEO_MAX_PLANES];
-	enum rk3288_vpu_enc_fmt enc_fmt;
+	enum rockchip_vpu_enc_fmt enc_fmt;
 };
 
 /**
- * struct rk3288_vpu_control - information about controls to be registered.
+ * struct rockchip_vpu_control - information about controls to be registered.
  * @id:			Control ID.
  * @type:		Type of the control.
  * @name:		Human readable name of the control.
@@ -365,7 +365,7 @@ struct rk3288_vpu_fmt {
  *
  * See also struct v4l2_ctrl_config.
  */
-struct rk3288_vpu_control {
+struct rockchip_vpu_control {
 	u32 id;
 
 	enum v4l2_ctrl_type type;
@@ -428,66 +428,66 @@ static inline char *fmt2str(u32 fmt, char *str)
 }
 
 /* Structure access helpers. */
-static inline struct rk3288_vpu_ctx *fh_to_ctx(struct v4l2_fh *fh)
+static inline struct rockchip_vpu_ctx *fh_to_ctx(struct v4l2_fh *fh)
 {
-	return container_of(fh, struct rk3288_vpu_ctx, fh);
+	return container_of(fh, struct rockchip_vpu_ctx, fh);
 }
 
-static inline struct rk3288_vpu_ctx *ctrl_to_ctx(struct v4l2_ctrl *ctrl)
+static inline struct rockchip_vpu_ctx *ctrl_to_ctx(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct rk3288_vpu_ctx, ctrl_handler);
+	return container_of(ctrl->handler, struct rockchip_vpu_ctx, ctrl_handler);
 }
 
-static inline struct rk3288_vpu_buf *vb_to_buf(struct vb2_buffer *vb)
+static inline struct rockchip_vpu_buf *vb_to_buf(struct vb2_buffer *vb)
 {
-	return container_of(vb, struct rk3288_vpu_buf, b);
+	return container_of(vb, struct rockchip_vpu_buf, b);
 }
 
-static inline bool rk3288_vpu_ctx_is_encoder(struct rk3288_vpu_ctx *ctx)
+static inline bool rockchip_vpu_ctx_is_encoder(struct rockchip_vpu_ctx *ctx)
 {
 	return ctx->vpu_dst_fmt->codec_mode != RK_VPU_CODEC_NONE;
 }
 
-static inline bool rk3288_vpu_ctx_is_dummy_encode(struct rk3288_vpu_ctx *ctx)
+static inline bool rockchip_vpu_ctx_is_dummy_encode(struct rockchip_vpu_ctx *ctx)
 {
-	struct rk3288_vpu_dev *dev = ctx->dev;
+	struct rockchip_vpu_dev *dev = ctx->dev;
 
 	return ctx == dev->dummy_encode_ctx;
 }
 
-int rk3288_vpu_ctrls_setup(struct rk3288_vpu_ctx *ctx,
+int rockchip_vpu_ctrls_setup(struct rockchip_vpu_ctx *ctx,
 			   const struct v4l2_ctrl_ops *ctrl_ops,
-			   struct rk3288_vpu_control *controls,
+			   struct rockchip_vpu_control *controls,
 			   unsigned num_ctrls,
 			   const char *const *(*get_menu)(u32));
-void rk3288_vpu_ctrls_delete(struct rk3288_vpu_ctx *ctx);
+void rockchip_vpu_ctrls_delete(struct rockchip_vpu_ctx *ctx);
 
-void rk3288_vpu_try_context(struct rk3288_vpu_dev *dev,
-			    struct rk3288_vpu_ctx *ctx);
+void rockchip_vpu_try_context(struct rockchip_vpu_dev *dev,
+			    struct rockchip_vpu_ctx *ctx);
 
-void rk3288_vpu_run_done(struct rk3288_vpu_ctx *ctx,
+void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 			 enum vb2_buffer_state result);
 
-int rk3288_vpu_aux_buf_alloc(struct rk3288_vpu_dev *vpu,
-			    struct rk3288_vpu_aux_buf *buf, size_t size);
-void rk3288_vpu_aux_buf_free(struct rk3288_vpu_dev *vpu,
-			     struct rk3288_vpu_aux_buf *buf);
+int rockchip_vpu_aux_buf_alloc(struct rockchip_vpu_dev *vpu,
+			    struct rockchip_vpu_aux_buf *buf, size_t size);
+void rockchip_vpu_aux_buf_free(struct rockchip_vpu_dev *vpu,
+			     struct rockchip_vpu_aux_buf *buf);
 
 /* Register accessors. */
-static inline void vepu_write_relaxed(struct rk3288_vpu_dev *vpu,
+static inline void vepu_write_relaxed(struct rockchip_vpu_dev *vpu,
 				       u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel_relaxed(val, vpu->enc_base + reg);
 }
 
-static inline void vepu_write(struct rk3288_vpu_dev *vpu, u32 val, u32 reg)
+static inline void vepu_write(struct rockchip_vpu_dev *vpu, u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel(val, vpu->enc_base + reg);
 }
 
-static inline u32 vepu_read(struct rk3288_vpu_dev *vpu, u32 reg)
+static inline u32 vepu_read(struct rockchip_vpu_dev *vpu, u32 reg)
 {
 	u32 val = readl(vpu->enc_base + reg);
 
@@ -495,20 +495,20 @@ static inline u32 vepu_read(struct rk3288_vpu_dev *vpu, u32 reg)
 	return val;
 }
 
-static inline void vdpu_write_relaxed(struct rk3288_vpu_dev *vpu,
+static inline void vdpu_write_relaxed(struct rockchip_vpu_dev *vpu,
 				       u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel_relaxed(val, vpu->dec_base + reg);
 }
 
-static inline void vdpu_write(struct rk3288_vpu_dev *vpu, u32 val, u32 reg)
+static inline void vdpu_write(struct rockchip_vpu_dev *vpu, u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel(val, vpu->dec_base + reg);
 }
 
-static inline u32 vdpu_read(struct rk3288_vpu_dev *vpu, u32 reg)
+static inline u32 vdpu_read(struct rockchip_vpu_dev *vpu, u32 reg)
 {
 	u32 val = readl(vpu->dec_base + reg);
 
@@ -516,4 +516,4 @@ static inline u32 vdpu_read(struct rk3288_vpu_dev *vpu, u32 reg)
 	return val;
 }
 
-#endif /* RK3288_VPU_COMMON_H_ */
+#endif /* ROCKCHIP_VPU_COMMON_H_ */

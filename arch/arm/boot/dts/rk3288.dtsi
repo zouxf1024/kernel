@@ -929,7 +929,7 @@
 	};
 
 	vpu: video-codec@ff9a0000 {
-		compatible = "rockchip,rk3288-vpu";
+		compatible = "rockchip,rockchip-vpu";
 		reg = <0xff9a0000 0x800>;
 		interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
