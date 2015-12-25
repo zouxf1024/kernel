@@ -76,15 +76,21 @@ struct rockchip_vpu_variant {
 /**
  * enum rockchip_vpu_codec_mode - codec operating mode.
  * @RK_VPU_CODEC_NONE:	No operating mode. Used for RAW video formats.
- * @RK3288_VPU_CODEC_H264D:	H264 decoder.
- * @RK3288_VPU_CODEC_VP8D:	VP8 decoder.
- * @RK3288_VPU_CODEC_VP8E:	VP8 encoder.
+ * @RK3288_VPU_CODEC_H264D:	Rk3288 H264 decoder.
+ * @RK3288_VPU_CODEC_VP8D:	Rk3288 VP8 decoder.
+ * @RK3288_VPU_CODEC_VP8E:	Rk3288 VP8 encoder.
+ * @RK3228_VPU_CODEC_H264E:	Rk3228 H264 encoder.
+ * @RK3228_VPU_CODEC_VP8D:	Rk3228 VP8 decoder.
+ * @RK3228_VPU_CODEC_VP8E:	Rk3228 VP8 encoder.
  */
 enum rockchip_vpu_codec_mode {
 	RK_VPU_CODEC_NONE = -1,
 	RK3288_VPU_CODEC_H264D,
 	RK3288_VPU_CODEC_VP8D,
 	RK3288_VPU_CODEC_VP8E,
+	RK3228_VPU_CODEC_H264E,
+	RK3228_VPU_CODEC_VP8D,
+	RK3228_VPU_CODEC_VP8E,
 };
 
 /**

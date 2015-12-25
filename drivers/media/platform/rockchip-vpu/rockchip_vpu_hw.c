@@ -319,6 +319,30 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.done = rockchip_vpu_run_done,
 		.reset = rk3288_vpu_dec_reset,
 	},
+	[RK3228_VPU_CODEC_VP8E] = {
+		.init = rk3228_vpu_vp8e_init,
+		.exit = rk3228_vpu_vp8e_exit,
+		.irq = rk3228_vepu_irq,
+		.run = rk3228_vpu_vp8e_run,
+		.done = rk3228_vpu_vp8e_done,
+		.reset = rk3228_vpu_enc_reset,
+	},
+	[RK3228_VPU_CODEC_VP8D] = {
+		.init = rk3228_vpu_vp8d_init,
+		.exit = rk3228_vpu_vp8d_exit,
+		.irq = rk3228_vdpu_irq,
+		.run = rk3228_vpu_vp8d_run,
+		.done = rockchip_vpu_run_done,
+		.reset = rk3228_vpu_dec_reset,
+	},
+	[RK3228_VPU_CODEC_H264E] = {
+		.init = rk3228_vpu_h264e_init,
+		.exit = rk3228_vpu_h264e_exit,
+		.irq = rk3228_vepu_irq,
+		.run = rk3228_vpu_h264e_run,
+		.done = rockchip_vpu_run_done,
+		.reset = rk3228_vpu_enc_reset,
+	},
 };
 
 void rockchip_vpu_run(struct rockchip_vpu_ctx *ctx)

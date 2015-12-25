@@ -766,10 +766,22 @@ static const struct rockchip_vpu_variant rk3288_vpu_variant = {
 	.dec_reg_num = 60 + 41,
 };
 
+static const struct rockchip_vpu_variant rk3228_vpu_variant = {
+	.vpu_type = RK3228_VPU,
+	.name = "Rk3228 vpu",
+	.enc_offset = 0x0,
+	.enc_reg_num = 164,
+	.dec_offset = 0x400,
+	.dec_reg_num = 60 + 41,
+};
+
 static struct platform_device_id vpu_driver_ids[] = {
 	{
 		.name = "rk3288-vpu",
 		.driver_data = (unsigned long)&rk3288_vpu_variant,
+	}, {
+		.name = "rk3228-vpu",
+		.driver_data = (unsigned long)&rk3228_vpu_variant,
 	},
 	{ /* sentinel */ }
 };
@@ -779,6 +791,7 @@ MODULE_DEVICE_TABLE(platform, vpu_driver_ids);
 #ifdef CONFIG_OF
 static const struct of_device_id of_rockchip_vpu_match[] = {
 	{ .compatible = "rockchip,rk3288-vpu", .data = &rk3288_vpu_variant, },
+	{ .compatible = "rockchip,rk3228-vpu", .data = &rk3228_vpu_variant, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, of_rockchip_vpu_match);

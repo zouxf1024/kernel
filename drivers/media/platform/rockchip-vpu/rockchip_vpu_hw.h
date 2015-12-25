@@ -31,10 +31,12 @@ struct rockchip_vpu_buf;
  * enum rockchip_vpu_type - vpu type.
  * @RK_VPU_NONE:	No vpu type. Used for RAW video formats.
  * @RK3288_VPU:		Vpu on rk3288 soc.
+ * @RK3228_VPU:		Vpu on rk3228 soc.
  */
 enum rockchip_vpu_type {
 	RK_VPU_NONE	= -1,
 	RK3288_VPU,
+	RK3228_VPU,
 };
 
 /**
@@ -185,6 +187,29 @@ int rk3288_vpu_vp8e_init(struct rockchip_vpu_ctx *ctx);
 void rk3288_vpu_vp8e_exit(struct rockchip_vpu_ctx *ctx);
 void rk3288_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx);
 void rk3288_vpu_vp8e_done(struct rockchip_vpu_ctx *ctx,
+			  enum vb2_buffer_state result);
+
+/* Ops for rk3228 vpu */
+int rk3228_vepu_irq(int irq, struct rockchip_vpu_dev *vpu);
+int rk3228_vdpu_irq(int irq, struct rockchip_vpu_dev *vpu);
+void rk3228_vpu_enc_reset(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_dec_reset(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rk3228 H264 encoder */
+int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rk3228 VP8 decoder */
+int rk3228_vpu_vp8d_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8d_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rk3228 VP8 encoder */
+int rk3228_vpu_vp8e_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_done(struct rockchip_vpu_ctx *ctx,
 			  enum vb2_buffer_state result);
 
 /* For rockchip VP8 encoder */

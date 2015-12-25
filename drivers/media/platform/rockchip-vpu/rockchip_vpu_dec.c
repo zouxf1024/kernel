@@ -68,6 +68,13 @@ static struct rockchip_vpu_fmt formats[] = {
 		.codec_mode = RK3288_VPU_CODEC_VP8D,
 		.num_planes = 1,
 	},
+	{
+		.name = "Frames of VP8 Encoded Stream",
+		.fourcc = V4L2_PIX_FMT_VP8_FRAME,
+		.vpu_type = RK3228_VPU,
+		.codec_mode = RK3228_VPU_CODEC_VP8D,
+		.num_planes = 1,
+	},
 };
 
 static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
