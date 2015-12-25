@@ -30,35 +30,13 @@
 
 #include <asm/dma-iommu.h>
 
-#include "rk3288_vpu_regs.h"
+/* Various parameters specific to VP8 encoder. */
+#define VP8_KEY_FRAME_HDR_SIZE			10
+#define VP8_INTER_FRAME_HDR_SIZE		3
 
-/**
- * struct rockchip_vpu_variant - information about VPU hardware variant
- *
- * @hw_id:		Top 16 bits (product ID) of hardware ID register.
- * @enc_offset:		Offset from VPU base to encoder registers.
- * @enc_reg_num:	Number of registers of encoder block.
- * @dec_offset:		Offset from VPU base to decoder registers.
- * @dec_reg_num:	Number of registers of decoder block.
- */
-struct rockchip_vpu_variant {
-	u16 hw_id;
-	unsigned enc_offset;
-	unsigned enc_reg_num;
-	unsigned dec_offset;
-	unsigned dec_reg_num;
-};
-
-/* Supported VPU variants. */
-static const struct rockchip_vpu_variant rockchip_vpu_variants[] = {
-	{
-		.hw_id = 0x4831,
-		.enc_offset = 0x0,
-		.enc_reg_num = 164,
-		.dec_offset = 0x400,
-		.dec_reg_num = 60 + 41,
-	},
-};
+#define VP8_FRAME_TAG_KEY_FRAME_BIT		BIT(0)
+#define VP8_FRAME_TAG_LENGTH_SHIFT		5
+#define VP8_FRAME_TAG_LENGTH_MASK		(0x7ffff << 5)
 
 /**
  * struct rockchip_vpu_codec_ops - codec mode specific operations
@@ -78,6 +56,7 @@ struct rockchip_vpu_codec_ops {
 	int (*init)(struct rockchip_vpu_ctx *);
 	void (*exit)(struct rockchip_vpu_ctx *);
 
+	int (*irq)(int, struct rockchip_vpu_dev *);
 	void (*run)(struct rockchip_vpu_ctx *);
 	void (*done)(struct rockchip_vpu_ctx *, enum vb2_buffer_state);
 	void (*reset)(struct rockchip_vpu_ctx *);
@@ -86,25 +65,6 @@ struct rockchip_vpu_codec_ops {
 /*
  * Hardware control routines.
  */
-
-static int rockchip_vpu_identify(struct rockchip_vpu_dev *vpu)
-{
-	u32 hw_id;
-	int i;
-
-	hw_id = readl(vpu->base) >> 16;
-
-	dev_info(vpu->dev, "Read hardware ID: %x\n", hw_id);
-
-	for (i = 0; i < ARRAY_SIZE(rockchip_vpu_variants); ++i) {
-		if (hw_id == rockchip_vpu_variants[i].hw_id) {
-			vpu->variant = &rockchip_vpu_variants[i];
-			return 0;
-		}
-	}
-
-	return -ENOENT;
-}
 
 void rockchip_vpu_power_on(struct rockchip_vpu_dev *vpu)
 {
@@ -136,14 +96,9 @@ static void rockchip_vpu_power_off(struct rockchip_vpu_dev *vpu)
 static irqreturn_t vepu_irq(int irq, void *dev_id)
 {
 	struct rockchip_vpu_dev *vpu = dev_id;
-	u32 status = vepu_read(vpu, VEPU_REG_INTERRUPT);
+	struct rockchip_vpu_ctx *ctx = vpu->current_ctx;
 
-	vepu_write(vpu, 0, VEPU_REG_INTERRUPT);
-
-	if (status & VEPU_REG_INTERRUPT_BIT) {
-		struct rockchip_vpu_ctx *ctx = vpu->current_ctx;
-
-		vepu_write(vpu, 0, VEPU_REG_AXI_CTRL);
+	if (!ctx->hw.codec_ops->irq(irq, vpu)) {
 		rockchip_vpu_power_off(vpu);
 		cancel_delayed_work(&vpu->watchdog_work);
 
@@ -156,16 +111,9 @@ static irqreturn_t vepu_irq(int irq, void *dev_id)
 static irqreturn_t vdpu_irq(int irq, void *dev_id)
 {
 	struct rockchip_vpu_dev *vpu = dev_id;
-	u32 status = vdpu_read(vpu, VDPU_REG_INTERRUPT);
+	struct rockchip_vpu_ctx *ctx = vpu->current_ctx;
 
-	vdpu_write(vpu, 0, VDPU_REG_INTERRUPT);
-
-	vpu_debug(3, "vdpu_irq status: %08x\n", status);
-
-	if (status & VDPU_REG_INTERRUPT_DEC_IRQ) {
-		struct rockchip_vpu_ctx *ctx = vpu->current_ctx;
-
-		vdpu_write(vpu, 0, VDPU_REG_CONFIG);
+	if (!ctx->hw.codec_ops->irq(irq, vpu)) {
 		rockchip_vpu_power_off(vpu);
 		cancel_delayed_work(&vpu->watchdog_work);
 
@@ -280,12 +228,6 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 	clk_prepare_enable(vpu->aclk_vcodec);
 	clk_prepare_enable(vpu->hclk_vcodec);
 
-	ret = rockchip_vpu_identify(vpu);
-	if (ret < 0) {
-		dev_err(vpu->dev, "failed to identify hardware variant\n");
-		goto err_power;
-	}
-
 	vpu->enc_base = vpu->base + vpu->variant->enc_offset;
 	vpu->dec_base = vpu->base + vpu->variant->dec_offset;
 
@@ -352,41 +294,27 @@ void rockchip_vpu_hw_remove(struct rockchip_vpu_dev *vpu)
 	clk_disable_unprepare(vpu->aclk_vcodec);
 }
 
-static void rk3288_vpu_enc_reset(struct rockchip_vpu_ctx *ctx)
-{
-	struct rockchip_vpu_dev *vpu = ctx->dev;
-
-	vepu_write(vpu, VEPU_REG_INTERRUPT_DIS_BIT, VEPU_REG_INTERRUPT);
-	vepu_write(vpu, 0, VEPU_REG_ENC_CTRL);
-	vepu_write(vpu, 0, VEPU_REG_AXI_CTRL);
-}
-
-static void rk3288_vpu_dec_reset(struct rockchip_vpu_ctx *ctx)
-{
-	struct rockchip_vpu_dev *vpu = ctx->dev;
-
-	vdpu_write(vpu, VDPU_REG_INTERRUPT_DEC_IRQ_DIS, VDPU_REG_INTERRUPT);
-	vdpu_write(vpu, 0, VDPU_REG_CONFIG);
-}
-
 static const struct rockchip_vpu_codec_ops mode_ops[] = {
-	[RK_VPU_CODEC_VP8E] = {
+	[RK3288_VPU_CODEC_VP8E] = {
 		.init = rk3288_vpu_vp8e_init,
 		.exit = rk3288_vpu_vp8e_exit,
+		.irq = rk3288_vepu_irq,
 		.run = rk3288_vpu_vp8e_run,
 		.done = rk3288_vpu_vp8e_done,
 		.reset = rk3288_vpu_enc_reset,
 	},
-	[RK_VPU_CODEC_VP8D] = {
+	[RK3288_VPU_CODEC_VP8D] = {
 		.init = rk3288_vpu_vp8d_init,
 		.exit = rk3288_vpu_vp8d_exit,
+		.irq = rk3288_vdpu_irq,
 		.run = rk3288_vpu_vp8d_run,
 		.done = rockchip_vpu_run_done,
 		.reset = rk3288_vpu_dec_reset,
 	},
-	[RK_VPU_CODEC_H264D] = {
+	[RK3288_VPU_CODEC_H264D] = {
 		.init = rk3288_vpu_h264d_init,
 		.exit = rk3288_vpu_h264d_exit,
+		.irq = rk3288_vdpu_irq,
 		.run = rk3288_vpu_h264d_run,
 		.done = rockchip_vpu_run_done,
 		.reset = rk3288_vpu_dec_reset,
@@ -415,4 +343,166 @@ int rockchip_vpu_init(struct rockchip_vpu_ctx *ctx)
 void rockchip_vpu_deinit(struct rockchip_vpu_ctx *ctx)
 {
 	ctx->hw.codec_ops->exit(ctx);
+}
+
+/*
+ * The hardware takes care only of ext hdr and dct partition. The software
+ * must take care of frame header.
+ *
+ * Buffer layout as received from hardware:
+ *   |<--gap-->|<--ext hdr-->|<-gap->|<---dct part---
+ *   |<-------dct part offset------->|
+ *
+ * Required buffer layout:
+ *   |<--hdr-->|<--ext hdr-->|<---dct part---
+ */
+void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
+					struct rockchip_vpu_buf *dst_buf)
+{
+	size_t ext_hdr_size = dst_buf->vp8e.ext_hdr_size;
+	size_t dct_size = dst_buf->vp8e.dct_size;
+	size_t hdr_size = dst_buf->vp8e.hdr_size;
+	size_t dst_size;
+	size_t tag_size;
+	void *dst;
+	u32 *tag;
+
+	dst_size = vb2_plane_size(&dst_buf->b, 0);
+	dst = vb2_plane_vaddr(&dst_buf->b, 0);
+	tag = dst; /* To access frame tag words. */
+
+	if (WARN_ON(hdr_size + ext_hdr_size + dct_size > dst_size))
+		return;
+	if (WARN_ON(dst_buf->vp8e.dct_offset + dct_size > dst_size))
+		return;
+
+	vpu_debug(1, "%s: hdr_size = %u, ext_hdr_size = %u, dct_size = %u\n",
+			__func__, hdr_size, ext_hdr_size, dct_size);
+
+	memmove(dst + hdr_size + ext_hdr_size,
+		dst + dst_buf->vp8e.dct_offset, dct_size);
+	memcpy(dst, dst_buf->vp8e.header, hdr_size);
+
+	/* Patch frame tag at first 32-bit word of the frame. */
+	if (to_vb2_v4l2_buffer(&dst_buf->b)->flags & V4L2_BUF_FLAG_KEYFRAME) {
+		tag_size = VP8_KEY_FRAME_HDR_SIZE;
+		tag[0] &= ~VP8_FRAME_TAG_KEY_FRAME_BIT;
+	} else {
+		tag_size = VP8_INTER_FRAME_HDR_SIZE;
+		tag[0] |= VP8_FRAME_TAG_KEY_FRAME_BIT;
+	}
+
+	tag[0] &= ~VP8_FRAME_TAG_LENGTH_MASK;
+	tag[0] |= (hdr_size + ext_hdr_size - tag_size)
+						<< VP8_FRAME_TAG_LENGTH_SHIFT;
+
+	vb2_set_plane_payload(&dst_buf->b, 0,
+				hdr_size + ext_hdr_size + dct_size);
+}
+
+/*
+ * WAR for encoder state corruption after decoding
+ */
+
+static const struct rockchip_vp8e_reg_params dummy_encode_reg_params = {
+	/* 00000014 */ .hdr_len = 0x00000000,
+	/* 00000038 */ .enc_ctrl = 0x00000008,
+	/* 00000040 */ .enc_ctrl0 = 0x00000000,
+	/* 00000044 */ .enc_ctrl1 = 0x00000000,
+	/* 00000048 */ .enc_ctrl2 = 0x00040014,
+	/* 0000004c */ .enc_ctrl3 = 0x404083c0,
+	/* 00000050 */ .enc_ctrl5 = 0x01006bff,
+	/* 00000054 */ .enc_ctrl4 = 0x00000039,
+	/* 00000058 */ .str_hdr_rem_msb = 0x85848805,
+	/* 0000005c */ .str_hdr_rem_lsb = 0x02000000,
+	/* 00000064 */ .mad_ctrl = 0x00000000,
+	/* 0000006c */ .qp_val = {
+		/* 0000006c */ 0x020213b1,
+		/* 00000070 */ 0x02825249,
+		/* 00000074 */ 0x048409d8,
+		/* 00000078 */ 0x03834c30,
+		/* 0000007c */ 0x020213b1,
+		/* 00000080 */ 0x02825249,
+		/* 00000084 */ 0x00340e0d,
+		/* 00000088 */ 0x401c1a15,
+	},
+	/* 0000008c */ .bool_enc = 0x00018140,
+	/* 00000090 */ .vp8_ctrl0 = 0x000695c0,
+	/* 00000094 */ .rlc_ctrl = 0x14000000,
+	/* 00000098 */ .mb_ctrl = 0x00000000,
+	/* 000000d4 */ .rgb_yuv_coeff = {
+		/* 000000d4 */ 0x962b4c85,
+		/* 000000d8 */ 0x90901d50,
+	},
+	/* 000000dc */ .rgb_mask_msb = 0x0000b694,
+	/* 000000e0 */ .intra_area_ctrl = 0xffffffff,
+	/* 000000e4 */ .cir_intra_ctrl = 0x00000000,
+	/* 000000f0 */ .first_roi_area = 0xffffffff,
+	/* 000000f4 */ .second_roi_area = 0xffffffff,
+	/* 000000f8 */ .mvc_ctrl = 0x01780000,
+	/* 00000100 */ .intra_penalty = {
+		/* 00000100 */ 0x00010005,
+		/* 00000104 */ 0x00015011,
+		/* 00000108 */ 0x0000c005,
+		/* 0000010c */ 0x00016010,
+		/* 00000110 */ 0x0001a018,
+		/* 00000114 */ 0x00018015,
+		/* 00000118 */ 0x0001d01a,
+	},
+	/* 00000120 */ .seg_qp = {
+		/* 00000120 */ 0x020213b1,
+		/* 00000124 */ 0x02825249,
+		/* 00000128 */ 0x048409d8,
+		/* 0000012c */ 0x03834c30,
+		/* 00000130 */ 0x020213b1,
+		/* 00000134 */ 0x02825249,
+		/* 00000138 */ 0x00340e0d,
+		/* 0000013c */ 0x341c1a15,
+		/* 00000140 */ 0x020213b1,
+		/* 00000144 */ 0x02825249,
+		/* 00000148 */ 0x048409d8,
+		/* 0000014c */ 0x03834c30,
+		/* 00000150 */ 0x020213b1,
+		/* 00000154 */ 0x02825249,
+		/* 00000158 */ 0x00340e0d,
+		/* 0000015c */ 0x341c1a15,
+		/* 00000160 */ 0x020213b1,
+		/* 00000164 */ 0x02825249,
+		/* 00000168 */ 0x048409d8,
+		/* 0000016c */ 0x03834c30,
+		/* 00000170 */ 0x020213b1,
+		/* 00000174 */ 0x02825249,
+		/* 00000178 */ 0x00340e0d,
+		/* 0000017c */ 0x341c1a15,
+	},
+	/* 00000180 */ .dmv_4p_1p_penalty = {
+		/* 00000180 */ 0x00020406,
+		/* 00000184 */ 0x080a0c0e,
+		/* 00000188 */ 0x10121416,
+		/* 0000018c */ 0x181a1c1e,
+		/* 00000190 */ 0x20222426,
+		/* 00000194 */ 0x282a2c2e,
+		/* 00000198 */ 0x30323436,
+		/* 0000019c */ 0x383a3c3e,
+		/* 000001a0 */ 0x40424446,
+		/* 000001a4 */ 0x484a4c4e,
+		/* 000001a8 */ 0x50525456,
+		/* 000001ac */ 0x585a5c5e,
+		/* 000001b0 */ 0x60626466,
+		/* 000001b4 */ 0x686a6c6e,
+		/* 000001b8 */ 0x70727476,
+		/* NOTE: Further 17 registers set to 0. */
+	},
+	/*
+	 * NOTE: Following registers all set to 0:
+	 * - dmv_qpel_penalty,
+	 * - vp8_ctrl1,
+	 * - bit_cost_golden,
+	 * - loop_flt_delta.
+	 */
+};
+
+const struct rockchip_vp8e_reg_params *rockchip_vpu_vp8e_get_dummy_params(void)
+{
+	return &dummy_encode_reg_params;
 }

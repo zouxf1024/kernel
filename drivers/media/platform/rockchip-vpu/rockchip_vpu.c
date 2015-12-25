@@ -584,6 +584,8 @@ static const struct v4l2_file_operations rockchip_vpu_fops = {
  * Platform driver.
  */
 
+static void *rockchip_get_drv_data(struct platform_device *pdev);
+
 static int rockchip_vpu_probe(struct platform_device *pdev)
 {
 	struct rockchip_vpu_dev *vpu = NULL;
@@ -603,6 +605,8 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 	spin_lock_init(&vpu->irqlock);
 	INIT_LIST_HEAD(&vpu->ready_ctxs);
 	init_waitqueue_head(&vpu->run_wq);
+
+	vpu->variant = rockchip_get_drv_data(pdev);
 
 	ret = rockchip_vpu_hw_probe(vpu);
 	if (ret) {
@@ -752,8 +756,21 @@ static int rockchip_vpu_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/* Supported VPU variants. */
+static const struct rockchip_vpu_variant rk3288_vpu_variant = {
+	.vpu_type = RK3288_VPU,
+	.name = "Rk3288 vpu",
+	.enc_offset = 0x0,
+	.enc_reg_num = 164,
+	.dec_offset = 0x400,
+	.dec_reg_num = 60 + 41,
+};
+
 static struct platform_device_id vpu_driver_ids[] = {
-	{ .name = "rockchip-vpu", },
+	{
+		.name = "rk3288-vpu",
+		.driver_data = (unsigned long)&rk3288_vpu_variant,
+	},
 	{ /* sentinel */ }
 };
 
@@ -761,11 +778,27 @@ MODULE_DEVICE_TABLE(platform, vpu_driver_ids);
 
 #ifdef CONFIG_OF
 static const struct of_device_id of_rockchip_vpu_match[] = {
-	{ .compatible = "rockchip,rockchip-vpu", },
+	{ .compatible = "rockchip,rk3288-vpu", .data = &rk3288_vpu_variant, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, of_rockchip_vpu_match);
 #endif
+
+static void *rockchip_get_drv_data(struct platform_device *pdev)
+{
+	void *driver_data = NULL;
+
+	if (pdev->dev.of_node) {
+		const struct of_device_id *match;
+		match = of_match_node(of_rockchip_vpu_match,
+				pdev->dev.of_node);
+		if (match)
+			driver_data = (void *)match->data;
+	} else {
+		driver_data = (void *)platform_get_device_id(pdev)->driver_data;
+	}
+	return driver_data;
+}
 
 #ifdef CONFIG_PM_SLEEP
 static int rockchip_vpu_suspend(struct device *dev)
@@ -800,7 +833,9 @@ static struct platform_driver rockchip_vpu_driver = {
 	.driver = {
 		   .name = ROCKCHIP_VPU_NAME,
 		   .owner = THIS_MODULE,
+#ifdef CONFIG_OF
 		   .of_match_table = of_match_ptr(of_rockchip_vpu_match),
+#endif
 		   .pm = &rockchip_vpu_pm_ops,
 	},
 };

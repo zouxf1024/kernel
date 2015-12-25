@@ -36,7 +36,7 @@
 
 #include "rockchip_vpu_hw.h"
 
-#define ROCKCHIP_VPU_NAME			"rockchip-vpu"
+#define ROCKCHIP_VPU_NAME		"rockchip-vpu"
 #define ROCKCHIP_VPU_DEC_NAME		"rockchip-vpu-dec"
 #define ROCKCHIP_VPU_ENC_NAME		"rockchip-vpu-enc"
 
@@ -50,24 +50,41 @@
 #define MB_WIDTH(x_size)		DIV_ROUND_UP(x_size, MB_DIM)
 #define MB_HEIGHT(y_size)		DIV_ROUND_UP(y_size, MB_DIM)
 
-struct rockchip_vpu_variant;
 struct rockchip_vpu_ctx;
 struct rockchip_vpu_codec_ops;
 
 /**
+ * struct rockchip_vpu_variant - information about VPU hardware variant
+ *
+ * @hw_id:		Top 16 bits (product ID) of hardware ID register.
+ * @vpu_type:		Vpu type.
+ * @name:		Vpu name.
+ * @enc_offset:		Offset from VPU base to encoder registers.
+ * @enc_reg_num:	Number of registers of encoder block.
+ * @dec_offset:		Offset from VPU base to decoder registers.
+ * @dec_reg_num:	Number of registers of decoder block.
+ */
+struct rockchip_vpu_variant {
+	enum rockchip_vpu_type vpu_type;
+	char *name;
+	unsigned enc_offset;
+	unsigned enc_reg_num;
+	unsigned dec_offset;
+	unsigned dec_reg_num;
+};
+
+/**
  * enum rockchip_vpu_codec_mode - codec operating mode.
  * @RK_VPU_CODEC_NONE:	No operating mode. Used for RAW video formats.
- * @RK_VPU_CODEC_H264D:	H264 decoder.
- * @RK_VPU_CODEC_VP8D:	VP8 decoder.
- * @RK_VPU_CODEC_H264E: H264 encoder.
- * @RK_VPU_CODEC_VP8E:	VP8 encoder.
+ * @RK3288_VPU_CODEC_H264D:	H264 decoder.
+ * @RK3288_VPU_CODEC_VP8D:	VP8 decoder.
+ * @RK3288_VPU_CODEC_VP8E:	VP8 encoder.
  */
 enum rockchip_vpu_codec_mode {
 	RK_VPU_CODEC_NONE = -1,
-	RK_VPU_CODEC_H264D,
-	RK_VPU_CODEC_VP8D,
-	RK_VPU_CODEC_H264E,
-	RK_VPU_CODEC_VP8E
+	RK3288_VPU_CODEC_H264D,
+	RK3288_VPU_CODEC_VP8D,
+	RK3288_VPU_CODEC_VP8E,
 };
 
 /**
@@ -331,6 +348,7 @@ struct rockchip_vpu_ctx {
  * struct rockchip_vpu_fmt - information about supported video formats.
  * @name:	Human readable name of the format.
  * @fourcc:	FourCC code of the format. See V4L2_PIX_FMT_*.
+ * @vpu_type:	Vpu_type;
  * @codec_mode:	Codec mode related to this format. See
  *		enum rockchip_vpu_codec_mode.
  * @num_planes:	Number of planes used by this format.
@@ -340,6 +358,7 @@ struct rockchip_vpu_ctx {
 struct rockchip_vpu_fmt {
 	char *name;
 	u32 fourcc;
+	enum rockchip_vpu_type vpu_type;
 	enum rockchip_vpu_codec_mode codec_mode;
 	int num_planes;
 	u8 depth[VIDEO_MAX_PLANES];
