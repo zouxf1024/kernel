@@ -559,6 +559,46 @@ struct dma_tx_state {
 };
 
 /**
+ * enum dmaengine_alignment - defines alignment of the DMA async tx
+ * buffers
+ */
+enum dmaengine_alignment {
+	DMAENGINE_ALIGN_1_BYTE = 0,
+	DMAENGINE_ALIGN_2_BYTES = 1,
+	DMAENGINE_ALIGN_4_BYTES = 2,
+	DMAENGINE_ALIGN_8_BYTES = 3,
+	DMAENGINE_ALIGN_16_BYTES = 4,
+	DMAENGINE_ALIGN_32_BYTES = 5,
+	DMAENGINE_ALIGN_64_BYTES = 6,
+};
+
+/**
+ * struct dma_slave_map - associates slave device and it's slave channel with
+ * parameter to be used by a filter function
+ * @devname: name of the device
+ * @slave: slave channel name
+ * @param: opaque parameter to pass to struct dma_filter.fn
+ */
+struct dma_slave_map {
+	const char *devname;
+	const char *slave;
+	void *param;
+};
+
+/**
+ * struct dma_filter - information for slave device/channel to filter_fn/param
+ * mapping
+ * @fn: filter function callback
+ * @mapcnt: number of slave device/channel in the map
+ * @map: array of channel to filter mapping data
+ */
+struct dma_filter {
+	dma_filter_fn fn;
+	int mapcnt;
+	const struct dma_slave_map *map;
+};
+
+/**
  * struct dma_device - info on the entity supplying DMA services
  * @chancnt: how many DMA channels are supported
  * @privatecnt: how many DMA channels are requested by dma_request_channel
@@ -617,9 +657,10 @@ struct dma_device {
 	dma_cap_mask_t  cap_mask;
 	unsigned short max_xor;
 	unsigned short max_pq;
-	u8 copy_align;
-	u8 xor_align;
-	u8 pq_align;
+	enum dmaengine_alignment copy_align;
+	enum dmaengine_alignment xor_align;
+	enum dmaengine_alignment pq_align;
+	enum dmaengine_alignment fill_align;
 	#define DMA_HAS_PQ_CONTINUE (1 << 15)
 
 	int dev_id;
@@ -676,6 +717,7 @@ struct dma_device {
 	int (*device_pause)(struct dma_chan *chan);
 	int (*device_resume)(struct dma_chan *chan);
 	int (*device_terminate_all)(struct dma_chan *chan);
+	void (*device_synchronize)(struct dma_chan *chan);
 
 	enum dma_status (*device_tx_status)(struct dma_chan *chan,
 					    dma_cookie_t cookie,
@@ -771,6 +813,62 @@ static inline int dmaengine_terminate_all(struct dma_chan *chan)
 
 	return -ENOSYS;
 }
+
+/**
+ * dmaengine_terminate_async() - Terminate all active DMA transfers
+ * @chan: The channel for which to terminate the transfers
+ *
+ * Calling this function will terminate all active and pending descriptors
+ * that have previously been submitted to the channel. It is not guaranteed
+ * though that the transfer for the active descriptor has stopped when the
+ * function returns. Furthermore it is possible the complete callback of a
+ * submitted transfer is still running when this function returns.
+ *
+ * dmaengine_synchronize() needs to be called before it is safe to free
+ * any memory that is accessed by previously submitted descriptors or before
+ * freeing any resources accessed from within the completion callback of any
+ * perviously submitted descriptors.
+ *
+ * This function can be called from atomic context as well as from within a
+ * complete callback of a descriptor submitted on the same channel.
+ *
+ * If none of the two conditions above apply consider using
+ * dmaengine_terminate_sync() instead.
+ */
+static inline int dmaengine_terminate_async(struct dma_chan *chan)
+{
+	if (chan->device->device_terminate_all)
+		return chan->device->device_terminate_all(chan);
+
+	return -EINVAL;
+}
+
+/**
+ * dmaengine_synchronize() - Synchronize DMA channel termination
+ * @chan: The channel to synchronize
+ *
+ * Synchronizes to the DMA channel termination to the current context. When this
+ * function returns it is guaranteed that all transfers for previously issued
+ * descriptors have stopped and and it is safe to free the memory assoicated
+ * with them. Furthermore it is guaranteed that all complete callback functions
+ * for a previously submitted descriptor have finished running and it is safe to
+ * free resources accessed from within the complete callbacks.
+ *
+ * The behavior of this function is undefined if dma_async_issue_pending() has
+ * been called between dmaengine_terminate_async() and this function.
+ *
+ * This function must only be called from non-atomic context and must not be
+ * called from within a complete callback of a descriptor submitted on the same
+ * channel.
+ */
+static inline void dmaengine_synchronize(struct dma_chan *chan)
+{
+	might_sleep();
+
+	if (chan->device->device_synchronize)
+		chan->device->device_synchronize(chan);
+}
+
 
 static inline int dmaengine_pause(struct dma_chan *chan)
 {
