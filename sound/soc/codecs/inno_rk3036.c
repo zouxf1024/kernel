@@ -350,6 +350,13 @@ static int rk3036_codec_remove(struct snd_soc_codec *codec)
 	return 0;
 }
 
+static int rk3036_codec_set_sysclk(struct snd_soc_codec *codec,
+				   int clk_id, int source, unsigned int freq, int dir)
+{
+	/* Stub do nothing */
+	return 0;
+}
+
 static int rk3036_codec_set_bias_level(struct snd_soc_codec *codec,
 				       enum snd_soc_bias_level level)
 {
@@ -379,6 +386,7 @@ static int rk3036_codec_set_bias_level(struct snd_soc_codec *codec,
 static struct snd_soc_codec_driver rk3036_codec_driver = {
 	.probe			= rk3036_codec_probe,
 	.remove			= rk3036_codec_remove,
+	.set_sysclk		= rk3036_codec_set_sysclk,
 	.set_bias_level		= rk3036_codec_set_bias_level,
 	.controls		= rk3036_codec_dapm_controls,
 	.num_controls		= ARRAY_SIZE(rk3036_codec_dapm_controls),
