@@ -13,7 +13,21 @@
 #include <sound/pcm.h>
 #include <sound/soc-dapm.h>
 
-static int rk3036_hw_params(struct snd_pcm_substream *substream,
+static const struct snd_soc_dapm_widget rk_dapm_widgets[] = {
+	SND_SOC_DAPM_HP("Headphone", NULL),
+};
+
+static const struct snd_soc_dapm_route rk_audio_map[] = {
+	/* Output Lines */
+	{"Headphone", NULL, "HPL"},
+	{"Headphone", NULL, "HPR"},
+};
+
+static const struct snd_kcontrol_new rk_mc_controls[] = {
+	SOC_DAPM_PIN_SWITCH("Headphone"),
+};
+
+static int rockchip_rk3036_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -21,8 +35,9 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	unsigned int dai_fmt = rtd->dai_link->dai_fmt;
 	int mclk, ret;
+	int ratio;
 
-	dev_info(rtd->dev, "codec machine: %s\n", __func__);
+	dev_info(codec_dai->dev, "codec machine: %s\n", __func__);
 
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, dai_fmt);
@@ -43,16 +58,24 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 	case 32000:
 	case 48000:
 	case 96000:
-		mclk = 12288000;
+	case 192000:
+		ratio = 192000 / params_rate(params);
+		mclk = 12288000 / ratio;
 		break;
 	case 11025:
 	case 22050:
 	case 44100:
-		mclk = 11289600;
+	case 88200:
+	case 176400:
+		ratio = 176400 / params_rate(params);
+		mclk = 11289600 / ratio;
 		break;
 	default:
 		return -EINVAL;
 	}
+
+	dev_info(codec_dai->dev, "params_rate = %u hz, ratio = %d, mclk = %d hz\n",
+		 params_rate(params), ratio, mclk);
 
 	/*Set the system clk for codec*/
 	ret = snd_soc_dai_set_sysclk(cpu_dai, 0, mclk, SND_SOC_CLOCK_OUT);
@@ -71,19 +94,13 @@ static int rk3036_hw_params(struct snd_pcm_substream *substream,
 }
 
 static struct snd_soc_ops rk3036_ops = {
-	  .hw_params = rk3036_hw_params,
+	  .hw_params = rockchip_rk3036_hw_params,
 };
-
-static int rk30_rk3036_codec_init(struct snd_soc_pcm_runtime *rtd)
-{
-	return 0;
-}
 
 static struct snd_soc_dai_link rk3036_dai = {
 	.name = "RK3036",
 	.stream_name = "RK3036 CODEC PCM",
 	.codec_dai_name = "rk3036-codec-dai",
-	.init = rk30_rk3036_codec_init,
 	.ops = &rk3036_ops,
 	/* set codec as slave */
 	.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
@@ -95,6 +112,12 @@ static struct snd_soc_card rockchip_rk3036_snd_card = {
 	.owner = THIS_MODULE,
 	.dai_link = &rk3036_dai,
 	.num_links = 1,
+	.dapm_widgets = rk_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(rk_dapm_widgets),
+	.dapm_routes = rk_audio_map,
+	.num_dapm_routes = ARRAY_SIZE(rk_audio_map),
+	.controls = rk_mc_controls,
+	.num_controls = ARRAY_SIZE(rk_mc_controls),
 };
 
 static int rockchip_rk3036_audio_probe(struct platform_device *pdev)
