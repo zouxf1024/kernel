@@ -96,6 +96,89 @@ struct rockchip_vp8e_reg_params {
 	u32 loop_flt_delta[2];
 };
 
+struct rockchip_h264e_reg_params {
+	u32 mbsInCol;
+	u32 mbsInRow;
+	u32 qp;
+	u32 qpMin;
+	u32 qpMax;
+	u32 constrainedIntraPrediction;
+	u32 frameCodingType;
+	u32 codingType;
+	u32 pixelsOnRow;
+	u32 xFill;
+	u32 yFill;
+	u32 ppsId;
+	u32 idrPicId;
+	u32 frameNum;
+	u32 picInitQp;
+	s32 sliceAlphaOffset;
+	s32 sliceBetaOffset;
+	u32 filterDisable;
+	u32 transform8x8Mode;
+	u32 enableCabac;
+	u32 cabacInitIdc;
+	s32 chromaQpIndexOffset;
+	u32 sliceSizeMbRows;
+	u32 inputImageFormat;
+	u32 inputImageRotation;
+	u32 outputStrmBase;
+	u32 outputStrmSize;
+	u32 firstFreeBit;
+	u32 strmStartMSB;
+	u32 strmStartLSB;
+	u32 rlcBase;
+	u32 rlcLimitSpace;
+	union {
+		u32 nal;
+		u32 vp;
+		u32 gob;
+	} sizeTblBase;
+	u32 cpDistanceMbs;
+	u32 cpTarget[10];
+	s32 targetError[7];
+	s32 deltaQp[7];
+	u32 rlcCount;
+	u32 qpSum;
+	u32 h264StrmMode;   /* 0 - byte stream, 1 - NAL units */
+	u32 sizeTblPresent;
+	u32 inputLumaBaseOffset;
+	u32 inputChromaBaseOffset;
+	u32 h264Inter4x4Disabled;
+	u32 disableQuarterPixelMv;
+	u32 vsNextLumaBase;
+	u32 vsMode;
+	u32 vpSize;
+	u32 vpMbBits;
+	u32 intraDcVlcThr;
+	u32 asicCfgReg;
+	u32 intra16Favor;
+	u32 interFavor;
+	u32 skipPenalty;
+	s32 madQpDelta;
+	u32 madThreshold;
+	u32 madCount;
+	u32 riceEnable;
+	u32 riceReadBase;
+	u32 riceWriteBase;
+	u32 cabacCtxBase;
+	u32 colorConversionCoeffA;
+	u32 colorConversionCoeffB;
+	u32 colorConversionCoeffC;
+	u32 colorConversionCoeffE;
+	u32 colorConversionCoeffF;
+	u32 rMaskMsb;
+	u32 gMaskMsb;
+	u32 bMaskMsb;
+
+	u8 dmvPenalty[128];
+	u8 dmvQpelPenalty[128];
+	u32 splitMvMode;
+	u32 diffMvPenalty[3];
+	u32 splitPenalty[4];
+	u32 zeroMvFavorDiv2;
+};
+
 /**
  * struct rockchip_vpu_aux_buf - auxiliary DMA buffer for hardware data
  * @cpu:	CPU pointer to the buffer.
@@ -140,6 +223,13 @@ struct rockchip_vpu_h264d_hw_ctx {
 	struct rockchip_vpu_aux_buf priv_tbl;
 };
 
+struct rockchip_vpu_h264e_hw_ctx {
+	struct rockchip_vpu_aux_buf regs;
+	struct rockchip_vpu_aux_buf cabac_tbl;
+	struct rockchip_vpu_aux_buf ext_buf;
+	u8 ref_rec_ptr:1;
+};
+
 /**
  * struct rockchip_vpu_hw_ctx - Context private data of hardware code.
  * @codec_ops:		Set of operations associated with current codec mode.
@@ -152,6 +242,7 @@ struct rockchip_vpu_hw_ctx {
 		struct rockchip_vpu_vp8e_hw_ctx vp8e;
 		struct rockchip_vpu_vp8d_hw_ctx vp8d;
 		struct rockchip_vpu_h264d_hw_ctx h264d;
+		struct rockchip_vpu_h264e_hw_ctx h264e;
 		/* Other modes will need different data. */
 	};
 };
@@ -199,6 +290,13 @@ void rk3228_vpu_dec_reset(struct rockchip_vpu_ctx *ctx);
 int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rk3228 H264 encoder */
+int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
+			   enum vb2_buffer_state result);
 
 /* Run ops for rk3228 VP8 decoder */
 int rk3228_vpu_vp8d_init(struct rockchip_vpu_ctx *ctx);

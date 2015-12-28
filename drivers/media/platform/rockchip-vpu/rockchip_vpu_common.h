@@ -266,6 +266,46 @@ struct rockchip_vpu_h264d_run {
 	u8 dpb_map[16];
 };
 
+struct rockchip_vpu_h264e_params {
+	u32 frameCodingType;
+	s32 picInitQp;
+	s32 sliceAlphaOffset;
+	s32 sliceBetaOffset;
+	s32 chromaQpIndexOffset;
+	s32 filterDisable;
+	u16 idrPicId;
+	s32 ppsId;
+	s32 frameNum;
+	s32 sliceSizeMbRows;
+	s32 h264Inter4x4Disabled;
+	s32 enableCabac;
+	s32 transform8x8Mode;
+	s32 cabacInitIdc;
+
+	/* rate control relevant */
+	s32 Qp;
+	s32 madQpDelta;
+	s32 madThreshold;
+	s32 qpMin;
+	s32 qpMax;
+	s32 cpDistanceMbs;
+	s32 cpTarget[10];
+	s32 targetError[7];
+	s32 deltaQp[7];
+};
+
+struct rockchip_vpu_h264e_feedback {
+	s32 qpSum;
+	s32 cp[10];
+	s32 madCount;
+	s32 rlcCount;
+};
+
+struct rockchip_vpu_h264e_run {
+	const struct rockchip_vpu_h264e_params *params;
+	struct rockchip_vpu_h264e_feedback *feedback;
+};
+
 /**
  * struct rockchip_vpu_run - per-run data for hardware code.
  * @src:		Source buffer to be processed.
@@ -286,6 +326,7 @@ struct rockchip_vpu_run {
 		struct rk3288_vpu_vp8e_run vp8e;
 		struct rk3288_vpu_vp8d_run vp8d;
 		struct rockchip_vpu_h264d_run h264d;
+		struct rockchip_vpu_h264e_run h264e;
 		/* Other modes will need different data. */
 	};
 };
@@ -460,7 +501,8 @@ static inline struct rockchip_vpu_ctx *fh_to_ctx(struct v4l2_fh *fh)
 
 static inline struct rockchip_vpu_ctx *ctrl_to_ctx(struct v4l2_ctrl *ctrl)
 {
-	return container_of(ctrl->handler, struct rockchip_vpu_ctx, ctrl_handler);
+	return container_of(ctrl->handler,
+			    struct rockchip_vpu_ctx, ctrl_handler);
 }
 
 static inline struct rockchip_vpu_buf *vb_to_buf(struct vb2_buffer *vb)
@@ -473,7 +515,8 @@ static inline bool rockchip_vpu_ctx_is_encoder(struct rockchip_vpu_ctx *ctx)
 	return ctx->vpu_dst_fmt->codec_mode != RK_VPU_CODEC_NONE;
 }
 
-static inline bool rockchip_vpu_ctx_is_dummy_encode(struct rockchip_vpu_ctx *ctx)
+static inline bool
+rockchip_vpu_ctx_is_dummy_encode(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *dev = ctx->dev;
 

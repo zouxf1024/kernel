@@ -45,6 +45,7 @@
 #define     VEPU_REG_ENC_CTRL_HEIGHT(h)		((h) << 10)
 #define     VEPU_REG_ENC_CTRL_KEYFRAME_BIT	BIT(3)
 #define     VEPU_REG_ENC_CTRL_ENC_MODE_VP8	(0x1 << 1)
+#define     VEPU_REG_ENC_CTRL_ENC_MODE_H264	(0x3 << 1)
 #define     VEPU_REG_ENC_CTRL_EN_BIT		BIT(0)
 #define VEPU_REG_IN_IMG_CTRL			0x03c
 #define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)	((x) << 12)
@@ -73,6 +74,8 @@
 #define     VEPU_REG_RLC_CTRL_STR_OFFS_SHIFT	23
 #define     VEPU_REG_RLC_CTRL_STR_OFFS_MASK	(0x3f << 23)
 #define VEPU_REG_MB_CTRL			0x098
+#define VEPU_REG_NEXT_PIC_BASE	0x09c
+#define VEPU_REG_STAB_CTRL			0x0a0
 #define VEPU_REG_ADDR_CABAC_TBL			0x0cc
 #define VEPU_REG_ADDR_MV_OUT			0x0d0
 #define VEPU_REG_RGB_YUV_COEFF(i)		(0x0d4 + ((i) * 0x4))

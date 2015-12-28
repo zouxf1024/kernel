@@ -49,7 +49,7 @@
 #define ROCKCHIP_ENC_MIN_HEIGHT			96U
 #define ROCKCHIP_ENC_MAX_HEIGHT			1088U
 
-#define V4L2_CID_PRIVATE_ROCKCHIP_HEADER		(V4L2_CID_CUSTOM_BASE + 0)
+#define V4L2_CID_PRIVATE_ROCKCHIP_HEADER	(V4L2_CID_CUSTOM_BASE + 0)
 #define V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS	(V4L2_CID_CUSTOM_BASE + 1)
 #define V4L2_CID_PRIVATE_ROCKCHIP_HW_PARAMS	(V4L2_CID_CUSTOM_BASE + 2)
 #define V4L2_CID_PRIVATE_ROCKCHIP_RET_PARAMS	(V4L2_CID_CUSTOM_BASE + 3)
@@ -127,7 +127,8 @@ static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
 		if (formats[i].fourcc != fourcc)
 			continue;
 		if (bitstream && formats[i].codec_mode != RK_VPU_CODEC_NONE
-				&& formats[i].vpu_type == dev->variant->vpu_type)
+				&& formats[i].vpu_type ==
+				dev->variant->vpu_type)
 			return &formats[i];
 		if (!bitstream && formats[i].codec_mode == RK_VPU_CODEC_NONE)
 			return &formats[i];
@@ -145,6 +146,8 @@ enum {
 	ROCKCHIP_VPU_ENC_CTRL_REG_PARAMS,
 	ROCKCHIP_VPU_ENC_CTRL_HW_PARAMS,
 	ROCKCHIP_VPU_ENC_CTRL_RET_PARAMS,
+	ROCKCHIP_VPU_ENC_CTRL_H264_PARAMS,
+	ROCKCHIP_VPU_ENC_CTRL_H264_RET_PARAMS,
 };
 
 static struct rockchip_vpu_control controls[] = {
@@ -181,6 +184,23 @@ static struct rockchip_vpu_control controls[] = {
 		.is_read_only = true,
 		.max_stores = VIDEO_MAX_FRAME,
 		.elem_size = ROCKCHIP_RET_PARAMS_SIZE,
+	},
+	[ROCKCHIP_VPU_ENC_CTRL_H264_PARAMS] = {
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "Rk3288 H264e Private Params",
+		.elem_size = sizeof(struct rockchip_h264e_reg_params),
+		.max_stores = VIDEO_MAX_FRAME,
+		.can_store = true,
+	},
+	[ROCKCHIP_VPU_ENC_CTRL_H264_RET_PARAMS] = {
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_RET_PARAMS,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "Rk3288 H264e Private Ret Params",
+		.is_volatile = true,
+		.is_read_only = true,
+		.max_stores = VIDEO_MAX_FRAME,
+		.elem_size = sizeof(struct rockchip_vpu_h264e_feedback),
 	},
 	/* Generic controls. (currently ignored) */
 	{
@@ -334,7 +354,8 @@ static struct rockchip_vpu_control controls[] = {
 	},
 };
 
-static inline const void *get_ctrl_ptr(struct rockchip_vpu_ctx *ctx, unsigned id)
+static inline const void *get_ctrl_ptr(struct rockchip_vpu_ctx *ctx,
+				       unsigned id)
 {
 	struct v4l2_ctrl *ctrl = ctx->ctrls[id];
 
@@ -542,9 +563,11 @@ static int vidioc_try_fmt(struct file *file, void *priv, struct v4l2_format *f)
 
 		/* Limit to hardware min/max. */
 		pix_fmt_mp->width = clamp(pix_fmt_mp->width,
-				ROCKCHIP_ENC_MIN_WIDTH, ROCKCHIP_ENC_MAX_WIDTH);
+					  ROCKCHIP_ENC_MIN_WIDTH,
+					  ROCKCHIP_ENC_MAX_WIDTH);
 		pix_fmt_mp->height = clamp(pix_fmt_mp->height,
-				ROCKCHIP_ENC_MIN_HEIGHT, ROCKCHIP_ENC_MAX_HEIGHT);
+					   ROCKCHIP_ENC_MIN_HEIGHT,
+					   ROCKCHIP_ENC_MAX_HEIGHT);
 		/* Round up to macroblocks. */
 		pix_fmt_mp->width = round_up(pix_fmt_mp->width, MB_DIM);
 		pix_fmt_mp->height = round_up(pix_fmt_mp->height, MB_DIM);
@@ -612,7 +635,8 @@ static int vidioc_s_fmt(struct file *file, void *priv, struct v4l2_format *f)
 		if (ret)
 			goto out;
 
-		ctx->vpu_dst_fmt = find_format(pix_fmt_mp->pixelformat, true, dev);
+		ctx->vpu_dst_fmt = find_format(pix_fmt_mp->pixelformat, true,
+					       dev);
 		ctx->dst_fmt = *pix_fmt_mp;
 		break;
 
@@ -1351,14 +1375,18 @@ static void rockchip_vpu_enc_prepare_run(struct rockchip_vpu_ctx *ctx)
 
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, config_store);
 
-	memcpy(ctx->run.dst->vp8e.header,
-		get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HEADER),
-		ROCKCHIP_HEADER_SIZE);
-	ctx->run.vp8e.reg_params = get_ctrl_ptr(ctx,
-		ROCKCHIP_VPU_ENC_CTRL_REG_PARAMS);
-	memcpy(ctx->run.priv_src.cpu,
-		get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HW_PARAMS),
-		ROCKCHIP_HW_PARAMS_SIZE);
+	if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_VP8) {
+		memcpy(ctx->run.dst->vp8e.header,
+			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HEADER),
+			ROCKCHIP_HEADER_SIZE);
+		ctx->run.vp8e.reg_params = get_ctrl_ptr(ctx,
+			ROCKCHIP_VPU_ENC_CTRL_REG_PARAMS);
+		memcpy(ctx->run.priv_src.cpu,
+			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HW_PARAMS),
+			ROCKCHIP_HW_PARAMS_SIZE);
+	} else if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264)
+		ctx->run.h264e.params =
+			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_H264_PARAMS);
 }
 
 static const struct rockchip_vpu_run_ops rockchip_vpu_enc_run_ops = {
@@ -1519,7 +1547,8 @@ err_free_dst:
 err_free_src:
 	for (i = 0; i < ctx->src_fmt.num_planes; ++i)
 		if (dev->dummy_encode_src[i].cpu)
-			rockchip_vpu_aux_buf_free(dev, &dev->dummy_encode_src[i]);
+			rockchip_vpu_aux_buf_free(dev,
+						  &dev->dummy_encode_src[i]);
 	rockchip_vpu_aux_buf_free(dev, &ctx->run.priv_dst);
 err_free_priv_src:
 	rockchip_vpu_aux_buf_free(dev, &ctx->run.priv_src);
