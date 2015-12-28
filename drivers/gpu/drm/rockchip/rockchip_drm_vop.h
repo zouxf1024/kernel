@@ -98,7 +98,7 @@
 #define RK3228_INTR_CLEAR1			0x0294
 #define RK3228_INTR_STATUS1			0x0298
 #define RK3228_INTR_RAW_STATUS1			0x029c
-#define RK3228_LENE_FLAG			0x02a0
+#define RK3228_LINE_FLAG			0x02a0
 #define RK3228_VOP_STATUS			0x02a4
 #define RK3228_BLANKING_VALUE			0x02a8
 #define RK3228_WIN0_DSP_BG			0x02b0
@@ -312,11 +312,15 @@
 
 
 /* interrupt define */
-#define DSP_HOLD_VALID_INTR		(1 << 0)
-#define FS_INTR				(1 << 1)
-#define LINE_FLAG_INTR			(1 << 2)
-#define BUS_ERROR_INTR			(1 << 3)
-#define HS_ERROR_INTR			(1 << 4)
+/* Special for 3228 */
+#define FS_INTR				(1 << 0)
+#define LINE_FLAG_INTR			(1 << 3)
+#define DSP_HOLD_VALID_INTR		(1 << 13)
+
+/* Those registers define is wrong */
+#define BUS_ERROR_INTR			(1 << 7)
+#define HS_ERROR_INTR			(1 << 8)
+#define INTR_DUMMY			(1 << 16)
 
 #define INTR_MASK	(DSP_HOLD_VALID_INTR | FS_INTR | LINE_FLAG_INTR | \
 				BUS_ERROR_INTR | HS_ERROR_INTR)

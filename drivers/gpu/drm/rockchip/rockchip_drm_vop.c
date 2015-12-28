@@ -43,6 +43,7 @@
 #define __REG_SET_RELAXED(x, off, mask, shift, v) \
 		vop_mask_write_relaxed(x, off, (mask) << shift, (v) << shift)
 #define __REG_SET_NORMAL(x, off, mask, shift, v) \
+		printk("--> YAKIR: %s:%d off = (%x), shift = %d, mask = %x, v = %x\n", __func__, __LINE__, off, shift, mask, v); \
 		vop_mask_write(x, off, (mask) << shift, (v) << shift)
 
 #define REG_SET(x, base, reg, v, mode) \
@@ -66,6 +67,7 @@
 		for (i = 0; i < vop->data->intr->nintrs; i++) { \
 			if (vop->data->intr->intrs[i] & type) \
 				reg |= (v >> type) << i; \
+				reg |= reg << 16; \
 		} \
 		VOP_INTR_SET(vop, name, reg); \
 	}while(0)
@@ -135,6 +137,8 @@ struct vop {
 
 	/* vop dclk reset */
 	struct reset_control *dclk_rst;
+	struct reset_control *aclk_rst;
+	struct reset_control *hclk_rst;
 
 	int pipe;
 
@@ -331,8 +335,6 @@ static const struct vop_data rk3288_vop = {
 	.win_size = ARRAY_SIZE(rk3288_vop_win_data),
 };
 
-//===================================================================
-
 static const uint32_t rk3228_formats_win01[] = {
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
@@ -385,21 +387,44 @@ static const struct vop_ctrl rk3228_ctrl_data = {
 	.vpost_st_end = VOP_REG(RK3228_POST_DSP_VACT_INFO, 0x1fff1fff, 0),
 };
 
+static const int rk3228_vop_intrs[] = {
+	FS_INTR,		//bit 0
+	INTR_DUMMY,
+	INTR_DUMMY,
+	LINE_FLAG_INTR,
+	INTR_DUMMY,		// bit 5
+	INTR_DUMMY,		//bit 4
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,		// bit 8
+	INTR_DUMMY,		//bit 9
+	INTR_DUMMY,
+	INTR_DUMMY,
+	INTR_DUMMY,
+	DSP_HOLD_VALID_INTR,	// bit 13
+};
+
+static const struct vop_intr rk3228_intr = {
+	.intrs = rk3228_vop_intrs,
+	.nintrs = ARRAY_SIZE(rk3228_vop_intrs),
+	.status = VOP_REG(RK3228_INTR_STATUS0, 0xffffffff, 0),
+	.clear = VOP_REG(RK3228_INTR_CLEAR0, 0xffffffff, 0),
+	.enable = VOP_REG(RK3228_INTR_EN0, 0xffffffff, 0),
+	.dsp_line_flag_num = VOP_REG(RK3228_LINE_FLAG, 0xfff, 0),
+};
+
 static const struct vop_reg_data rk3228_vop_init_reg_table[] = {
-	{RK3228_SYS_CTRL, 0x00c00000},
-	{RK3228_DSP_CTRL0, 0x00000000},
-	{RK3228_WIN0_CTRL0, 0x00000080},
-	{RK3228_WIN1_CTRL0, 0x00000080},
 };
 
 static const struct vop_data rk3228_vop = {
 	.init_table = rk3228_vop_init_reg_table,
 	.table_size = ARRAY_SIZE(rk3228_vop_init_reg_table),
+	.intr = &rk3228_intr,
 	.ctrl = &rk3228_ctrl_data,
 	.win = rk3228_vop_win_data,
 	.win_size = ARRAY_SIZE(rk3228_vop_win_data),
 };
-//=============================================================================
 
 static const uint32_t rk3066a_formats_win01[] = {
 	DRM_FORMAT_XRGB8888,
@@ -570,7 +595,7 @@ static const struct vop_data rk3036_vop = {
 static const struct of_device_id vop_driver_dt_match[] = {
 	{ .compatible = "rockchip,rk3288-vop",
 	  .data = &rk3288_vop },
-	{ .compatible = "rockchip,rk3228-lcdc",
+	{ .compatible = "rockchip,rk3228-vop",
 	  .data = &rk3228_vop },
 	{ .compatible = "rockchip,rk3066a-lcdc",
 	  .data = &rk3066a_vop },
@@ -603,6 +628,10 @@ static inline void vop_mask_write(struct vop *vop, uint32_t offset,
 		uint32_t cached_val = vop->regsbak[offset >> 2];
 
 		cached_val = (cached_val & ~mask) | v;
+
+		if (offset == 0x280)
+			return;
+
 		writel(cached_val, vop->regs + offset);
 		vop->regsbak[offset >> 2] = cached_val;
 	}
@@ -708,11 +737,13 @@ static void vop_enable(struct drm_crtc *crtc)
 	if (vop->is_enabled)
 		return;
 
+	/*
 	ret = pm_runtime_get_sync(vop->dev);
 	if (ret < 0) {
 		dev_err(vop->dev, "failed to get pm runtime: %d\n", ret);
 		return;
 	}
+	*/
 
 	ret = clk_enable(vop->hclk);
 	if (ret < 0) {
@@ -773,6 +804,8 @@ static void vop_disable(struct drm_crtc *crtc)
 {
 	struct vop *vop = to_vop(crtc);
 
+	return;
+
 	if (!vop->is_enabled)
 		return;
 
@@ -810,7 +843,7 @@ static void vop_disable(struct drm_crtc *crtc)
 	clk_disable(vop->dclk);
 	clk_disable(vop->aclk);
 	clk_disable(vop->hclk);
-	pm_runtime_put(vop->dev);
+	//pm_runtime_put(vop->dev);
 }
 
 /*
@@ -965,9 +998,10 @@ static int vop_update_plane_event(struct drm_plane *plane,
 
 	spin_lock(&vop->reg_lock);
 
+	VOP_WIN_SET(vop, win, yrgb_mst, yrgb_mst);
 	VOP_WIN_SET(vop, win, format, format);
 	VOP_WIN_SET(vop, win, yrgb_vir, y_vir_stride);
-	VOP_WIN_SET(vop, win, yrgb_mst, yrgb_mst);
+
 	val = (actual_h - 1) << 16;
 	val |= (actual_w - 1) & 0xffff;
 	VOP_WIN_SET(vop, win, act_info, val);
@@ -992,6 +1026,7 @@ static int vop_update_plane_event(struct drm_plane *plane,
 	VOP_WIN_SET(vop, win, enable, 1);
 
 	vop_cfg_done(vop);
+
 	spin_unlock(&vop->reg_lock);
 
 	return 0;
@@ -1564,20 +1599,22 @@ static int vop_initial(struct vop *vop)
 	const struct vop_reg_data *init_table = vop_data->init_table;
 	int i, ret;
 
-	vop->hclk = devm_clk_get(vop->dev, "hclk_vop");
-	if (IS_ERR(vop->hclk)) {
-		dev_err(vop->dev, "failed to get hclk source\n");
-		return PTR_ERR(vop->hclk);
+	vop->dclk = devm_clk_get(vop->dev, "dclk_vop");
+	if (IS_ERR(vop->dclk)) {
+		dev_err(vop->dev, "failed to get dclk source\n");
+		return PTR_ERR(vop->dclk);
 	}
+
 	vop->aclk = devm_clk_get(vop->dev, "aclk_vop");
 	if (IS_ERR(vop->aclk)) {
 		dev_err(vop->dev, "failed to get aclk source\n");
 		return PTR_ERR(vop->aclk);
 	}
-	vop->dclk = devm_clk_get(vop->dev, "dclk_vop");
-	if (IS_ERR(vop->dclk)) {
-		dev_err(vop->dev, "failed to get dclk source\n");
-		return PTR_ERR(vop->dclk);
+
+	vop->hclk = devm_clk_get(vop->dev, "hclk_vop");
+	if (IS_ERR(vop->hclk)) {
+		dev_err(vop->dev, "failed to get hclk source\n");
+		return PTR_ERR(vop->hclk);
 	}
 
 	ret = clk_prepare_enable(vop->hclk);
@@ -1597,6 +1634,17 @@ static int vop_initial(struct vop *vop)
 		dev_err(vop->dev, "failed to prepare dclk\n");
 		goto err_disabled_aclk;
 	}
+
+	vop->aclk_rst = devm_reset_control_get(vop->dev, "axi");
+	vop->hclk_rst = devm_reset_control_get(vop->dev, "ahb");
+
+	reset_control_assert(vop->aclk_rst);
+	usleep_range(10, 20);
+	reset_control_deassert(vop->aclk_rst);
+
+	reset_control_assert(vop->hclk_rst);
+	usleep_range(10, 20);
+	reset_control_deassert(vop->hclk_rst);
 
 	memcpy(vop->regsbak, vop->regs, vop->len);
 
@@ -1713,7 +1761,8 @@ static int vop_bind(struct device *dev, struct device *master, void *data)
 	if (ret)
 		return ret;
 
-	pm_runtime_enable(&pdev->dev);
+	//pm_runtime_enable(&pdev->dev);
+
 	return 0;
 }
 
@@ -1721,7 +1770,7 @@ static void vop_unbind(struct device *dev, struct device *master, void *data)
 {
 	struct vop *vop = dev_get_drvdata(dev);
 
-	pm_runtime_disable(dev);
+	//pm_runtime_disable(dev);
 	vop_destroy_crtc(vop);
 }
 
