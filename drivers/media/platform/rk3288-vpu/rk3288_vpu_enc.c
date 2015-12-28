@@ -124,6 +124,8 @@ enum {
 	RK3288_VPU_ENC_CTRL_REG_PARAMS,
 	RK3288_VPU_ENC_CTRL_HW_PARAMS,
 	RK3288_VPU_ENC_CTRL_RET_PARAMS,
+	RK3288_VPU_ENC_CTRL_H264_PARAMS,
+	RK3288_VPU_ENC_CTRL_H264_RET_PARAMS,
 };
 
 static struct rk3288_vpu_control controls[] = {
@@ -160,6 +162,23 @@ static struct rk3288_vpu_control controls[] = {
 		.is_read_only = true,
 		.max_stores = VIDEO_MAX_FRAME,
 		.elem_size = RK3288_RET_PARAMS_SIZE,
+	},
+	[RK3288_VPU_ENC_CTRL_H264_PARAMS] = {
+		.id = V4L2_CID_PRIVATE_RK3288_REG_PARAMS,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "Rk3288 H264e Private Params",
+		.elem_size = sizeof(struct rk3288_vpu_h264e_params),
+		.max_stores = VIDEO_MAX_FRAME,
+		.can_store = true,
+	},
+	[RK3288_VPU_ENC_CTRL_H264_RET_PARAMS] = {
+		.id = V4L2_CID_PRIVATE_RK3288_RET_PARAMS,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "Rk3288 H264e Private Ret Params",
+		.is_volatile = true,
+		.is_read_only = true,
+		.max_stores = VIDEO_MAX_FRAME,
+		.elem_size = sizeof(struct rk3288_vpu_h264e_feedback),
 	},
 	/* Generic controls. (currently ignored) */
 	{
@@ -1327,14 +1346,18 @@ static void rk3288_vpu_enc_prepare_run(struct rk3288_vpu_ctx *ctx)
 
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, config_store);
 
-	memcpy(ctx->run.dst->vp8e.header,
-		get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_HEADER),
-		RK3288_HEADER_SIZE);
-	ctx->run.vp8e.reg_params = get_ctrl_ptr(ctx,
-		RK3288_VPU_ENC_CTRL_REG_PARAMS);
-	memcpy(ctx->run.priv_src.cpu,
-		get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_HW_PARAMS),
-		RK3288_HW_PARAMS_SIZE);
+	if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_VP8) {
+		memcpy(ctx->run.dst->vp8e.header,
+		      get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_HEADER),
+		      RK3288_HEADER_SIZE);
+		ctx->run.vp8e.reg_params =
+			get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_REG_PARAMS);
+		memcpy(ctx->run.priv_src.cpu,
+		      get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_HW_PARAMS),
+		      RK3288_HW_PARAMS_SIZE);
+	} else if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264)
+		ctx->run.h264e.params =
+			get_ctrl_ptr(ctx, RK3288_VPU_ENC_CTRL_H264_PARAMS);
 }
 
 static const struct rk3288_vpu_run_ops rk3288_vpu_enc_run_ops = {

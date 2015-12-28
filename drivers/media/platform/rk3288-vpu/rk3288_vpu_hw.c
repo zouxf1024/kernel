@@ -391,6 +391,13 @@ static const struct rk3288_vpu_codec_ops mode_ops[] = {
 		.done = rk3288_vpu_run_done,
 		.reset = rk3288_vpu_dec_reset,
 	},
+	[RK_VPU_CODEC_H264E] = {
+		.init = rk3288_vpu_h264e_init,
+		.exit = rk3288_vpu_h264e_exit,
+		.run = rk3288_vpu_h264e_run,
+		.done = rk3288_vpu_h264e_done,
+		.reset = rk3288_vpu_enc_reset,
+	},
 };
 
 void rk3288_vpu_run(struct rk3288_vpu_ctx *ctx)

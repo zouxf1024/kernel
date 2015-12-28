@@ -243,6 +243,46 @@ struct rk3288_vpu_h264d_run {
 	u8 dpb_map[16];
 };
 
+struct rk3288_vpu_h264e_params {
+	u32 frameCodingType;
+	s32 picInitQp;
+	s32 sliceAlphaOffset;
+	s32 sliceBetaOffset;
+	s32 chromaQpIndexOffset;
+	s32 filterDisable;
+	u16 idrPicId;
+	s32 ppsId;
+	s32 frameNum;
+	s32 sliceSizeMbRows;
+	s32 h264Inter4x4Disabled;
+	s32 enableCabac;
+	s32 transform8x8Mode;
+	s32 cabacInitIdc;
+
+	/* rate control relevant */
+	s32 Qp;
+	s32 madQpDelta;
+	s32 madThreshold;
+	s32 qpMin;
+	s32 qpMax;
+	s32 cpDistanceMbs;
+	s32 cpTarget[10];
+	s32 targetError[5];
+	s32 deltaQp[7];
+};
+
+struct rk3288_vpu_h264e_feedback {
+	s32 qpSum;
+	s32 cp[10];
+	s32 madCount;
+	s32 rlcCount;
+};
+
+struct rk3288_vpu_h264e_run {
+	const struct rk3288_vpu_h264e_params *params;
+	struct rk3288_vpu_h264e_feedback *feedback;
+};
+
 /**
  * struct rk3288_vpu_run - per-run data for hardware code.
  * @src:		Source buffer to be processed.
@@ -263,6 +303,7 @@ struct rk3288_vpu_run {
 		struct rk3288_vpu_vp8e_run vp8e;
 		struct rk3288_vpu_vp8d_run vp8d;
 		struct rk3288_vpu_h264d_run h264d;
+		struct rk3288_vpu_h264e_run h264e;
 		/* Other modes will need different data. */
 	};
 };
