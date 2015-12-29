@@ -45,7 +45,7 @@ int rk3228_vdpu_irq(int irq, struct rockchip_vpu_dev *vpu)
 	vpu_debug(3, "vdpu_irq status: %08x\n", status);
 
 	if (status & VDPU_REG_INTERRUPT_DEC_IRQ) {
-		vdpu_write(vpu, 0, VDPU_REG_CONFIG);
+		vdpu_write(vpu, 0, VDPU_REG_AXI_CTRL);
 		return 0;
 	}
 
@@ -61,7 +61,7 @@ void rk3228_vpu_enc_reset(struct rockchip_vpu_ctx *ctx)
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 
 	vepu_write(vpu, VEPU_REG_INTERRUPT_DIS_BIT, VEPU_REG_INTERRUPT);
-	vepu_write(vpu, 0, VEPU_REG_ENC_CTRL);
+	vepu_write(vpu, 0, VEPU_REG_ENCODE_START);
 	vepu_write(vpu, 0, VEPU_REG_AXI_CTRL);
 }
 
@@ -70,5 +70,5 @@ void rk3228_vpu_dec_reset(struct rockchip_vpu_ctx *ctx)
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 
 	vdpu_write(vpu, VDPU_REG_INTERRUPT_DEC_IRQ_DIS, VDPU_REG_INTERRUPT);
-	vdpu_write(vpu, 0, VDPU_REG_CONFIG);
+	vdpu_write(vpu, 0, VDPU_REG_EN_FLAGS);
 }

@@ -1,8 +1,8 @@
 /*
  * Rockchip VPU codec driver
  *
- * Copyright (C) 2014 Google, Inc.
- *	Tomasz Figa <tfiga@chromium.org>
+ * Copyright (C) 2015 Rockchip Electronics Co., Ltd.
+ *	Alpha Lin <alpha.lin@rock-chips.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -18,274 +18,388 @@
 #define RK3228_VPU_REGS_H_
 
 /* Encoder registers. */
-#define VEPU_REG_INTERRUPT			0x004
-#define     VEPU_REG_INTERRUPT_DIS_BIT		BIT(1)
-#define     VEPU_REG_INTERRUPT_BIT		BIT(0)
-#define VEPU_REG_AXI_CTRL			0x008
-#define     VEPU_REG_AXI_CTRL_OUTPUT_SWAP16	BIT(15)
-#define     VEPU_REG_AXI_CTRL_INPUT_SWAP16	BIT(14)
-#define     VEPU_REG_AXI_CTRL_BURST_LEN(x)	((x) << 8)
-#define     VEPU_REG_AXI_CTRL_GATE_BIT		BIT(4)
-#define     VEPU_REG_AXI_CTRL_OUTPUT_SWAP32	BIT(3)
-#define     VEPU_REG_AXI_CTRL_INPUT_SWAP32	BIT(2)
-#define     VEPU_REG_AXI_CTRL_OUTPUT_SWAP8	BIT(1)
-#define     VEPU_REG_AXI_CTRL_INPUT_SWAP8	BIT(0)
-#define VEPU_REG_ADDR_OUTPUT_STREAM		0x014
-#define VEPU_REG_ADDR_OUTPUT_CTRL		0x018
-#define VEPU_REG_ADDR_REF_LUMA			0x01c
-#define VEPU_REG_ADDR_REF_CHROMA		0x020
-#define VEPU_REG_ADDR_REC_LUMA			0x024
-#define VEPU_REG_ADDR_REC_CHROMA		0x028
-#define VEPU_REG_ADDR_IN_LUMA			0x02c
-#define VEPU_REG_ADDR_IN_CB			0x030
-#define VEPU_REG_ADDR_IN_CR			0x034
-#define VEPU_REG_ENC_CTRL			0x038
-#define     VEPU_REG_ENC_CTRL_NAL_MODE_BIT	BIT(29)
-#define     VEPU_REG_ENC_CTRL_WIDTH(w)		((w) << 19)
-#define     VEPU_REG_ENC_CTRL_HEIGHT(h)		((h) << 10)
-#define     VEPU_REG_ENC_CTRL_KEYFRAME_BIT	BIT(3)
-#define     VEPU_REG_ENC_CTRL_ENC_MODE_VP8	(0x1 << 1)
-#define     VEPU_REG_ENC_CTRL_ENC_MODE_H264	(0x3 << 1)
-#define     VEPU_REG_ENC_CTRL_EN_BIT		BIT(0)
-#define VEPU_REG_IN_IMG_CTRL			0x03c
-#define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)	((x) << 12)
-#define     VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x)	((x) << 10)
-#define     VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(x)	((x) << 6)
-#define     VEPU_REG_IN_IMG_CTRL_FMT(x)		((x) << 2)
-#define VEPU_REG_ENC_CTRL0			0x040
-#define VEPU_REG_ENC_CTRL1			0x044
-#define VEPU_REG_ENC_CTRL2			0x048
-#define VEPU_REG_ENC_CTRL3			0x04c
-#define VEPU_REG_ENC_CTRL5			0x050
-#define VEPU_REG_ENC_CTRL4			0x054
-#define VEPU_REG_STR_HDR_REM_MSB		0x058
-#define VEPU_REG_STR_HDR_REM_LSB		0x05c
-#define VEPU_REG_STR_BUF_LIMIT			0x060
-#define VEPU_REG_MAD_CTRL			0x064
-#define VEPU_REG_ADDR_VP8_PROB_CNT		0x068
-#define VEPU_REG_QP_VAL				0x06c
-#define VEPU_REG_VP8_QP_VAL(i)			(0x06c + ((i) * 0x4))
-#define VEPU_REG_CHECKPOINT(i)			(0x070 + ((i) * 0x4))
-#define VEPU_REG_CHKPT_WORD_ERR(i)		(0x084 + ((i) * 0x4))
-#define VEPU_REG_VP8_BOOL_ENC			0x08c
-#define VEPU_REG_CHKPT_DELTA_QP			0x090
-#define VEPU_REG_VP8_CTRL0			0x090
-#define VEPU_REG_RLC_CTRL			0x094
-#define     VEPU_REG_RLC_CTRL_STR_OFFS_SHIFT	23
-#define     VEPU_REG_RLC_CTRL_STR_OFFS_MASK	(0x3f << 23)
-#define VEPU_REG_MB_CTRL			0x098
-#define VEPU_REG_NEXT_PIC_BASE	0x09c
-#define VEPU_REG_STAB_CTRL			0x0a0
-#define VEPU_REG_ADDR_CABAC_TBL			0x0cc
-#define VEPU_REG_ADDR_MV_OUT			0x0d0
-#define VEPU_REG_RGB_YUV_COEFF(i)		(0x0d4 + ((i) * 0x4))
-#define VEPU_REG_RGB_MASK_MSB			0x0dc
-#define VEPU_REG_INTRA_AREA_CTRL		0x0e0
-#define VEPU_REG_CIR_INTRA_CTRL			0x0e4
-#define VEPU_REG_INTRA_SLICE_BITMAP(i)		(0x0e8 + ((i) * 0x4))
-#define VEPU_REG_ADDR_VP8_DCT_PART(i)		(0x0e8 + ((i) * 0x4))
-#define VEPU_REG_FIRST_ROI_AREA			0x0f0
-#define VEPU_REG_SECOND_ROI_AREA		0x0f4
-#define VEPU_REG_MVC_CTRL			0x0f8
-#define VEPU_REG_VP8_INTRA_PENALTY(i)		(0x100 + ((i) * 0x4))
-#define VEPU_REG_ADDR_VP8_SEG_MAP		0x11c
-#define VEPU_REG_VP8_SEG_QP(i)			(0x120 + ((i) * 0x4))
-#define VEPU_REG_DMV_4P_1P_PENALTY(i)		(0x180 + ((i) * 0x4))
-#define VEPU_REG_DMV_QPEL_PENALTY(i)		(0x200 + ((i) * 0x4))
-#define VEPU_REG_VP8_CTRL1			0x280
-#define VEPU_REG_VP8_BIT_COST_GOLDEN		0x284
-#define VEPU_REG_VP8_LOOP_FLT_DELTA(i)		(0x288 + ((i) * 0x4))
+#define VEPU_REG_VP8_QP_1ST			0x000
+#define     VEPU_REG_VP8_QP_PART1_QUT_DC_LUMA2(x)	(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_QP_PART1_QUT_DC_LUMA1(x)	(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_2ND			0x004
+#define     VEPU_REG_VP8_PART1_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART1_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_3RD			0x008
+#define     VEPU_REG_VP8_PART1_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART1_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_4TH			0x00c
+#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_5TH			0x010
+#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_6TH			0x014
+#define     VEPU_REG_VP8_PART1_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART1_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART1_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_7TH			0x018
+#define     VEPU_REG_VP8_PART1_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART1_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART1_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_8TH			0x01c
+#define     VEPU_REG_VP8_PART1_FILTER_SEL		(((x) & 0x1f) << 25)
+#define     VEPU_REG_VP8_PART1_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART1_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART1_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_9TH			0x020
+#define     VEPU_REG_VP8_PART1_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART1_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART1_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_10TH			0x024
+#define     VEPU_REG_VP8_PART2_QUT_DC_LUMA2(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART2_QUT_DC_LUMA1(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_11TH			0x028
+#define     VEPU_REG_VP8_PART2_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART2_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_12TH			0x02c
+#define     VEPU_REG_VP8_PART2_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART2_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_13TH			0x030
+#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_14TH			0x034
+#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_15TH			0x038
+#define     VEPU_REG_VP8_PART2_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART2_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART2_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_16TH			0x03c
+#define     VEPU_REG_VP8_PART2_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART2_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART2_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_17TH			0x040
+#define     VEPU_REG_VP8_PART2_FILTER_SEL		(((x) & 0x1f) << 25)
+#define     VEPU_REG_VP8_PART2_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART2_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART2_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_18TH			0x044
+#define     VEPU_REG_VP8_PART2_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART2_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART2_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_19TH			0x048
+#define     VEPU_REG_VP8_PART3_QUT_DC_LUMA2(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART3_QUT_DC_LUMA1(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_20TH			0x04c
+#define     VEPU_REG_VP8_PART3_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART3_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_21TH			0x050
+#define     VEPU_REG_VP8_PART3_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_PART3_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QP_22TH			0x054
+#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_23TH			0x058
+#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QP_24TH			0x05c
+#define     VEPU_REG_VP8_PART3_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART3_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART3_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_25TH			0x060
+#define     VEPU_REG_VP8_PART3_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART3_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART3_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_26TH			0x064
+#define     VEPU_REG_VP8_PART3_FILTER_SEL		(((x) & 0x1f) << 25)
+#define     VEPU_REG_VP8_PART3_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_PART3_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_PART3_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QP_27TH			0x068
+#define     VEPU_REG_VP8_PART3_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_PART3_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_PART3_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_ADDR_VP8_SEG_MAP		0x06c
+#define VEPU_REG_VP8_INTRA_4X4_PENALTY(i)	(0x070 + ((i) * 0x4))
+#define VEPU_REG_VP8_INTRA_16X16_PENALTY(i)	(0x084 + ((i) * 0x4))
+#define VEPU_REG_VP8_CONTROL			0x0a0
+#define     VEPU_REG_VP8_LOOP_FILTER_B_PRED(x)		(((x) & 0x1f) << 24)
+#define     VEPU_REG_VP8_LOOP_FILTER_INTRA(x)		(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_INTER_TYPE(x)			(((x) & 0xfff) << 0)
+#define VEPU_REG_VP8_REF_FRAME_VAL		0x0a4
+#define     VEPU_REG_VP8_COEF_DMV_PENALTY(x)		(((x) & 0xfff) << 16)
+#define     VEPU_REG_VP8_REF_FRAME(x)			(((x) & 0xfff) << 0)
+#define VEPU_REG_VP8_LOOP_FILTER_CTRL1		0x0a8
+#define     VEPU_REG_VP8_LOOP_FILTER_ALT_REF(x)		(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_LOOP_FILTER_LAST_REF(x)	(((x) & 0x7f) << 8)
+#define     VEPU_REG_VP8_LOOP_FILTER_ORIG_REF(x)	(((x) & 0x7f) << 0)
+#define VEPU_REG_VP8_LOOP_FILTER_CTRL2		0x0ac
+#define     VEPU_REG_VP8_LOOP_FILTER_DIVIDE_MV(x)	(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_LOOP_FILTER_ZERO_MV(x)		(((x) & 0x7f) << 8)
+#define     VEPU_REG_VP8_LOOP_FILTER_NEW_MV(x)		(((x) & 0x7f) << 0)
+#define VEPU_REG_INTRA_SLICE_BITMAP(i)		(0x0b0 + ((i) * 0x4))
+#define VEPU_REG_INTRA_AREA_CTRL		0x0b8
+#define     VEPU_REG_INTRA_AREA_TOP(x)			(((x) & 0xff) << 24)
+#define     VEPU_REG_INTRA_AREA_BOTTOM(x)		(((x) & 0xff) << 16)
+#define     VEPU_REG_INTRA_AREA_LEFT(x)			(((x) & 0xff) << 8)
+#define     VEPU_REG_INTRA_AREA_RIGHT(x)		(((x) & 0xff) << 0)
+#define VEPU_REG_CIR_INTRA_CTRL			0x0bc
+#define     VEPU_REG_CIR_INTRA_FIRST_MB(x)		(((x) & 0xffff) << 16)
+#define     VEPU_REG_CIR_INTRA_INTERVAL(x)		(((x) & 0xffff) << 0)
+#define VEPU_REG_ADDR_IN_LUMA			0x0c0
+#define VEPU_REG_ADDR_IN_CB			0x0c4
+#define VEPU_REG_ADDR_IN_CR			0x0c8
+#define VEPU_REG_STR_HDR_REM_MSB		0x0cc
+#define VEPU_REG_STR_HDR_REM_LSB		0x0d0
+#define VEPU_REG_STR_BUF_LIMIT			0x0d4
+#define VEPU_REG_AXI_CTRL			0x0d8
+#define     VEPU_REG_AXI_CTRL_READ_ID(x)		(((x) & 0xff) << 24)
+#define     VEPU_REG_AXI_CTRL_WRITE_ID(x)		(((x) & 0xff) << 16)
+#define     VEPU_REG_AXI_CTRL_BURST_LEN(x)		(((x) & 0x3f) << 8)
+#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE		BIT(2)
+#define     VEPU_REG_AXI_CTRL_BIRST_DISCARD		BIT(1)
+#define     VEPU_REG_AXI_CTRL_BIRST_DISABLE		BIT(0)
+#define VEPU_QP_ADJUST_MAD_DELTA_ROI		0x0dc
+#define     VEPU_REG_ROI_QP_DELTA_1			(((x) & 0xf) << 12)
+#define     VEPU_REG_ROI_QP_DELTA_2			(((x) & 0xf) << 8)
+#define     VEPU_REG_MAD_QP_ADJUSTMENT			(((x) & 0xf) << 0)
+#define VEPU_REG_ADDR_REF_LUMA			0x0e0
+#define VEPU_REG_ADDR_REF_CHROMA		0x0e4
+#define VEPU_REG_QP_SUM_DIV2			0x0e8
+#define VEPU_REG_ENC_CTRL0			0x0ec
+#define     VEPU_REG_DISABLE_QUARTER_PIXEL_MV		BIT(28)
+#define     VEPU_REG_DEBLOCKING_FILTER_MODE(x)		(((x) & 0x3) << 24)
+#define     VEPU_REG_CABAC_INIT_IDC(x)			(((x) & 0x3) << 21)
+#define     VEPU_REG_ENTROPY_CODING_MODE		BIT(20)
+#define     VEPU_REG_H264_TRANS8X8_MODE			BIT(17)
+#define     VEPU_REG_H264_INTER4X4_MODE			BIT(16)
+#define     VEPU_REG_H264_STREAM_MODE			BIT(15)
+#define     VEPU_REG_H264_SLICE_SIZE(x)			(((x) & 7f) << 8)
+#define VEPU_REG_ENC_OVER_FILL_STRM_OFFSET	0x0f0
+#define     VEPU_REG_RLC_CTRL_STR_OFFS_SHIFT		16
+#define     VEPU_REG_RLC_CTRL_STR_OFFS_MASK		0x3f
+#define     VEPU_REG_STREAM_START_OFFSET(x)		(((x) & 0x3f) << 16)
+#define     VEPU_REG_MACROBLOCK_PENALTY(x)		(((x) & 0xff) << 8)
+#define     VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x)		(((x) & 0x3) << 4)
+#define     VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(x)		(((x) & 0xf) << 0)
+#define VEPU_REG_INPUT_LUMA_INFO		0x0f4
+#define     VEPU_REG_IN_IMG_CHROMA_OFFSET(x)		(((x) & 0x7) << 20)
+#define     VEPU_REG_IN_IMG_LUMA_OFFSET(x)		(((x) & 0x7) << 16)
+#define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_RLC_SUM			0x0f8
+#define VEPU_REG_ADDR_REC_LUMA			0x0fc
+#define VEPU_REG_ADDR_REC_CHROMA		0x100
+#define VEPU_REG_CHECKPOINT(i)			(0x104 + ((i) * 0x4))
+#define VEPU_REG_CHKPT_WORD_ERR(i)		(0x118 + ((i) * 0x4))
+#define VEPU_REG_CHKPT_DELTA_QP			0x124
+#define VEPU_REG_ENC_CTRL1			0x128
+#define     VEPU_REG_MAD_THRESHOLD(x)			(((x) & 0x3f) << 24)
+#define     VEPU_REG_COMPLETED_SLICES(x)		(((x) & 0xff) << 16)
+#define     VEPU_REG_IN_IMG_CTRL_FMT(x)			(((x) & 0xf) << 4)
+#define     VEPU_REG_IN_IMG_ROTATE_MODE(x)		(((x) & 0x3) << 2)
+#define     VEPU_REG_SIZE_TABLE_PRESENT			BIT(0)
+#define VEPU_REG_INTRA_INTER_MODE		0x12c
+#define     VEPU_REG_INTRA16X16_MODE(x)			(((x) & 0xffff) << 16)
+#define     VEPU_REG_INTER_MODE(x)			(((x) & 0xffff) << 0)
+#define VEPU_REG_ENC_CTRL2			0x130
+#define     VEPU_REG_PPS_INIT_QP(x)			(((x) & 0x3f) << 26)
+#define     VEPU_REG_SLICE_FILTER_ALPHA(x)		(((x) & 0xf) << 22)
+#define     VEPU_REG_SLICE_FILTER_BETA(x)		(((x) & 0xf) << 18)
+#define     VEPU_REG_CHROMA_QP_OFFSET(x)		(((x) & 0x1f) << 13)
+#define     VEPU_REG_FILTER_DISABLE			BIT(5)
+#define     VEPU_REG_IDR_PIC_ID(x)			(((x) & 0xf) << 1)
+#define     VEPU_REG_CONSTRAINED_INTRA_PREDICTION	BIT(0)
+#define VEPU_REG_ADDR_OUTPUT_STREAM		0x134
+#define VEPU_REG_ADDR_OUTPUT_CTRL		0x138
+#define VEPU_REG_ADDR_NEXT_PIC			0x13c
+#define VEPU_REG_ADDR_MV_OUT			0x140
+#define VEPU_REG_ADDR_CABAC_TBL			0x144
+#define VEPU_REG_ROI1				0x148
+#define     VEPU_REG_ROI1_TOP_MB(x)			(((x) & 0xff) << 24)
+#define     VEPU_REG_ROI1_BOTTOM_MB(x)			(((x) & 0xff) << 16)
+#define     VEPU_REG_ROI1_LEFT_MB(x)			(((x) & 0xff) << 8)
+#define     VEPU_REG_ROI1_RIGHT_MB(x)			(((x) & 0xff) << 0)
+#define VEPU_REG_ROI2				0x14c
+#define     VEPU_REG_ROI2_TOP_MB(x)			(((x) & 0xff) << 24)
+#define     VEPU_REG_ROI2_BOTTOM_MB(x)			(((x) & 0xff) << 16)
+#define     VEPU_REG_ROI2_LEFT_MB(x)			(((x) & 0xff) << 8)
+#define     VEPU_REG_ROI2_RIGHT_MB(x)			(((x) & 0xff) << 0)
+#define VEPU_REG_STABLE_MATRIX(i)		(0x150 + ((i) * 0x4))
+#define VEPU_REG_STABLE_MOTION_SUM		0x174
+#define VEPU_REG_STABLILIZATION_OUTPUT		0x178
+#define     VEPU_REG_STABLE_MIN_VALUE(x)		(((x) & 0xffffff) << 8)
+#define     VEPU_REG_STABLE_MODE_SEL(x)			(((x) & 0x3) << 6)
+#define     VEPU_REG_STABLE_HOR_GMV(x)			(((x) & 0x3f) << 0)
+#define VEPU_REG_RGB2YUV_CONVERSION_COEF1	0x17c
+#define     VEPU_REG_RGB2YUV_CONVERSION_COEFB(x)	(((x) & 0xffff) << 16)
+#define     VEPU_REG_RGB2YUV_CONVERSION_COEFA(x)	(((x) & 0xffff) << 0)
+#define VEPU_REG_RGB2YUV_CONVERSION_COEF2	0x180
+#define     VEPU_REG_RGB2YUV_CONVERSION_COEFE(x)	(((x) & 0xffff) << 16)
+#define     VEPU_REG_RGB2YUV_CONVERSION_COEFC(x)	(((x) & 0xffff) << 0)
+#define VEPU_REG_RGB2YUV_CONVERSION_COEF3	0x184
+#define     VEPU_REG_RGB2YUV_CONVERSION_COEFF(x)	(((x) & 0xffff) << 0)
+#define VEPU_REG_RGB_MASK_MSB			0x188
+#define     VEPU_REG_RGB_MASK_B_MSB(x)			(((x) & 0x1f) << 16)
+#define     VEPU_REG_RGB_MASK_G_MSB(x)			(((x) & 0x1f) << 8)
+#define     VEPU_REG_RGB_MASK_R_MSB(x)			(((x) & 0x1f) << 0)
+#define VEPU_REG_MV_PENALTY			0x18c
+#define     VEPU_REG_1MV_PENALTY(x)			(((x) & 0x3ff) << 21)
+#define     VEPU_REG_1MV_4MV_PENALTY(x)			(((x) & 0x3ff) << 11)
+#define     VEPU_REG_4MV_PENALTY(x)			(((x) & 0x3ff) << 1)
+#define     VEPU_REG_SPLIT_MV_MODE_EN			BIT(0)
+#define VEPU_REG_QP_VAL				0x190
+#define     VEPU_REG_H264_LUMA_INIT_QP(x)		(((x) & 0x3f) << 26)
+#define     VEPU_REG_H264_QP_MAX(x)			(((x) & 0x3f) << 20)
+#define     VEPU_REG_H264_QP_MIN(x)			(((x) & 0x3f) << 14)
+#define     VEPU_REG_H264_CHKPT_DISTANCE(x)		(((x) & 0xfff) << 0)
+#define VEPU_REG_MVC_RELATE			0x198
+#define     VEPU_REG_ZERO_MV_FAVOR_D2(x)		(((x) & 0xf) << 20)
+#define     VEPU_REG_PENALTY_4X4MV(x)			(((x) & 0x1ff) << 11)
+#define     VEPU_REG_MVC_VIEW_ID(x)			(((x) & 0x7) << 8)
+#define     VEPU_REG_MVC_ANCHOR_PIC_FLAG		BIT(7)
+#define     VEPU_REG_MVC_PRIORITY_ID(x)			(((x) & 0x7) << 4)
+#define     VEPU_REG_MVC_TEMPORAL_ID(x)			(((x) & 0x7) << 1)
+#define     VEPU_REG_MVC_INTER_VIEW_FLAG		BIT(0)
+#define VEPU_REG_ENCODE_START			0x19c
+#define     VEPU_REG_MB_HEIGHT(x)			(((x) & 0x1ff) << 20)
+#define     VEPU_REG_MB_WIDTH(x)			(((x) & 0x1ff) << 8)
+#define     VEPU_REG_PIC_TYPE(x)			(((x) & 0x3) << 6)
+#define     VEPU_REG_ENCODE_FORMAT(x)			(((x) & 0x3) << 4)
+#define     VEPU_REG_ENCODE_ENABLE			BIT(0)
+#define VEPU_REG_MB_CTRL			0x1a0
+#define     VEPU_REG_MB_CNT_OUT(x)			(((x) & 0xffff) << 16)
+#define     VEPU_REG_MB_CNT_SET(x)			(((x) & 0xffff) << 0)
+#define VEPU_REG_DATA_ENDIAN			0x1a4
+#define     VEPU_REG_INPUT_SWAP8			BIT(31)
+#define     VEPU_REG_INPUT_SWAP16			BIT(30)
+#define     VEPU_REG_INPUT_SWAP32			BIT(29)
+#define     VEPU_REG_OUTPUT_SWAP8			BIT(28)
+#define     VEPU_REG_OUTPUT_SWAP16			BIT(27)
+#define     VEPU_REG_OUTPUT_SWAP32			BIT(26)
+#define     VEPU_REG_TEST_IRQ				BIT(24)
+#define     VEPU_REG_TEST_COUNTER(x)			(((x) & 0xf) << 20)
+#define     VEPU_REG_TEST_REG				BIT(19)
+#define     VEPU_REG_TEST_MEMORY			BIT(18)
+#define     VEPU_REG_TEST_LEN(x)			(((x) & 0x3ffff) << 0)
+#define VEPU_REG_ENC_CTRL3			0x1a8
+#define     VEPU_REG_PPS_ID(x)				(((x) & 0xff) << 24)
+#define     VEPU_REG_INTRA_PRED_MODE(x)			(((x) & 0xff) << 16)
+#define     VEPU_REG_FRAME_NUM(x)			(((x) & 0xffff) << 0)
+#define VEPU_REG_ENC_CTRL4			0x1ac
+#define     VEPU_REG_MV_PENALTY_16X8_8X16(x)		(((x) & 0x3ff) << 20)
+#define     VEPU_REG_MV_PENALTY_8X8(x)			(((x) & 0x3ff) << 10)
+#define     VEPU_REG_MV_PENALTY_8X4_4X8(x)		(((x) & 0x3ff) << 0)
+#define VEPU_REG_ADDR_VP8_PROB_CNT		0x1b0
+#define VEPU_REG_INTERRUPT			0x1b4
+#define     VEPU_REG_INTERRUPT_NON			BIT(28)
+#define     VEPU_REG_MV_WRITE_EN			BIT(24)
+#define     VEPU_REG_RECON_WRITE_DIS			BIT(20)
+#define     VEPU_REG_INTERRUPT_SLICE_READY_EN		BIT(16)
+#define     VEPU_REG_CLK_GATING_EN			BIT(12)
+#define     VEPU_REG_INTERRUPT_TIMEOUT_EN		BIT(10)
+#define     VEPU_REG_INTERRUPT_RESET			BIT(9)
+#define     VEPU_REG_INTERRUPT_DIS_BIT			BIT(8)
+#define     VEPU_REG_INTERRUPT_TIMEOUT			BIT(6)
+#define     VEPU_REG_INTERRUPT_BUFFER_FULL		BIT(5)
+#define     VEPU_REG_INTERRUPT_BUS_ERROR		BIT(4)
+#define     VEPU_REG_INTERRUPT_FUSE			BIT(3)
+#define     VEPU_REG_INTERRUPT_SLICE_READY		BIT(2)
+#define     VEPU_REG_INTERRUPT_FRAME_READY		BIT(1)
+#define     VEPU_REG_INTERRUPT_BIT			BIT(0)
+#define VEPU_REG_DMV_PENALTY_TABLE(i)		(0x180 + ((i) * 0x4))
+#define VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE(i)	(0x200 + ((i) * 0x4))
 
 /* Decoder registers. */
-#define VDPU_REG_INTERRUPT			0x004
-#define     VDPU_REG_INTERRUPT_DEC_PIC_INF		BIT(24)
-#define     VDPU_REG_INTERRUPT_DEC_TIMEOUT		BIT(18)
-#define     VDPU_REG_INTERRUPT_DEC_SLICE_INT		BIT(17)
-#define     VDPU_REG_INTERRUPT_DEC_ERROR_INT		BIT(16)
-#define     VDPU_REG_INTERRUPT_DEC_ASO_INT		BIT(15)
-#define     VDPU_REG_INTERRUPT_DEC_BUFFER_INT		BIT(14)
-#define     VDPU_REG_INTERRUPT_DEC_BUS_INT		BIT(13)
-#define     VDPU_REG_INTERRUPT_DEC_RDY_INT		BIT(12)
-#define     VDPU_REG_INTERRUPT_DEC_IRQ			BIT(8)
-#define     VDPU_REG_INTERRUPT_DEC_IRQ_DIS		BIT(4)
-#define     VDPU_REG_INTERRUPT_DEC_E			BIT(0)
-#define VDPU_REG_CONFIG				0x008
-#define     VDPU_REG_CONFIG_DEC_AXI_RD_ID(x)		(((x) & 0xff) << 24)
-#define     VDPU_REG_CONFIG_DEC_TIMEOUT_E		BIT(23)
-#define     VDPU_REG_CONFIG_DEC_STRSWAP32_E		BIT(22)
-#define     VDPU_REG_CONFIG_DEC_STRENDIAN_E		BIT(21)
-#define     VDPU_REG_CONFIG_DEC_INSWAP32_E		BIT(20)
-#define     VDPU_REG_CONFIG_DEC_OUTSWAP32_E		BIT(19)
-#define     VDPU_REG_CONFIG_DEC_DATA_DISC_E		BIT(18)
-#define     VDPU_REG_CONFIG_TILED_MODE_MSB		BIT(17)
-#define     VDPU_REG_CONFIG_DEC_OUT_TILED_E		BIT(17)
-#define     VDPU_REG_CONFIG_DEC_LATENCY(x)		(((x) & 0x3f) << 11)
-#define     VDPU_REG_CONFIG_DEC_CLK_GATE_E		BIT(10)
-#define     VDPU_REG_CONFIG_DEC_IN_ENDIAN		BIT(9)
-#define     VDPU_REG_CONFIG_DEC_OUT_ENDIAN		BIT(8)
-#define     VDPU_REG_CONFIG_PRIORITY_MODE(x)		(((x) & 0x7) << 5)
-#define     VDPU_REG_CONFIG_TILED_MODE_LSB		BIT(7)
-#define     VDPU_REG_CONFIG_DEC_ADV_PRE_DIS		BIT(6)
-#define     VDPU_REG_CONFIG_DEC_SCMD_DIS		BIT(5)
-#define     VDPU_REG_CONFIG_DEC_MAX_BURST(x)		(((x) & 0x1f) << 0)
-#define VDPU_REG_DEC_CTRL0			0x00c
-#define     VDPU_REG_DEC_CTRL0_DEC_MODE(x)		(((x) & 0xf) << 28)
-#define     VDPU_REG_DEC_CTRL0_RLC_MODE_E		BIT(27)
-#define     VDPU_REG_DEC_CTRL0_SKIP_MODE		BIT(26)
-#define     VDPU_REG_DEC_CTRL0_DIVX3_E			BIT(25)
-#define     VDPU_REG_DEC_CTRL0_PJPEG_E			BIT(24)
-#define     VDPU_REG_DEC_CTRL0_PIC_INTERLACE_E		BIT(23)
-#define     VDPU_REG_DEC_CTRL0_PIC_FIELDMODE_E		BIT(22)
-#define     VDPU_REG_DEC_CTRL0_PIC_B_E			BIT(21)
-#define     VDPU_REG_DEC_CTRL0_PIC_INTER_E		BIT(20)
-#define     VDPU_REG_DEC_CTRL0_PIC_TOPFIELD_E		BIT(19)
-#define     VDPU_REG_DEC_CTRL0_FWD_INTERLACE_E		BIT(18)
-#define     VDPU_REG_DEC_CTRL0_SORENSON_E		BIT(17)
-#define     VDPU_REG_DEC_CTRL0_REF_TOPFIELD_E		BIT(16)
-#define     VDPU_REG_DEC_CTRL0_DEC_OUT_DIS		BIT(15)
-#define     VDPU_REG_DEC_CTRL0_FILTERING_DIS		BIT(14)
-#define     VDPU_REG_DEC_CTRL0_WEBP_E			BIT(13)
-#define     VDPU_REG_DEC_CTRL0_MVC_E			BIT(13)
-#define     VDPU_REG_DEC_CTRL0_PIC_FIXED_QUANT		BIT(13)
-#define     VDPU_REG_DEC_CTRL0_WRITE_MVS_E		BIT(12)
-#define     VDPU_REG_DEC_CTRL0_REFTOPFIRST_E		BIT(11)
-#define     VDPU_REG_DEC_CTRL0_SEQ_MBAFF_E		BIT(10)
-#define     VDPU_REG_DEC_CTRL0_PICORD_COUNT_E		BIT(9)
-#define     VDPU_REG_DEC_CTRL0_DEC_AHB_HLOCK_E		BIT(8)
-#define     VDPU_REG_DEC_CTRL0_DEC_AXI_WR_ID(x)		(((x) & 0xff) << 0)
-#define VDPU_REG_DEC_CTRL1			0x010
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(x)		(((x) & 0x1ff) << 23)
-#define     VDPU_REG_DEC_CTRL1_MB_WIDTH_OFF(x)		(((x) & 0xf) << 19)
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(x)	(((x) & 0xff) << 11)
-#define     VDPU_REG_DEC_CTRL1_MB_HEIGHT_OFF(x)		(((x) & 0xf) << 7)
-#define     VDPU_REG_DEC_CTRL1_ALT_SCAN_E		BIT(6)
-#define     VDPU_REG_DEC_CTRL1_TOPFIELDFIRST_E		BIT(5)
-#define     VDPU_REG_DEC_CTRL1_REF_FRAMES(x)		(((x) & 0x1f) << 0)
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_W_EXT(x)		(((x) & 0x7) << 3)
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_H_EXT(x)		(((x) & 0x7) << 0)
-#define     VDPU_REG_DEC_CTRL1_PIC_REFER_FLAG		BIT(0)
-#define VDPU_REG_DEC_CTRL2			0x014
-#define     VDPU_REG_DEC_CTRL2_STRM_START_BIT(x)	(((x) & 0x3f) << 26)
-#define     VDPU_REG_DEC_CTRL2_SYNC_MARKER_E		BIT(25)
-#define     VDPU_REG_DEC_CTRL2_TYPE1_QUANT_E		BIT(24)
-#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET(x)		(((x) & 0x1f) << 19)
-#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET2(x)		(((x) & 0x1f) << 14)
-#define     VDPU_REG_DEC_CTRL2_FIELDPIC_FLAG_E		BIT(0)
-#define     VDPU_REG_DEC_CTRL2_INTRADC_VLC_THR(x)	(((x) & 0x7) << 16)
-#define     VDPU_REG_DEC_CTRL2_VOP_TIME_INCR(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL2_DQ_PROFILE		BIT(24)
-#define     VDPU_REG_DEC_CTRL2_DQBI_LEVEL		BIT(23)
-#define     VDPU_REG_DEC_CTRL2_RANGE_RED_FRM_E		BIT(22)
-#define     VDPU_REG_DEC_CTRL2_FAST_UVMC_E		BIT(20)
-#define     VDPU_REG_DEC_CTRL2_TRANSDCTAB		BIT(17)
-#define     VDPU_REG_DEC_CTRL2_TRANSACFRM(x)		(((x) & 0x3) << 15)
-#define     VDPU_REG_DEC_CTRL2_TRANSACFRM2(x)		(((x) & 0x3) << 13)
-#define     VDPU_REG_DEC_CTRL2_MB_MODE_TAB(x)		(((x) & 0x7) << 10)
-#define     VDPU_REG_DEC_CTRL2_MVTAB(x)			(((x) & 0x7) << 7)
-#define     VDPU_REG_DEC_CTRL2_CBPTAB(x)		(((x) & 0x7) << 4)
-#define     VDPU_REG_DEC_CTRL2_2MV_BLK_PAT_TAB(x)	(((x) & 0x3) << 2)
-#define     VDPU_REG_DEC_CTRL2_4MV_BLK_PAT_TAB(x)	(((x) & 0x3) << 0)
-#define     VDPU_REG_DEC_CTRL2_QSCALE_TYPE		BIT(24)
-#define     VDPU_REG_DEC_CTRL2_CON_MV_E			BIT(4)
-#define     VDPU_REG_DEC_CTRL2_INTRA_DC_PREC(x)		(((x) & 0x3) << 2)
-#define     VDPU_REG_DEC_CTRL2_INTRA_VLC_TAB		BIT(1)
-#define     VDPU_REG_DEC_CTRL2_FRAME_PRED_DCT		BIT(0)
-#define     VDPU_REG_DEC_CTRL2_JPEG_QTABLES(x)		(((x) & 0x3) << 11)
-#define     VDPU_REG_DEC_CTRL2_JPEG_MODE(x)		(((x) & 0x7) << 8)
-#define     VDPU_REG_DEC_CTRL2_JPEG_FILRIGHT_E		BIT(7)
-#define     VDPU_REG_DEC_CTRL2_JPEG_STREAM_ALL		BIT(6)
-#define     VDPU_REG_DEC_CTRL2_CR_AC_VLCTABLE		BIT(5)
-#define     VDPU_REG_DEC_CTRL2_CB_AC_VLCTABLE		BIT(4)
-#define     VDPU_REG_DEC_CTRL2_CR_DC_VLCTABLE		BIT(3)
-#define     VDPU_REG_DEC_CTRL2_CB_DC_VLCTABLE		BIT(2)
-#define     VDPU_REG_DEC_CTRL2_CR_DC_VLCTABLE3		BIT(1)
-#define     VDPU_REG_DEC_CTRL2_CB_DC_VLCTABLE3		BIT(0)
-#define     VDPU_REG_DEC_CTRL2_STRM1_START_BIT(x)	(((x) & 0x3f) << 18)
-#define     VDPU_REG_DEC_CTRL2_HUFFMAN_E		BIT(17)
-#define     VDPU_REG_DEC_CTRL2_MULTISTREAM_E		BIT(16)
-#define     VDPU_REG_DEC_CTRL2_BOOLEAN_VALUE(x)		(((x) & 0xff) << 8)
-#define     VDPU_REG_DEC_CTRL2_BOOLEAN_RANGE(x)		(((x) & 0xff) << 0)
-#define     VDPU_REG_DEC_CTRL2_ALPHA_OFFSET(x)		(((x) & 0x1f) << 5)
-#define     VDPU_REG_DEC_CTRL2_BETA_OFFSET(x)		(((x) & 0x1f) << 0)
-#define VDPU_REG_DEC_CTRL3			0x018
-#define     VDPU_REG_DEC_CTRL3_START_CODE_E		BIT(31)
+#define VDPU_REG_DEC_CTRL0			0x0c8
+#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_PICID(x)	(((x) & 0x1f) << 25)
+#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_THR(x)	(((x) & 0xfff) << 13)
+#define     VDPU_REG_CONFIG_TILED_MODE_LSB		BIT(12)
+#define     VDPU_REG_CONFIG_DEC_ADV_PRE_DIS		BIT(11)
+#define     VDPU_REG_CONFIG_DEC_SCMD_DIS		BIT(10)
+#define     VDPU_REG_DEC_CTRL0_SKIP_MODE		BIT(9)
+#define     VDPU_REG_DEC_CTRL0_FILTERING_DIS		BIT(8)
+#define     VDPU_REG_DEC_CTRL0_PIC_FIXED_QUANT		BIT(7)
+#define     VDPU_REG_CONFIG_DEC_LATENCY(x)		(((x) & 0x3f) << 1)
+#define     VDPU_REG_CONFIG_TILED_MODE_MSB(x)		BIT(0)
+#define     VDPU_REG_CONFIG_DEC_OUT_TILED_E		BIT(0)
+#define VDPU_REG_STREAM_LEN			0x0cc
 #define     VDPU_REG_DEC_CTRL3_INIT_QP(x)		(((x) & 0x3f) << 25)
-#define     VDPU_REG_DEC_CTRL3_CH_8PIX_ILEAV_E		BIT(24)
-#define     VDPU_REG_DEC_CTRL3_STREAM_LEN_EXT(x)	(((x) & 0xff) << 24)
+#define     VDPU_REG_DEC_STREAM_LEN_HI			BIT(24)
 #define     VDPU_REG_DEC_CTRL3_STREAM_LEN(x)		(((x) & 0xffffff) << 0)
-#define VDPU_REG_DEC_CTRL4			0x01c
-#define     VDPU_REG_DEC_CTRL4_CABAC_E			BIT(31)
-#define     VDPU_REG_DEC_CTRL4_BLACKWHITE_E		BIT(30)
-#define     VDPU_REG_DEC_CTRL4_DIR_8X8_INFER_E		BIT(29)
-#define     VDPU_REG_DEC_CTRL4_WEIGHT_PRED_E		BIT(28)
-#define     VDPU_REG_DEC_CTRL4_WEIGHT_BIPR_IDC(x)	(((x) & 0x3) << 26)
-#define     VDPU_REG_DEC_CTRL4_AVS_H264_H_EXT		BIT(25)
-#define     VDPU_REG_DEC_CTRL4_FRAMENUM_LEN(x)		(((x) & 0x1f) << 16)
-#define     VDPU_REG_DEC_CTRL4_FRAMENUM(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL4_BITPLANE0_E		BIT(31)
-#define     VDPU_REG_DEC_CTRL4_BITPLANE1_E		BIT(30)
-#define     VDPU_REG_DEC_CTRL4_BITPLANE2_E		BIT(29)
-#define     VDPU_REG_DEC_CTRL4_ALT_PQUANT(x)		(((x) & 0x1f) << 24)
-#define     VDPU_REG_DEC_CTRL4_DQ_EDGES(x)		(((x) & 0xf) << 20)
-#define     VDPU_REG_DEC_CTRL4_TTMBF			BIT(19)
-#define     VDPU_REG_DEC_CTRL4_PQINDEX(x)		(((x) & 0x1f) << 14)
-#define     VDPU_REG_DEC_CTRL4_VC1_HEIGHT_EXT		BIT(13)
-#define     VDPU_REG_DEC_CTRL4_BILIN_MC_E		BIT(12)
-#define     VDPU_REG_DEC_CTRL4_UNIQP_E			BIT(11)
-#define     VDPU_REG_DEC_CTRL4_HALFQP_E			BIT(10)
-#define     VDPU_REG_DEC_CTRL4_TTFRM(x)			(((x) & 0x3) << 8)
-#define     VDPU_REG_DEC_CTRL4_2ND_BYTE_EMUL_E		BIT(7)
-#define     VDPU_REG_DEC_CTRL4_DQUANT_E			BIT(6)
-#define     VDPU_REG_DEC_CTRL4_VC1_ADV_E		BIT(5)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_FILDOWN_E		BIT(26)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_WDIV8		BIT(25)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_HDIV8		BIT(24)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_AH(x)		(((x) & 0xf) << 20)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_AL(x)		(((x) & 0xf) << 16)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_SS(x)		(((x) & 0xff) << 8)
-#define     VDPU_REG_DEC_CTRL4_PJPEG_SE(x)		(((x) & 0xff) << 0)
-#define     VDPU_REG_DEC_CTRL4_DCT1_START_BIT(x)	(((x) & 0x3f) << 26)
-#define     VDPU_REG_DEC_CTRL4_DCT2_START_BIT(x)	(((x) & 0x3f) << 20)
-#define     VDPU_REG_DEC_CTRL4_CH_MV_RES		BIT(13)
-#define     VDPU_REG_DEC_CTRL4_INIT_DC_MATCH0(x)	(((x) & 0x7) << 9)
-#define     VDPU_REG_DEC_CTRL4_INIT_DC_MATCH1(x)	(((x) & 0x7) << 6)
-#define     VDPU_REG_DEC_CTRL4_VP7_VERSION		BIT(5)
-#define VDPU_REG_DEC_CTRL5			0x020
-#define     VDPU_REG_DEC_CTRL5_CONST_INTRA_E		BIT(31)
-#define     VDPU_REG_DEC_CTRL5_FILT_CTRL_PRES		BIT(30)
-#define     VDPU_REG_DEC_CTRL5_RDPIC_CNT_PRES		BIT(29)
-#define     VDPU_REG_DEC_CTRL5_8X8TRANS_FLAG_E		BIT(28)
-#define     VDPU_REG_DEC_CTRL5_REFPIC_MK_LEN(x)		(((x) & 0x7ff) << 17)
-#define     VDPU_REG_DEC_CTRL5_IDR_PIC_E		BIT(16)
-#define     VDPU_REG_DEC_CTRL5_IDR_PIC_ID(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL5_MV_SCALEFACTOR(x)	(((x) & 0xff) << 24)
-#define     VDPU_REG_DEC_CTRL5_REF_DIST_FWD(x)		(((x) & 0x1f) << 19)
-#define     VDPU_REG_DEC_CTRL5_REF_DIST_BWD(x)		(((x) & 0x1f) << 14)
-#define     VDPU_REG_DEC_CTRL5_LOOP_FILT_LIMIT(x)	(((x) & 0xf) << 14)
-#define     VDPU_REG_DEC_CTRL5_VARIANCE_TEST_E		BIT(13)
-#define     VDPU_REG_DEC_CTRL5_MV_THRESHOLD(x)		(((x) & 0x7) << 10)
-#define     VDPU_REG_DEC_CTRL5_VAR_THRESHOLD(x)		(((x) & 0x3ff) << 0)
-#define     VDPU_REG_DEC_CTRL5_DIVX_IDCT_E		BIT(8)
-#define     VDPU_REG_DEC_CTRL5_DIVX3_SLICE_SIZE(x)	(((x) & 0xff) << 0)
-#define     VDPU_REG_DEC_CTRL5_PJPEG_REST_FREQ(x)	(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL5_RV_PROFILE(x)		(((x) & 0x3) << 30)
-#define     VDPU_REG_DEC_CTRL5_RV_OSV_QUANT(x)		(((x) & 0x3) << 28)
-#define     VDPU_REG_DEC_CTRL5_RV_FWD_SCALE(x)		(((x) & 0x3fff) << 14)
-#define     VDPU_REG_DEC_CTRL5_RV_BWD_SCALE(x)		(((x) & 0x3fff) << 0)
-#define     VDPU_REG_DEC_CTRL5_INIT_DC_COMP0(x)		(((x) & 0xffff) << 16)
-#define     VDPU_REG_DEC_CTRL5_INIT_DC_COMP1(x)		(((x) & 0xffff) << 0)
-#define VDPU_REG_DEC_CTRL6			0x024
-#define     VDPU_REG_DEC_CTRL6_PPS_ID(x)		(((x) & 0xff) << 24)
-#define     VDPU_REG_DEC_CTRL6_REFIDX1_ACTIVE(x)	(((x) & 0x1f) << 19)
-#define     VDPU_REG_DEC_CTRL6_REFIDX0_ACTIVE(x)	(((x) & 0x1f) << 14)
-#define     VDPU_REG_DEC_CTRL6_POC_LENGTH(x)		(((x) & 0xff) << 0)
-#define     VDPU_REG_DEC_CTRL6_ICOMP0_E			BIT(24)
-#define     VDPU_REG_DEC_CTRL6_ISCALE0(x)		(((x) & 0xff) << 16)
-#define     VDPU_REG_DEC_CTRL6_ISHIFT0(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL6_STREAM1_LEN(x)		(((x) & 0xffffff) << 0)
-#define     VDPU_REG_DEC_CTRL6_PIC_SLICE_AM(x)		(((x) & 0x1fff) << 0)
-#define     VDPU_REG_DEC_CTRL6_COEFFS_PART_AM(x)	(((x) & 0xf) << 24)
-#define VDPU_REG_FWD_PIC(i)			(0x028 + ((i) * 0x4))
+#define VDPU_REG_ERROR_CONCEALMENT			0x0d0
+#define     VDPU_REG_REF_BUF_CTRL2_APF_THRESHOLD(x)	(((x) & 0x3fff) << 17)
+#define     VDPU_REG_ERR_CONC_STARTMB_X(x)		(((x) & 0x1ff) << 8)
+#define     VDPU_REG_ERR_CONC_STARTMB_Y(x)		(((x) & 0xff) << 0)
+#define VDPU_REG_DEC_FORMAT				0x0d4
+#define     VDPU_REG_DEC_CTRL0_DEC_MODE(x)		(((x) & 0xf) << 0)
+#define VDPU_REG_DATA_ENDIAN				0x0d8
+#define     VDPU_REG_CONFIG_DEC_STRENDIAN_E		BIT(5)
+#define     VDPU_REG_CONFIG_DEC_STRSWAP32_E		BIT(4)
+#define     VDPU_REG_CONFIG_DEC_OUTSWAP32_E		BIT(3)
+#define     VDPU_REG_CONFIG_DEC_INSWAP32_E		BIT(2)
+#define     VDPU_REG_CONFIG_DEC_OUT_ENDIAN		BIT(1)
+#define     VDPU_REG_CONFIG_DEC_IN_ENDIAN		BIT(0)
+#define VDPU_REG_INTERRUPT			0x0dc
+#define     VDPU_REG_INTERRUPT_DEC_TIMEOUT		BIT(13)
+#define     VDPU_REG_INTERRUPT_DEC_ERROR_INT		BIT(12)
+#define     VDPU_REG_INTERRUPT_DEC_PIC_INF		BIT(10)
+#define     VDPU_REG_INTERRUPT_DEC_SLICE_INT		BIT(9)
+#define     VDPU_REG_INTERRUPT_DEC_ASO_INT		BIT(8)
+#define     VDPU_REG_INTERRUPT_DEC_BUFFER_INT		BIT(6)
+#define     VDPU_REG_INTERRUPT_DEC_BUS_INT		BIT(5)
+#define     VDPU_REG_INTERRUPT_DEC_RDY_INT		BIT(4)
+#define     VDPU_REG_INTERRUPT_DEC_IRQ_DIS		BIT(1)
+#define     VDPU_REG_INTERRUPT_DEC_IRQ			BIT(0)
+#define VDPU_REG_AXI_CTRL			0x0e0
+#define     VDPU_REG_AXI_DEC_SEL			BIT(23)
+#define     VDPU_REG_CONFIG_DEC_DATA_DISC_E		BIT(22)
+#define     VDPU_REG_PARAL_BUS_E(x)			BIT(21)
+#define     VDPU_REG_CONFIG_DEC_MAX_BURST(x)		(((x) & 0x1f) << 16)
+#define     VDPU_REG_DEC_CTRL0_DEC_AXI_WR_ID(x)		(((x) & 0xff) << 8)
+#define     VDPU_REG_CONFIG_DEC_AXI_RD_ID(x)		(((x) & 0xff) << 0)
+#define VDPU_REG_EN_FLAGS			0x0e4
+#define     VDPU_REG_AHB_HLOCK_E			BIT(31)
+#define     VDPU_REG_CACHE_E				BIT(29)
+#define     VDPU_REG_PREFETCH_SINGLE_CHANNEL_E		BIT(28)
+#define     VDPU_REG_INTRA_3_CYCLE_ENHANCE		BIT(27)
+#define     VDPU_REG_INTRA_DOUBLE_SPEED			BIT(26)
+#define     VDPU_REG_INTER_DOUBLE_SPEED			BIT(25)
+#define     VDPU_REG_DEC_CTRL3_START_CODE_E		BIT(22)
+#define     VDPU_REG_DEC_CTRL3_CH_8PIX_ILEAV_E		BIT(21)
+#define     VDPU_REG_DEC_CTRL0_RLC_MODE_E		BIT(20)
+#define     VDPU_REG_DEC_CTRL0_DIVX3_E			BIT(19)
+#define     VDPU_REG_DEC_CTRL0_PJPEG_E			BIT(18)
+#define     VDPU_REG_DEC_CTRL0_PIC_INTERLACE_E		BIT(17)
+#define     VDPU_REG_DEC_CTRL0_PIC_FIELDMODE_E		BIT(16)
+#define     VDPU_REG_DEC_CTRL0_PIC_B_E			BIT(15)
+#define     VDPU_REG_DEC_CTRL0_PIC_INTER_E		BIT(14)
+#define     VDPU_REG_DEC_CTRL0_PIC_TOPFIELD_E		BIT(13)
+#define     VDPU_REG_DEC_CTRL0_FWD_INTERLACE_E		BIT(12)
+#define     VDPU_REG_DEC_CTRL0_SORENSON_E		BIT(11)
+#define     VDPU_REG_DEC_CTRL0_WRITE_MVS_E		BIT(10)
+#define     VDPU_REG_DEC_CTRL0_REF_TOPFIELD_E		BIT(9)
+#define     VDPU_REG_DEC_CTRL0_REFTOPFIRST_E		BIT(8)
+#define     VDPU_REG_DEC_CTRL0_SEQ_MBAFF_E		BIT(7)
+#define     VDPU_REG_DEC_CTRL0_PICORD_COUNT_E		BIT(6)
+#define     VDPU_REG_CONFIG_DEC_TIMEOUT_E		BIT(5)
+#define     VDPU_REG_CONFIG_DEC_CLK_GATE_E		BIT(4)
+#define     VDPU_REG_DEC_CTRL0_DEC_OUT_DIS		BIT(2)
+#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_BUF_E		BIT(1)
+#define     VDPU_REG_INTERRUPT_DEC_E			BIT(0)
+#define VDPU_REG_SOFT_RESET			0x0e8
+#define VDPU_REG_PRED_FLT			0x0ec
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_0(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_1(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_2(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_ADDITIONAL_CHROMA_ADDRESS	0x0f0
+#define VDPU_REG_ADDR_QTABLE			0x0f4
+#define VDPU_REG_STANDARD_DEPENDENT_TBL_ADDR	0x0f8
+#define VDPU_REG_DIRECT_MV_ADDR			0x0fc
+#define VDPU_REG_ADDR_DST			0x100
+#define VDPU_REG_ADDR_STR			0x104
+#define VDPU_REG_REFBUF_RELATED			0x108
+#define VDPU_REG_FWD_PIC(i)			(0x128 + ((i) * 0x4))
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F5(x)		(((x) & 0x1f) << 25)
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F4(x)		(((x) & 0x1f) << 20)
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F3(x)		(((x) & 0x1f) << 15)
@@ -298,90 +412,188 @@
 #define     VDPU_REG_FWD_PIC1_SEGMENT_BASE(x)		((x) << 0)
 #define     VDPU_REG_FWD_PIC1_SEGMENT_UPD_E		BIT(1)
 #define     VDPU_REG_FWD_PIC1_SEGMENT_E			BIT(0)
-#define VDPU_REG_DEC_CTRL7			0x02c
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F15(x)	(((x) & 0x1f) << 25)
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F14(x)	(((x) & 0x1f) << 20)
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F13(x)	(((x) & 0x1f) << 15)
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F12(x)	(((x) & 0x1f) << 10)
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F11(x)	(((x) & 0x1f) << 5)
-#define     VDPU_REG_DEC_CTRL7_PINIT_RLIST_F10(x)	(((x) & 0x1f) << 0)
-#define     VDPU_REG_DEC_CTRL7_ICOMP2_E			BIT(24)
-#define     VDPU_REG_DEC_CTRL7_ISCALE2(x)		(((x) & 0xff) << 16)
-#define     VDPU_REG_DEC_CTRL7_ISHIFT2(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_DEC_CTRL7_DCT3_START_BIT(x)	(((x) & 0x3f) << 24)
-#define     VDPU_REG_DEC_CTRL7_DCT4_START_BIT(x)	(((x) & 0x3f) << 18)
-#define     VDPU_REG_DEC_CTRL7_DCT5_START_BIT(x)	(((x) & 0x3f) << 12)
-#define     VDPU_REG_DEC_CTRL7_DCT6_START_BIT(x)	(((x) & 0x3f) << 6)
-#define     VDPU_REG_DEC_CTRL7_DCT7_START_BIT(x)	(((x) & 0x3f) << 0)
-#define VDPU_REG_ADDR_STR			0x030
-#define VDPU_REG_ADDR_DST			0x034
-#define VDPU_REG_ADDR_REF(i)			(0x038 + ((i) * 0x4))
-#define     VDPU_REG_ADDR_REF_FIELD_E			BIT(1)
-#define     VDPU_REG_ADDR_REF_TOPC_E			BIT(0)
-#define VDPU_REG_REF_PIC(i)			(0x078 + ((i) * 0x4))
+#define VDPU_REG_REF_PIC(i)			(0x130 + ((i) * 0x4))
 #define     VDPU_REG_REF_PIC_FILT_TYPE_E		BIT(31)
 #define     VDPU_REG_REF_PIC_FILT_SHARPNESS(x)	(((x) & 0x7) << 28)
-#define     VDPU_REG_REF_PIC_MB_ADJ_0(x)		(((x) & 0x7f) << 21)
-#define     VDPU_REG_REF_PIC_MB_ADJ_1(x)		(((x) & 0x7f) << 14)
-#define     VDPU_REG_REF_PIC_MB_ADJ_2(x)		(((x) & 0x7f) << 7)
-#define     VDPU_REG_REF_PIC_MB_ADJ_3(x)		(((x) & 0x7f) << 0)
+
 #define     VDPU_REG_REF_PIC_REFER1_NBR(x)		(((x) & 0xffff) << 16)
 #define     VDPU_REG_REF_PIC_REFER0_NBR(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_REF_PIC_LF_LEVEL_0(x)		(((x) & 0x3f) << 18)
-#define     VDPU_REG_REF_PIC_LF_LEVEL_1(x)		(((x) & 0x3f) << 12)
-#define     VDPU_REG_REF_PIC_LF_LEVEL_2(x)		(((x) & 0x3f) << 6)
-#define     VDPU_REG_REF_PIC_LF_LEVEL_3(x)		(((x) & 0x3f) << 0)
-#define     VDPU_REG_REF_PIC_QUANT_DELTA_0(x)	(((x) & 0x1f) << 27)
-#define     VDPU_REG_REF_PIC_QUANT_DELTA_1(x)	(((x) & 0x1f) << 22)
-#define     VDPU_REG_REF_PIC_QUANT_0(x)			(((x) & 0x7ff) << 11)
-#define     VDPU_REG_REF_PIC_QUANT_1(x)			(((x) & 0x7ff) << 0)
-#define VDPU_REG_LT_REF				0x098
-#define VDPU_REG_VALID_REF			0x09c
-#define VDPU_REG_ADDR_QTABLE			0x0a0
-#define VDPU_REG_ADDR_DIR_MV			0x0a4
-#define VDPU_REG_BD_REF_PIC(i)			(0x0a8 + ((i) * 0x4))
-#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B2(x)	(((x) & 0x1f) << 25)
-#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F2(x)	(((x) & 0x1f) << 20)
-#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B1(x)	(((x) & 0x1f) << 15)
-#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F1(x)	(((x) & 0x1f) << 10)
-#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B0(x)	(((x) & 0x1f) << 5)
+
+#define VDPU_REG_ADDR_REF(i)			(0x150 + ((i) * 0x4))
+#define     VDPU_REG_ADDR_REF_FIELD_E			BIT(1)
+#define     VDPU_REG_ADDR_REF_TOPC_E			BIT(0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST0		0x190
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F5(x)	(((x) & 0x1f) << 25)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F4(x)	(((x) & 0x1f) << 20)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F3(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F2(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F1(x)	(((x) & 0x1f) << 5)
 #define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F0(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST1		0x194
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F11(x)	(((x) & 0x1f) << 25)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F10(x)	(((x) & 0x1f) << 20)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F9(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F8(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F7(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F6(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST2		0x198
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F15(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F14(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F13(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_F12(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST3		0x19c
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B5(x)	(((x) & 0x1f) << 25)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B4(x)	(((x) & 0x1f) << 20)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B3(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B2(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B1(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B0(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST4		0x1a0
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B11(x)	(((x) & 0x1f) << 25)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B10(x)	(((x) & 0x1f) << 20)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B9(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B8(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B7(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B6(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST5		0x1a4
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B15(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B14(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B13(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_REF_PIC_BINIT_RLIST_B12(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_INITIAL_REF_PIC_LIST6		0x1a8
+#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F3(x)	(((x) & 0x1f) << 15)
+#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F2(x)	(((x) & 0x1f) << 10)
+#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F1(x)	(((x) & 0x1f) << 5)
+#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F0(x)	(((x) & 0x1f) << 0)
+#define VDPU_REG_LT_REF				0x1ac
+#define VDPU_REG_VALID_REF			0x1b0
+#define VDPU_REG_H264_PIC_MB_SIZE		0x1b8
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(x)		(((x) & 0x1ff) << 0)
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(x)	(((x) & 0xff) << 9)
+#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET(x)		(((x) & 0x1f) << 17)
+#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET2(x)		(((x) & 0x1f) << 22)
+#define VDPU_REG_H264_CTRL			0x1bc
+#define     VDPU_REG_DEC_CTRL4_WEIGHT_BIPR_IDC(x)	(((x) & 0x3) << 16)
+#define     VDPU_REG_DEC_CTRL1_REF_FRAMES(x)		(((x) & 0x1f) << 0)
+#define VDPU_REG_CURRENT_FRAME			0x1c0
+#define     VDPU_REG_DEC_CTRL5_FILT_CTRL_PRES		BIT(31)
+#define     VDPU_REG_DEC_CTRL5_RDPIC_CNT_PRES		BIT(30)
+#define     VDPU_REG_DEC_CTRL4_FRAMENUM_LEN(x)		(((x) & 0x1f) << 16)
+#define     VDPU_REG_DEC_CTRL4_FRAMENUM(x)		(((x) & 0xffff) << 0)
+#define VDPU_REG_REF_FRAME			0x1c4
+#define     VDPU_REG_DEC_CTRL5_REFPIC_MK_LEN(x)		(((x) & 0x7ff) << 16)
+#define     VDPU_REG_DEC_CTRL5_IDR_PIC_ID(x)		(((x) & 0xffff) << 0)
+#define VDPU_REG_DEC_CTRL6			0x1c8
+#define     VDPU_REG_DEC_CTRL6_PPS_ID(x)		(((x) & 0xff) << 24)
+#define     VDPU_REG_DEC_CTRL6_REFIDX1_ACTIVE(x)	(((x) & 0x1f) << 19)
+#define     VDPU_REG_DEC_CTRL6_REFIDX0_ACTIVE(x)	(((x) & 0x1f) << 14)
+#define     VDPU_REG_DEC_CTRL6_POC_LENGTH(x)		(((x) & 0xff) << 0)
+#define VDPU_REG_ENABLE_FLAG			0x1cc
+#define     VDPU_REG_DEC_CTRL5_IDR_PIC_E		BIT(8)
+#define     VDPU_REG_DEC_CTRL4_DIR_8X8_INFER_E		BIT(7)
+#define     VDPU_REG_DEC_CTRL4_BLACKWHITE_E		BIT(6)
+#define     VDPU_REG_DEC_CTRL4_CABAC_E			BIT(5)
+#define     VDPU_REG_DEC_CTRL4_WEIGHT_PRED_E		BIT(4)
+#define     VDPU_REG_DEC_CTRL5_CONST_INTRA_E		BIT(3)
+#define     VDPU_REG_DEC_CTRL5_8X8TRANS_FLAG_E		BIT(2)
+#define     VDPU_REG_DEC_CTRL2_TYPE1_QUANT_E		BIT(1)
+#define     VDPU_REG_DEC_CTRL2_FIELDPIC_FLAG_E		BIT(0)
+#define VDPU_REG_PIC_MB_EXT_SIZE		0x1e0
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_W_EXT(x)		(((x) & 0x7) << 3)
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_H_EXT(x)		(((x) & 0x7) << 0)
+#define VDPU_REG_VP8_DCT_START_BIT		0x1e4
+#define     VDPU_REG_DEC_CTRL4_DCT1_START_BIT(x)	(((x) & 0x3f) << 26)
+#define     VDPU_REG_DEC_CTRL4_DCT2_START_BIT(x)	(((x) & 0x3f) << 20)
+#define     VDPU_REG_DEC_CTRL4_VC1_HEIGHT_EXT		BIT(13)
+#define     VDPU_REG_DEC_CTRL4_BILIN_MC_E		BIT(12)
+#define VDPU_REG_VP8_CTRL0			0x1e8
+#define     VDPU_REG_DEC_CTRL2_STRM_START_BIT(x)	(((x) & 0x3f) << 26)
+#define     VDPU_REG_DEC_CTRL2_STRM1_START_BIT(x)	(((x) & 0x3f) << 18)
+#define     VDPU_REG_DEC_CTRL2_BOOLEAN_VALUE(x)		(((x) & 0xff) << 8)
+#define     VDPU_REG_DEC_CTRL2_BOOLEAN_RANGE(x)		(((x) & 0xff) << 0)
+#define VDPU_REG_VP8_DATA_VAL			0x1f0
+#define     VDPU_REG_DEC_CTRL6_COEFFS_PART_AM(x)	(((x) & 0xf) << 24)
+#define     VDPU_REG_DEC_CTRL6_STREAM1_LEN(x)		(((x) & 0xffffff) << 0)
+#define VDPU_REG_PRED_FLT7			0x1f4
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_5_1(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_5_2(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_5_3(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT8			0x1f8
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_6_0(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_6_1(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_6_2(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT9			0x1fc
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_6_3(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_7_0(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_7_1(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT10			0x200
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_7_2(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_7_3(x)	(((x) & 0x3ff) << 12)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_2_M1(x)	(((x) & 0x3) << 10)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_2_4(x)		(((x) & 0x3) << 8)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_4_M1(x)	(((x) & 0x3) << 6)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_4_4(x)		(((x) & 0x3) << 4)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_6_M1(x)	(((x) & 0x3) << 2)
 #define     VDPU_REG_BD_REF_PIC_PRED_TAP_6_4(x)		(((x) & 0x3) << 0)
-#define     VDPU_REG_BD_REF_PIC_QUANT_DELTA_2(x)	(((x) & 0x1f) << 27)
-#define     VDPU_REG_BD_REF_PIC_QUANT_DELTA_3(x)	(((x) & 0x1f) << 22)
-#define     VDPU_REG_BD_REF_PIC_QUANT_2(x)		(((x) & 0x7ff) << 11)
-#define     VDPU_REG_BD_REF_PIC_QUANT_3(x)		(((x) & 0x7ff) << 0)
-#define VDPU_REG_BD_P_REF_PIC			0x0bc
-#define     VDPU_REG_BD_P_REF_PIC_QUANT_DELTA_4(x)	(((x) & 0x1f) << 27)
-#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F3(x)	(((x) & 0x1f) << 25)
-#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F2(x)	(((x) & 0x1f) << 20)
-#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F1(x)	(((x) & 0x1f) << 15)
-#define     VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F0(x)	(((x) & 0x1f) << 10)
-#define     VDPU_REG_BD_P_REF_PIC_BINIT_RLIST_B15(x)	(((x) & 0x1f) << 5)
-#define     VDPU_REG_BD_P_REF_PIC_BINIT_RLIST_F15(x)	(((x) & 0x1f) << 0)
-#define VDPU_REG_ERR_CONC			0x0c0
-#define     VDPU_REG_ERR_CONC_STARTMB_X(x)		(((x) & 0x1ff) << 23)
-#define     VDPU_REG_ERR_CONC_STARTMB_Y(x)		(((x) & 0xff) << 15)
-#define VDPU_REG_PRED_FLT			0x0c4
-#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_0(x)	(((x) & 0x3ff) << 22)
-#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_1(x)	(((x) & 0x3ff) << 12)
-#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_2(x)	(((x) & 0x3ff) << 2)
-#define VDPU_REG_REF_BUF_CTRL			0x0cc
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_E		BIT(31)
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_THR(x)		(((x) & 0xfff) << 19)
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_PICID(x)	(((x) & 0x1f) << 14)
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_EVAL_E		BIT(13)
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_FPARMOD_E	BIT(12)
-#define     VDPU_REG_REF_BUF_CTRL_REFBU_Y_OFFSET(x)	(((x) & 0x1ff) << 0)
-#define VDPU_REG_REF_BUF_CTRL2			0x0dc
-#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_BUF_E		BIT(31)
-#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_THR(x)	(((x) & 0xfff) << 19)
-#define     VDPU_REG_REF_BUF_CTRL2_REFBU2_PICID(x)	(((x) & 0x1f) << 14)
-#define     VDPU_REG_REF_BUF_CTRL2_APF_THRESHOLD(x)	(((x) & 0x3fff) << 0)
+#define VDPU_REG_FILTER_LEVEL			0x204
+#define     VDPU_REG_REF_PIC_LF_LEVEL_0(x)		(((x) & 0x3f) << 18)
+#define     VDPU_REG_REF_PIC_LF_LEVEL_1(x)		(((x) & 0x3f) << 12)
+#define     VDPU_REG_REF_PIC_LF_LEVEL_2(x)		(((x) & 0x3f) << 6)
+#define     VDPU_REG_REF_PIC_LF_LEVEL_3(x)		(((x) & 0x3f) << 0)
+
+#define VDPU_REG_VP8_QUANTER0			0x208
+#define     VDPU_REG_REF_PIC_QUANT_DELTA_0(x)		(((x) & 0x1f) << 27)
+#define     VDPU_REG_REF_PIC_QUANT_DELTA_1(x)		(((x) & 0x1f) << 22)
+#define     VDPU_REG_REF_PIC_QUANT_0(x)			(((x) & 0x7ff) << 11)
+#define     VDPU_REG_REF_PIC_QUANT_1(x)			(((x) & 0x7ff) << 0)
+#define VDPU_REG_FILTER_MB_ADJ			0x210
+#define     VDPU_REG_FILT_MB_ADJ_0(x)			(((x) & 0x7f) << 21)
+#define     VDPU_REG_FILT_MB_ADJ_1(x)			(((x) & 0x7f) << 14)
+#define     VDPU_REG_FILT_MB_ADJ_2(x)			(((x) & 0x7f) << 7)
+#define     VDPU_REG_FILT_MB_ADJ_3(x)			(((x) & 0x7f) << 0)
+#define VDPU_REG_FILTER_REF_ADJ			0x214
+#define     VDPU_REG_REF_PIC_ADJ_0(x)			(((x) & 0x7f) << 21)
+#define     VDPU_REG_REF_PIC_ADJ_1(x)			(((x) & 0x7f) << 14)
+#define     VDPU_REG_REF_PIC_ADJ_2(x)			(((x) & 0x7f) << 7)
+#define     VDPU_REG_REF_PIC_ADJ_3(x)			(((x) & 0x7f) << 0)
+#define VDPU_REG_VP8_DCT_START_BIT2		0x258
+#define     VDPU_REG_DEC_CTRL7_DCT3_START_BIT(x)	(((x) & 0x3f) << 24)
+#define     VDPU_REG_DEC_CTRL7_DCT4_START_BIT(x)	(((x) & 0x3f) << 18)
+#define     VDPU_REG_DEC_CTRL7_DCT5_START_BIT(x)	(((x) & 0x3f) << 12)
+#define     VDPU_REG_DEC_CTRL7_DCT6_START_BIT(x)	(((x) & 0x3f) << 6)
+#define     VDPU_REG_DEC_CTRL7_DCT7_START_BIT(x)	(((x) & 0x3f) << 0)
+#define VDPU_REG_VP8_QUANTER1			0x25c
+#define     VDPU_REG_REF_PIC_QUANT_DELTA_2(x)		(((x) & 0x1f) << 27)
+#define     VDPU_REG_REF_PIC_QUANT_DELTA_3(x)		(((x) & 0x1f) << 22)
+#define     VDPU_REG_REF_PIC_QUANT_2(x)			(((x) & 0x7ff) << 11)
+#define     VDPU_REG_REF_PIC_QUANT_3(x)			(((x) & 0x7ff) << 0)
+#define VDPU_REG_VP8_QUANTER2			0x260
+#define     VDPU_REG_REF_PIC_QUANT_DELTA_4(x)		(((x) & 0x1f) << 27)
+#define     VDPU_REG_REF_PIC_QUANT_4(x)			(((x) & 0x7ff) << 11)
+#define     VDPU_REG_REF_PIC_QUANT_5(x)			(((x) & 0x7ff) << 0)
+#define VDPU_REG_PRED_FLT1			0x264
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_3(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_1_0(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_1_1(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT2			0x268
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_1_2(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_1_3(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_2_0(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT3			0x26c
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_2_1(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_2_2(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_2_3(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT4			0x270
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_3_0(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_3_1(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_3_2(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT5			0x274
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_3_3(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_4_0(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_4_1(x)	(((x) & 0x3ff) << 2)
+#define VDPU_REG_PRED_FLT6			0x278
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_4_2(x)	(((x) & 0x3ff) << 22)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_4_3(x)	(((x) & 0x3ff) << 12)
+#define     VDPU_REG_PRED_FLT_PRED_BC_TAP_5_0(x)	(((x) & 0x3ff) << 2)
 
 #endif /* RK3228_VPU_REGS_H_ */

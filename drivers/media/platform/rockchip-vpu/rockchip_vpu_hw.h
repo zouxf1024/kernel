@@ -287,28 +287,16 @@ void rk3228_vpu_enc_reset(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_dec_reset(struct rockchip_vpu_ctx *ctx);
 
 /* Run ops for rk3228 H264 encoder */
-int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
-
-/* Run ops for rk3228 H264 encoder */
-int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
+/*int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
-			   enum vb2_buffer_state result);
+			   enum vb2_buffer_state result);*/
 
 /* Run ops for rk3228 VP8 decoder */
 int rk3228_vpu_vp8d_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_vp8d_exit(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx);
-
-/* Run ops for rk3228 VP8 encoder */
-int rk3228_vpu_vp8e_init(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_vp8e_exit(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_vp8e_done(struct rockchip_vpu_ctx *ctx,
-			  enum vb2_buffer_state result);
 
 /* For rockchip VP8 encoder */
 const struct rockchip_vp8e_reg_params *rockchip_vpu_vp8e_get_dummy_params(void);
