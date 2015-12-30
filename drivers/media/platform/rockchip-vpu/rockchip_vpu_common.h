@@ -267,38 +267,38 @@ struct rockchip_vpu_h264d_run {
 };
 
 struct rockchip_vpu_h264e_params {
-	u32 frameCodingType;
-	s32 picInitQp;
-	s32 sliceAlphaOffset;
-	s32 sliceBetaOffset;
-	s32 chromaQpIndexOffset;
-	s32 filterDisable;
-	u16 idrPicId;
-	s32 ppsId;
-	s32 frameNum;
-	s32 sliceSizeMbRows;
-	s32 h264Inter4x4Disabled;
-	s32 enableCabac;
-	s32 transform8x8Mode;
-	s32 cabacInitIdc;
+	u32 frame_coding_type;
+	s32 pic_init_qp;
+	s32 slice_alpha_offset;
+	s32 slice_beta_offset;
+	s32 chroma_qp_index_offset;
+	s32 filter_disable;
+	u16 idr_pic_id;
+	s32 pps_id;
+	s32 frame_num;
+	s32 slice_size_mb_rows;
+	s32 h264_inter4x4_disabled;
+	s32 enable_cabac;
+	s32 transform8x8_mode;
+	s32 cabac_init_idc;
 
 	/* rate control relevant */
-	s32 Qp;
-	s32 madQpDelta;
-	s32 madThreshold;
-	s32 qpMin;
-	s32 qpMax;
-	s32 cpDistanceMbs;
-	s32 cpTarget[10];
-	s32 targetError[7];
-	s32 deltaQp[7];
+	s32 qp;
+	s32 mad_qp_delta;
+	s32 mad_threshold;
+	s32 qp_min;
+	s32 qp_max;
+	s32 cp_distance_mbs;
+	s32 cp_target[10];
+	s32 target_error[7];
+	s32 delta_qp[7];
 };
 
 struct rockchip_vpu_h264e_feedback {
-	s32 qpSum;
+	s32 qp_sum;
 	s32 cp[10];
-	s32 madCount;
-	s32 rlcCount;
+	s32 mad_count;
+	s32 rlc_count;
 };
 
 struct rockchip_vpu_h264e_run {

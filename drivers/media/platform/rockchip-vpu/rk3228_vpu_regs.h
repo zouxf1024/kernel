@@ -157,8 +157,8 @@
 #define     VEPU_REG_AXI_CTRL_READ_ID(x)		(((x) & 0xff) << 24)
 #define     VEPU_REG_AXI_CTRL_WRITE_ID(x)		(((x) & 0xff) << 16)
 #define     VEPU_REG_AXI_CTRL_BURST_LEN(x)		(((x) & 0x3f) << 8)
-#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE		BIT(2)
-#define     VEPU_REG_AXI_CTRL_BIRST_DISCARD		BIT(1)
+#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE(x)	(((x) & 0x01) << 2)
+#define     VEPU_REG_AXI_CTRL_BIRST_DISCARD(x)	(((x) & 0x01) << 1)
 #define     VEPU_REG_AXI_CTRL_BIRST_DISABLE		BIT(0)
 #define VEPU_QP_ADJUST_MAD_DELTA_ROI		0x0dc
 #define     VEPU_REG_ROI_QP_DELTA_1			(((x) & 0xf) << 12)
@@ -167,6 +167,7 @@
 #define VEPU_REG_ADDR_REF_LUMA			0x0e0
 #define VEPU_REG_ADDR_REF_CHROMA		0x0e4
 #define VEPU_REG_QP_SUM_DIV2			0x0e8
+#define     VEPU_REG_QP_SUM(x)				(((x) & 0x001fffff) * 2)
 #define VEPU_REG_ENC_CTRL0			0x0ec
 #define     VEPU_REG_DISABLE_QUARTER_PIXEL_MV		BIT(28)
 #define     VEPU_REG_DEBLOCKING_FILTER_MODE(x)		(((x) & 0x3) << 24)
@@ -175,7 +176,7 @@
 #define     VEPU_REG_H264_TRANS8X8_MODE			BIT(17)
 #define     VEPU_REG_H264_INTER4X4_MODE			BIT(16)
 #define     VEPU_REG_H264_STREAM_MODE			BIT(15)
-#define     VEPU_REG_H264_SLICE_SIZE(x)			(((x) & 7f) << 8)
+#define     VEPU_REG_H264_SLICE_SIZE(x)			(((x) & 0x7f) << 8)
 #define VEPU_REG_ENC_OVER_FILL_STRM_OFFSET	0x0f0
 #define     VEPU_REG_RLC_CTRL_STR_OFFS_SHIFT		16
 #define     VEPU_REG_RLC_CTRL_STR_OFFS_MASK		0x3f
@@ -188,11 +189,26 @@
 #define     VEPU_REG_IN_IMG_LUMA_OFFSET(x)		(((x) & 0x7) << 16)
 #define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)		(((x) & 0x3fff) << 0)
 #define VEPU_REG_RLC_SUM			0x0f8
+#define     VEPU_REG_RLC_SUM_OUT(x)			(((x) & 0x007fffff) * 4)
 #define VEPU_REG_ADDR_REC_LUMA			0x0fc
 #define VEPU_REG_ADDR_REC_CHROMA		0x100
 #define VEPU_REG_CHECKPOINT(i)			(0x104 + ((i) * 0x4))
+#define     VEPU_REG_CHECKPOINT_CHECK0(x)		(((x) & 0xffff))
+#define     VEPU_REG_CHECKPOINT_CHECK1(x)		(((x) & 0xffff) < 16)
+#define     VEPU_REG_CHECKPOINT_RESULT(x)		((((x) >> (16 - 16 \
+							 * (i & 1))) & 0xffff) \
+							 * 32)
 #define VEPU_REG_CHKPT_WORD_ERR(i)		(0x118 + ((i) * 0x4))
+#define     VEPU_REG_CHKPT_WORD_ERR_CHK0(x)		(((x) & 0xffff))
+#define     VEPU_REG_CHKPT_WORD_ERR_CHK1(x)		(((x) & 0xffff) < 16)
 #define VEPU_REG_CHKPT_DELTA_QP			0x124
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK0(x)		(((x) & 0x0f) < 0)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK1(x)		(((x) & 0x0f) < 4)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK2(x)		(((x) & 0x0f) < 8)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK3(x)		(((x) & 0x0f) < 12)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK4(x)		(((x) & 0x0f) < 16)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK5(x)		(((x) & 0x0f) < 20)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK6(x)		(((x) & 0x0f) < 24)
 #define VEPU_REG_ENC_CTRL1			0x128
 #define     VEPU_REG_MAD_THRESHOLD(x)			(((x) & 0x3f) << 24)
 #define     VEPU_REG_COMPLETED_SLICES(x)		(((x) & 0xff) << 16)
@@ -307,8 +323,10 @@
 #define     VEPU_REG_INTERRUPT_SLICE_READY		BIT(2)
 #define     VEPU_REG_INTERRUPT_FRAME_READY		BIT(1)
 #define     VEPU_REG_INTERRUPT_BIT			BIT(0)
-#define VEPU_REG_DMV_PENALTY_TABLE(i)		(0x180 + ((i) * 0x4))
-#define VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE(i)	(0x200 + ((i) * 0x4))
+#define VEPU_REG_DMV_PENALTY_TABLE(i)		(0x1E0 + ((i) * 0x4))
+#define     VEPU_REG_DMV_PENALTY_TABLE_BIT(x, i)        (x << i * 8)
+#define VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE(i)	(0x260 + ((i) * 0x4))
+#define     VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(x, i)	(x << i * 8)
 
 /* Decoder registers. */
 #define VDPU_REG_DEC_CTRL0			0x0c8
