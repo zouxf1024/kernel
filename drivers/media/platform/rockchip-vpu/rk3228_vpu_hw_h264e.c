@@ -38,71 +38,12 @@
 #define H264_BYTE_STREAM           0x00
 #define H264_NAL_UNIT              0x01
 
-#ifndef ENC6820_ASIC_CLOCK_GATING_ENABLED
-#define ENC6820_ASIC_CLOCK_GATING_ENABLED                  0
-#endif
-
-#ifndef ENC6820_TIMEOUT_INTERRUPT
-#define ENC6820_TIMEOUT_INTERRUPT                          1
-#endif
-
-#ifndef ENC6820_OUTPUT_SWAP_32
-#define ENC6820_OUTPUT_SWAP_32                      1
-#endif
-
-#ifndef ENC6820_OUTPUT_SWAP_16
-#define ENC6820_OUTPUT_SWAP_16                      1
-#endif
-
-#ifndef ENC6820_OUTPUT_SWAP_8
-#define ENC6820_OUTPUT_SWAP_8                       1
-#endif
-
-#ifndef ENC6820_INPUT_SWAP_32_YUV
-#define ENC6820_INPUT_SWAP_32_YUV                   1
-#endif
-
-#ifndef ENC6820_INPUT_SWAP_16_YUV
-#define ENC6820_INPUT_SWAP_16_YUV                   1
-#endif
-
-#ifndef ENC6820_INPUT_SWAP_8_YUV
-#define ENC6820_INPUT_SWAP_8_YUV                    1
-#endif
-
-#ifndef ENC6820_AXI_READ_ID
-#define ENC6820_AXI_READ_ID                                0
-#endif
-
-#ifndef ENC6820_AXI_WRITE_ID
-#define ENC6820_AXI_WRITE_ID                               0
-#endif
-
-#ifndef ENC6820_BURST_LENGTH
-#define ENC6820_BURST_LENGTH                               16
-#endif
-
-#ifndef ENC6820_BURST_INCR_TYPE_ENABLED
-#define ENC6820_BURST_INCR_TYPE_ENABLED                    0
-#endif
-
-#ifndef ENC6820_BURST_DATA_DISC_ENABLED
-#define ENC6820_BURST_DATA_DISC_ENABLED                 0
-#endif
-
 /* H.264 motion estimation parameters */
 static const u32 h264_prev_mode_favor[52] = {
 	7, 7, 8, 8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16, 17, 18,
 	19, 20, 21, 22, 24, 25, 27, 29, 30, 32, 34, 36, 38, 41, 43, 46,
 	49, 51, 55, 58, 61, 65, 69, 73, 78, 82, 87, 93, 98, 104, 110,
 	117, 124, 132, 140
-};
-
-static const u32 h264_diff_mv_penalty[52] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6, 7, 8, 9, 10,
-	11, 13, 14, 16, 18, 20, 23, 25, 29, 32, 36, 40, 45, 51, 57, 64,
-	72, 81, 91
 };
 
 /* sqrt(2^((qp-12)/3))*8 */
@@ -140,16 +81,6 @@ static const u32 h264_inter_favor[52] = {
 	867, 915, 970, 1020, 1076, 1132, 1180, 1230, 1275, 1320, 1370
 };
 
-static const u32 h264_skip_sad_penalty[52] = {
-	255, 255, 255, 255, 255, 255, 255, 255, 255, 224,
-	208, 192, 176, 160, 144, 128, 112, 96, 80, 64,
-	56, 48, 44, 40, 36, 32, 28, 24, 22, 20,
-	18, 16, 12, 11, 10, 9, 8, 7, 5, 5,
-	4, 4, 3, 3, 2, 2, 1, 1, 1, 1,
-	0, 0
-};
-
-/* Penalty factor in 1/256 units for skip mode, 2550/(qp-1)-50 */
 static u32 h264_skip_sad_penalty_rk30[52] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 233, 205, 182, 163,
 	146, 132, 120, 109, 100,  92,  84,  78,  71,  66,  61,  56,  52,  48,
@@ -846,17 +777,9 @@ static void rk3228_vpu_h264e_fill_params(struct rockchip_vpu_dev *vpu,
 	s32 i, mb_per_frame;
 
 	reg_params->asic_cfg_reg = 0;
-#if ENC6820_OUTPUT_SWAP_32
 	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP32;
-#endif
-#if ENC6820_OUTPUT_SWAP_16
 	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP16;
-#endif
-#if ENC6820_OUTPUT_SWAP_8
 	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP8;
-#endif
-
-	reg_params->irq_disable = 0;
 
 	reg_params->intra16_favor = h264_intra16_favor[params->qp];
 	reg_params->inter_favor = h264_inter_favor[params->qp];
@@ -1075,12 +998,11 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	vepu_write_relaxed(vpu, reg_params->output_strm_size,
 			   VEPU_REG_STR_BUF_LIMIT);
 
-	reg = VEPU_REG_AXI_CTRL_READ_ID(ENC6820_AXI_READ_ID);
-	reg |= VEPU_REG_AXI_CTRL_WRITE_ID(ENC6820_AXI_WRITE_ID);
-	reg |= VEPU_REG_AXI_CTRL_BURST_LEN(ENC6820_BURST_LENGTH);
-	reg |= VEPU_REG_AXI_CTRL_INCREMENT_MODE(ENC6820_BURST_INCR_TYPE_ENABLED
-						);
-	reg |= VEPU_REG_AXI_CTRL_BIRST_DISCARD(ENC6820_BURST_DATA_DISC_ENABLED);
+	reg = VEPU_REG_AXI_CTRL_READ_ID(0);
+	reg |= VEPU_REG_AXI_CTRL_WRITE_ID(0);
+	reg |= VEPU_REG_AXI_CTRL_BURST_LEN(16);
+	reg |= VEPU_REG_AXI_CTRL_INCREMENT_MODE(0);
+	reg |= VEPU_REG_AXI_CTRL_BIRST_DISCARD(0);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_AXI_CTRL);
 
 	vepu_write_relaxed(vpu, reg_params->mad_qp_delta,
@@ -1228,15 +1150,9 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	vepu_write_relaxed(vpu, reg, VEPU_REG_MVC_RELATE);
 
 	reg = reg_params->asic_cfg_reg;
-#if ENC6820_INPUT_SWAP_8_YUV
 	reg |= VEPU_REG_INPUT_SWAP8;
-#endif
-#if ENC6820_INPUT_SWAP_16_YUV
 	reg |= VEPU_REG_INPUT_SWAP16;
-#endif
-#if ENC6820_INPUT_SWAP_32_YUV
 	reg |= VEPU_REG_INPUT_SWAP32;
-#endif
 	vepu_write_relaxed(vpu, reg, VEPU_REG_DATA_ENDIAN);
 
 	reg = VEPU_REG_PPS_ID(reg_params->pps_id)
@@ -1244,16 +1160,10 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 		| VEPU_REG_FRAME_NUM(reg_params->frame_num);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL3);
 
+	reg = 0;
 	if (reg_params->rice_enable)
 		reg = VEPU_REG_MV_WRITE_EN;
-#if ENC6820_ASIC_CLOCK_GATING_ENABLED
-	reg |= VEPU_REG_CLK_GATING_EN;
-#endif
-#if ENC6820_TIMEOUT_INTERRUPT
 	reg |= VEPU_REG_INTERRUPT_TIMEOUT_EN;
-#endif
-	if (reg_params->irq_disable)
-		reg |= VEPU_REG_INTERRUPT_DIS_BIT;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_INTERRUPT);
 
 	for (i = 0; i < 128; i++) {

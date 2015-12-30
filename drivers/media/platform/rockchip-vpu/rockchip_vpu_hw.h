@@ -97,7 +97,6 @@ struct rockchip_vp8e_reg_params {
 };
 
 struct rockchip_h264e_reg_params {
-	u32 irq_disable;
 	u32 mbs_in_col;
 	u32 mbs_in_row;
 	u32 qp;
