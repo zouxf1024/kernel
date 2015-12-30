@@ -194,21 +194,21 @@
 #define VEPU_REG_ADDR_REC_CHROMA		0x100
 #define VEPU_REG_CHECKPOINT(i)			(0x104 + ((i) * 0x4))
 #define     VEPU_REG_CHECKPOINT_CHECK0(x)		(((x) & 0xffff))
-#define     VEPU_REG_CHECKPOINT_CHECK1(x)		(((x) & 0xffff) < 16)
+#define     VEPU_REG_CHECKPOINT_CHECK1(x)		(((x) & 0xffff) << 16)
 #define     VEPU_REG_CHECKPOINT_RESULT(x)		((((x) >> (16 - 16 \
 							 * (i & 1))) & 0xffff) \
 							 * 32)
 #define VEPU_REG_CHKPT_WORD_ERR(i)		(0x118 + ((i) * 0x4))
 #define     VEPU_REG_CHKPT_WORD_ERR_CHK0(x)		(((x) & 0xffff))
-#define     VEPU_REG_CHKPT_WORD_ERR_CHK1(x)		(((x) & 0xffff) < 16)
+#define     VEPU_REG_CHKPT_WORD_ERR_CHK1(x)		(((x) & 0xffff) << 16)
 #define VEPU_REG_CHKPT_DELTA_QP			0x124
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK0(x)		(((x) & 0x0f) < 0)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK1(x)		(((x) & 0x0f) < 4)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK2(x)		(((x) & 0x0f) < 8)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK3(x)		(((x) & 0x0f) < 12)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK4(x)		(((x) & 0x0f) < 16)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK5(x)		(((x) & 0x0f) < 20)
-#define     VEPU_REG_CHKPT_DELTA_QP_CHK6(x)		(((x) & 0x0f) < 24)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK0(x)		(((x) & 0x0f) << 0)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK1(x)		(((x) & 0x0f) << 4)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK2(x)		(((x) & 0x0f) << 8)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK3(x)		(((x) & 0x0f) << 12)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK4(x)		(((x) & 0x0f) << 16)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK5(x)		(((x) & 0x0f) << 20)
+#define     VEPU_REG_CHKPT_DELTA_QP_CHK6(x)		(((x) & 0x0f) << 24)
 #define VEPU_REG_ENC_CTRL1			0x128
 #define     VEPU_REG_MAD_THRESHOLD(x)			(((x) & 0x3f) << 24)
 #define     VEPU_REG_COMPLETED_SLICES(x)		(((x) & 0xff) << 16)
