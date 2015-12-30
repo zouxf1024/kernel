@@ -115,55 +115,95 @@ static const struct vp8d_reg vp8d_dct_start_bits[8] = {
 };
 
 /* precision filter tap regs */
-static const struct vp8d_reg vp8d_pred_bc_tap[8][4] = {
+static const struct vp8d_reg vp8d_pred_bc_tap[8][6] = {
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT, 2, 0x3ff },
 		{ VDPU_REG_REF_PIC(4), 22, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_REF_PIC(4), 12, 0x3ff },
 		{ VDPU_REG_REF_PIC(4), 2, 0x3ff },
 		{ VDPU_REG_REF_PIC(5), 22, 0x3ff },
 		{ VDPU_REG_REF_PIC(5), 12, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_BD_REF_PIC(3), 10, 0x3 },
 		{ VDPU_REG_REF_PIC(5), 2, 0x3ff },
 		{ VDPU_REG_REF_PIC(6), 22, 0x3ff },
 		{ VDPU_REG_REF_PIC(6), 12, 0x3ff },
 		{ VDPU_REG_REF_PIC(6), 2, 0x3ff },
+		{ VDPU_REG_BD_REF_PIC(3), 8, 0x3 },
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_REF_PIC(7), 22, 0x3ff },
 		{ VDPU_REG_REF_PIC(7), 12, 0x3ff },
 		{ VDPU_REG_REF_PIC(7), 2, 0x3ff },
 		{ VDPU_REG_LT_REF, 22, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_BD_REF_PIC(3), 6, 0x3 },
 		{ VDPU_REG_LT_REF, 12, 0x3ff },
 		{ VDPU_REG_LT_REF, 2, 0x3ff },
 		{ VDPU_REG_VALID_REF, 22, 0x3ff },
 		{ VDPU_REG_VALID_REF, 12, 0x3ff },
+		{ VDPU_REG_BD_REF_PIC(3), 4, 0x3 },
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_VALID_REF, 2, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(0), 22, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(0), 12, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(0), 2, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_BD_REF_PIC(3), 2, 0x3 },
 		{ VDPU_REG_BD_REF_PIC(1), 22, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(1), 12, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(1), 2, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(2), 22, 0x3ff },
+		{ VDPU_REG_BD_REF_PIC(3), 0, 0x3 },
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_BD_REF_PIC(2), 12, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(2), 2, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(3), 22, 0x3ff },
 		{ VDPU_REG_BD_REF_PIC(3), 12, 0x3ff },
+		{ 0, 0, 0},
 	},
+};
+
+static const struct vp8d_reg vp8d_mb_start_bit = {
+	.base = VDPU_REG_DEC_CTRL2,
+	.shift = 18,
+	.mask = 0x3f
+};
+
+static const struct vp8d_reg vp8d_mb_aligned_data_len = {
+	.base = VDPU_REG_DEC_CTRL6,
+	.shift = 0,
+	.mask = 0x3fffff
+};
+
+static const struct vp8d_reg vp8d_num_dct_partitions = {
+	.base = VDPU_REG_DEC_CTRL6,
+	.shift = 24,
+	.mask = 0xf
+};
+
+static const struct vp8d_reg vp8d_stream_len = {
+	.base = VDPU_REG_DEC_CTRL3,
+	.shift = 0,
+	.mask = 0xffffff
 };
 
 /*
@@ -442,7 +482,6 @@ static void rk3288_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 	u32 mb_offset_bytes = 0;
 	u32 mb_offset_bits = 0;
 	u32 mb_start_bits = 0;
-	struct vp8d_reg reg;
 	dma_addr_t src_dma;
 	u32 mb_size = 0;
 	u32 count = 0;
@@ -475,16 +514,10 @@ static void rk3288_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 				+ src_dma, VDPU_REG_ADDR_REF(13));
 
 	/* mb data start bits */
-	reg.base = VDPU_REG_DEC_CTRL2;
-	reg.mask = 0x3f;
-	reg.shift = 18;
-	vp8d_reg_write(vpu, &reg, mb_start_bits);
+	vp8d_reg_write(vpu, &vp8d_mb_start_bit, mb_start_bits);
 
 	/* mb aligned data length */
-	reg.base = VDPU_REG_DEC_CTRL6;
-	reg.mask = 0x3fffff;
-	reg.shift = 0;
-	vp8d_reg_write(vpu, &reg, mb_size);
+	vp8d_reg_write(vpu, &vp8d_mb_aligned_data_len, mb_size);
 
 	/*
 	 * Calculate dct partition info
@@ -502,15 +535,10 @@ static void rk3288_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 	dct_part_total_len += (dct_part_offset & DEC_8190_ALIGN_MASK);
 
 	/* number of dct partitions */
-	reg.base = VDPU_REG_DEC_CTRL6;
-	reg.mask = 0xf;
-	reg.shift = 24;
-	vp8d_reg_write(vpu, &reg, hdr->num_dct_parts - 1);
+	vp8d_reg_write(vpu, &vp8d_num_dct_partitions, hdr->num_dct_parts - 1);
 
 	/* dct partition length */
-	vdpu_write_relaxed(vpu,
-			VDPU_REG_DEC_CTRL3_STREAM_LEN(dct_part_total_len),
-			VDPU_REG_DEC_CTRL3);
+	vp8d_reg_write(vpu, &vp8d_stream_len, dct_part_total_len);
 
 	/* dct partitions base address */
 	for (i = 0; i < hdr->num_dct_parts; i++) {
@@ -535,39 +563,17 @@ static void rk3288_vp8d_cfg_tap(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_vp8_frame_hdr *hdr = ctx->run.vp8d.frame_hdr;
 	struct rockchip_vpu_dev *vpu = ctx->dev;
-	struct vp8d_reg reg;
-	u32 val = 0;
 	int i, j;
-
-	reg.base = VDPU_REG_BD_REF_PIC(3);
-	reg.mask = 0xf;
 
 	if ((hdr->version & 0x03) != 0)
 		return; /* Tap filter not used. */
 
-
 	for (i = 0; i < 8; i++) {
-		val = (vp8d_mc_filter[i][0] << 2) | vp8d_mc_filter[i][5];
-
-		for (j = 0; j < 4; j++)
-			vp8d_reg_write(vpu, &vp8d_pred_bc_tap[i][j],
-					vp8d_mc_filter[i][j + 1]);
-
-		switch (i) {
-		case 2:
-			reg.shift = 8;
-			break;
-		case 4:
-			reg.shift = 4;
-			break;
-		case 6:
-			reg.shift = 0;
-			break;
-		default:
-			continue;
+		for (j = 0; j < 6; j++) {
+			if (vp8d_pred_bc_tap[i][j].base != 0)
+				vp8d_reg_write(vpu, &vp8d_pred_bc_tap[i][j],
+					       vp8d_mc_filter[i][j]);
 		}
-
-		vp8d_reg_write(vpu, &reg, val);
 	}
 }
 

@@ -345,13 +345,13 @@
 #define     VDPU_REG_DEC_CTRL3_INIT_QP(x)		(((x) & 0x3f) << 25)
 #define     VDPU_REG_DEC_STREAM_LEN_HI			BIT(24)
 #define     VDPU_REG_DEC_CTRL3_STREAM_LEN(x)		(((x) & 0xffffff) << 0)
-#define VDPU_REG_ERROR_CONCEALMENT			0x0d0
+#define VDPU_REG_ERROR_CONCEALMENT		0x0d0
 #define     VDPU_REG_REF_BUF_CTRL2_APF_THRESHOLD(x)	(((x) & 0x3fff) << 17)
 #define     VDPU_REG_ERR_CONC_STARTMB_X(x)		(((x) & 0x1ff) << 8)
 #define     VDPU_REG_ERR_CONC_STARTMB_Y(x)		(((x) & 0xff) << 0)
-#define VDPU_REG_DEC_FORMAT				0x0d4
+#define VDPU_REG_DEC_FORMAT			0x0d4
 #define     VDPU_REG_DEC_CTRL0_DEC_MODE(x)		(((x) & 0xf) << 0)
-#define VDPU_REG_DATA_ENDIAN				0x0d8
+#define VDPU_REG_DATA_ENDIAN			0x0d8
 #define     VDPU_REG_CONFIG_DEC_STRENDIAN_E		BIT(5)
 #define     VDPU_REG_CONFIG_DEC_STRSWAP32_E		BIT(4)
 #define     VDPU_REG_CONFIG_DEC_OUTSWAP32_E		BIT(3)
@@ -424,19 +424,9 @@
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F2(x)		(((x) & 0x1f) << 10)
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F1(x)		(((x) & 0x1f) << 5)
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F0(x)		(((x) & 0x1f) << 0)
-#define     VDPU_REG_FWD_PIC1_ICOMP1_E			BIT(24)
-#define     VDPU_REG_FWD_PIC1_ISCALE1(x)		(((x) & 0xff) << 16)
-#define     VDPU_REG_FWD_PIC1_ISHIFT1(x)		(((x) & 0xffff) << 0)
-#define     VDPU_REG_FWD_PIC1_SEGMENT_BASE(x)		((x) << 0)
-#define     VDPU_REG_FWD_PIC1_SEGMENT_UPD_E		BIT(1)
-#define     VDPU_REG_FWD_PIC1_SEGMENT_E			BIT(0)
 #define VDPU_REG_REF_PIC(i)			(0x130 + ((i) * 0x4))
-#define     VDPU_REG_REF_PIC_FILT_TYPE_E		BIT(31)
-#define     VDPU_REG_REF_PIC_FILT_SHARPNESS(x)	(((x) & 0x7) << 28)
-
 #define     VDPU_REG_REF_PIC_REFER1_NBR(x)		(((x) & 0xffff) << 16)
 #define     VDPU_REG_REF_PIC_REFER0_NBR(x)		(((x) & 0xffff) << 0)
-
 #define VDPU_REG_ADDR_REF(i)			(0x150 + ((i) * 0x4))
 #define     VDPU_REG_ADDR_REF_FIELD_E			BIT(1)
 #define     VDPU_REG_ADDR_REF_TOPC_E			BIT(0)
@@ -486,10 +476,10 @@
 #define VDPU_REG_LT_REF				0x1ac
 #define VDPU_REG_VALID_REF			0x1b0
 #define VDPU_REG_H264_PIC_MB_SIZE		0x1b8
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(x)		(((x) & 0x1ff) << 0)
-#define     VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(x)	(((x) & 0xff) << 9)
-#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET(x)		(((x) & 0x1f) << 17)
 #define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET2(x)		(((x) & 0x1f) << 22)
+#define     VDPU_REG_DEC_CTRL2_CH_QP_OFFSET(x)		(((x) & 0x1f) << 17)
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(x)	(((x) & 0xff) << 9)
+#define     VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(x)		(((x) & 0x1ff) << 0)
 #define VDPU_REG_H264_CTRL			0x1bc
 #define     VDPU_REG_DEC_CTRL4_WEIGHT_BIPR_IDC(x)	(((x) & 0x3) << 16)
 #define     VDPU_REG_DEC_CTRL1_REF_FRAMES(x)		(((x) & 0x1f) << 0)
@@ -558,13 +548,14 @@
 #define     VDPU_REG_REF_PIC_LF_LEVEL_1(x)		(((x) & 0x3f) << 12)
 #define     VDPU_REG_REF_PIC_LF_LEVEL_2(x)		(((x) & 0x3f) << 6)
 #define     VDPU_REG_REF_PIC_LF_LEVEL_3(x)		(((x) & 0x3f) << 0)
-
 #define VDPU_REG_VP8_QUANTER0			0x208
 #define     VDPU_REG_REF_PIC_QUANT_DELTA_0(x)		(((x) & 0x1f) << 27)
 #define     VDPU_REG_REF_PIC_QUANT_DELTA_1(x)		(((x) & 0x1f) << 22)
 #define     VDPU_REG_REF_PIC_QUANT_0(x)			(((x) & 0x7ff) << 11)
 #define     VDPU_REG_REF_PIC_QUANT_1(x)			(((x) & 0x7ff) << 0)
 #define VDPU_REG_FILTER_MB_ADJ			0x210
+#define     VDPU_REG_REF_PIC_FILT_TYPE_E		BIT(31)
+#define     VDPU_REG_REF_PIC_FILT_SHARPNESS(x)		(((x) & 0x7) << 28)
 #define     VDPU_REG_FILT_MB_ADJ_0(x)			(((x) & 0x7f) << 21)
 #define     VDPU_REG_FILT_MB_ADJ_1(x)			(((x) & 0x7f) << 14)
 #define     VDPU_REG_FILT_MB_ADJ_2(x)			(((x) & 0x7f) << 7)
@@ -574,6 +565,10 @@
 #define     VDPU_REG_REF_PIC_ADJ_1(x)			(((x) & 0x7f) << 14)
 #define     VDPU_REG_REF_PIC_ADJ_2(x)			(((x) & 0x7f) << 7)
 #define     VDPU_REG_REF_PIC_ADJ_3(x)			(((x) & 0x7f) << 0)
+#define VDPU_REG_VP8_SEGMENT_VAL		0x254
+#define     VDPU_REG_FWD_PIC1_SEGMENT_BASE(x)		((x) << 0)
+#define     VDPU_REG_FWD_PIC1_SEGMENT_UPD_E		BIT(1)
+#define     VDPU_REG_FWD_PIC1_SEGMENT_E			BIT(0)
 #define VDPU_REG_VP8_DCT_START_BIT2		0x258
 #define     VDPU_REG_DEC_CTRL7_DCT3_START_BIT(x)	(((x) & 0x3f) << 24)
 #define     VDPU_REG_DEC_CTRL7_DCT4_START_BIT(x)	(((x) & 0x3f) << 18)

@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2014 Google, Inc.
  *      Tomasz Figa <tfiga@chromium.org>
- * 
+ *
  * Copyright (C) 2015 Rockchip Electronics Co., Ltd.
  *      Alpha Lin <alpha.lin@rock-chips.com>
  *
@@ -111,62 +111,154 @@ static const struct vp8d_reg vp8d_quant_delta[5] = {
 
 /* dct partition start bits regs */
 static const struct vp8d_reg vp8d_dct_start_bits[8] = {
-	{ VDPU_REG_VP8_CTRL0, 26, 0x3f }, { VDPU_REG_VP8_DCT_START_BIT, 26, 0x3f },
-	{ VDPU_REG_VP8_DCT_START_BIT, 20, 0x3f }, { VDPU_REG_VP8_DCT_START_BIT2, 24, 0x3f },
-	{ VDPU_REG_VP8_DCT_START_BIT2, 18, 0x3f }, { VDPU_REG_VP8_DCT_START_BIT2, 12, 0x3f },
-	{ VDPU_REG_VP8_DCT_START_BIT2, 6, 0x3f },  { VDPU_REG_VP8_DCT_START_BIT2, 0, 0x3f },
+	{ VDPU_REG_VP8_CTRL0, 26, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT, 26, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT, 20, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT2, 24, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT2, 18, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT2, 12, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT2, 6, 0x3f },
+	{ VDPU_REG_VP8_DCT_START_BIT2, 0, 0x3f },
 };
 
 /* precision filter tap regs */
-static const struct vp8d_reg vp8d_pred_bc_tap[8][4] = {
+static const struct vp8d_reg vp8d_pred_bc_tap[8][6] = {
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT1, 22, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT1, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT1, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT2, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT2, 12, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_PRED_FLT10, 10, 0x3 },
 		{ VDPU_REG_PRED_FLT2, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT3, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT3, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT3, 2, 0x3ff },
+		{ VDPU_REG_PRED_FLT10, 8, 0x3},
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT4, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT4, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT4, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT5, 22, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_PRED_FLT10, 6, 0x3 },
 		{ VDPU_REG_PRED_FLT5, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT5, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT6, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT6, 12, 0x3ff },
+		{ VDPU_REG_PRED_FLT10, 4, 0x3 },
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT6, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT7, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT7, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT7, 2, 0x3ff },
+		{ 0, 0, 0},
 	},
 	{
+		{ VDPU_REG_PRED_FLT10, 2, 0x3 },
 		{ VDPU_REG_PRED_FLT8, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT8, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT8, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT9, 22, 0x3ff },
+		{ VDPU_REG_PRED_FLT10, 0, 0x3 },
 	},
 	{
+		{ 0, 0, 0},
 		{ VDPU_REG_PRED_FLT9, 12, 0x3ff },
 		{ VDPU_REG_PRED_FLT9, 2, 0x3ff },
 		{ VDPU_REG_PRED_FLT10, 22, 0x3ff },
 		{ VDPU_REG_PRED_FLT10, 12, 0x3ff },
+		{ 0, 0, 0},
 	},
+};
+
+static const struct vp8d_reg vp8d_mb_start_bit = {
+	.base = VDPU_REG_VP8_CTRL0,
+	.shift = 18,
+	.mask = 0x3f
+};
+
+static const struct vp8d_reg vp8d_mb_aligned_data_len = {
+	.base = VDPU_REG_VP8_DATA_VAL,
+	.shift = 0,
+	.mask = 0x3fffff
+};
+
+static const struct vp8d_reg vp8d_num_dct_partitions = {
+	.base = VDPU_REG_VP8_DATA_VAL,
+	.shift = 24,
+	.mask = 0xf
+};
+
+static const struct vp8d_reg vp8d_stream_len = {
+	.base = VDPU_REG_STREAM_LEN,
+	.shift = 0,
+	.mask = 0xffffff
+};
+
+static const struct vp8d_reg vp8d_mb_width = {
+	.base = VDPU_REG_H264_PIC_MB_SIZE,
+	.shift = 0,
+	.mask = 0x1ff
+};
+
+static const struct vp8d_reg vp8d_mb_height = {
+	.base = VDPU_REG_H264_PIC_MB_SIZE,
+	.shift = 9,
+	.mask = 0xff
+};
+
+static const struct vp8d_reg vp8d_mb_width_ext = {
+	.base = VDPU_REG_PIC_MB_EXT_SIZE,
+	.shift = 3,
+	.mask = 0x7
+};
+
+static const struct vp8d_reg vp8d_mb_height_ext = {
+	.base = VDPU_REG_PIC_MB_EXT_SIZE,
+	.shift = 0,
+	.mask = 0x7
+};
+
+static const struct vp8d_reg vp8d_bool_range = {
+	.base = VDPU_REG_VP8_CTRL0,
+	.shift = 0,
+	.mask = 0xff
+};
+
+static const struct vp8d_reg vp8d_bool_value = {
+	.base = VDPU_REG_VP8_CTRL0,
+	.shift = 8,
+	.mask = 0xff
+};
+
+static const struct vp8d_reg vp8d_filter_disable = {
+	.base = VDPU_REG_DEC_CTRL0,
+	.shift = 8,
+	.mask = 1
+};
+
+static const struct vp8d_reg vp8d_skip_mode = {
+	.base = VDPU_REG_DEC_CTRL0,
+	.shift = 9,
+	.mask = 1
 };
 
 /*
@@ -366,7 +458,7 @@ static void rk3228_vp8d_cfg_lf(struct rockchip_vpu_ctx *ctx)
 	reg = VDPU_REG_REF_PIC_FILT_SHARPNESS(hdr->lf_hdr.sharpness_level);
 	if (hdr->lf_hdr.type)
 		reg |= VDPU_REG_REF_PIC_FILT_TYPE_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_REF_PIC(0));
+	vdpu_write_relaxed(vpu, reg, VDPU_REG_FILTER_MB_ADJ);
 
 	if (hdr->lf_hdr.flags & V4L2_VP8_LF_HDR_ADJ_ENABLE) {
 		for (i = 0; i < 4; i++) {
@@ -445,7 +537,6 @@ static void rk3228_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 	u32 mb_offset_bytes = 0;
 	u32 mb_offset_bits = 0;
 	u32 mb_start_bits = 0;
-	struct vp8d_reg reg;
 	dma_addr_t src_dma;
 	u32 mb_size = 0;
 	u32 count = 0;
@@ -478,16 +569,10 @@ static void rk3228_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 				+ src_dma, VDPU_REG_ADDR_REF(13));
 
 	/* mb data start bits */
-	reg.base = VDPU_REG_VP8_CTRL0;
-	reg.mask = 0x3f;
-	reg.shift = 18;
-	vp8d_reg_write(vpu, &reg, mb_start_bits);
+	vp8d_reg_write(vpu, &vp8d_mb_start_bit, mb_start_bits);
 
 	/* mb aligned data length */
-	reg.base = VDPU_REG_VP8_DATA_VAL;
-	reg.mask = 0x3fffff;
-	reg.shift = 0;
-	vp8d_reg_write(vpu, &reg, mb_size);
+	vp8d_reg_write(vpu, &vp8d_mb_aligned_data_len, mb_size);
 
 	/*
 	 * Calculate dct partition info
@@ -505,15 +590,10 @@ static void rk3228_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 	dct_part_total_len += (dct_part_offset & DEC_8190_ALIGN_MASK);
 
 	/* number of dct partitions */
-	reg.base = VDPU_REG_VP8_DATA_VAL;
-	reg.mask = 0xf;
-	reg.shift = 24;
-	vp8d_reg_write(vpu, &reg, hdr->num_dct_parts - 1);
+	vp8d_reg_write(vpu, &vp8d_num_dct_partitions, hdr->num_dct_parts - 1);
 
 	/* dct partition length */
-	vdpu_write_relaxed(vpu,
-			VDPU_REG_DEC_CTRL3_STREAM_LEN(dct_part_total_len),
-			VDPU_REG_STREAM_LEN);
+	vp8d_reg_write(vpu, &vp8d_stream_len, dct_part_total_len);
 
 	/* dct partitions base address */
 	for (i = 0; i < hdr->num_dct_parts; i++) {
@@ -538,39 +618,17 @@ static void rk3228_vp8d_cfg_tap(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_vp8_frame_hdr *hdr = ctx->run.vp8d.frame_hdr;
 	struct rockchip_vpu_dev *vpu = ctx->dev;
-	struct vp8d_reg reg;
-	u32 val = 0;
 	int i, j;
-
-	reg.base = VDPU_REG_PRED_FLT10;
-	reg.mask = 0xf;
 
 	if ((hdr->version & 0x03) != 0)
 		return; /* Tap filter not used. */
 
-
 	for (i = 0; i < 8; i++) {
-		val = (vp8d_mc_filter[i][0] << 2) | vp8d_mc_filter[i][5];
-
-		for (j = 0; j < 4; j++)
-			vp8d_reg_write(vpu, &vp8d_pred_bc_tap[i][j],
-					vp8d_mc_filter[i][j + 1]);
-
-		switch (i) {
-		case 2:
-			reg.shift = 8;
-			break;
-		case 4:
-			reg.shift = 4;
-			break;
-		case 6:
-			reg.shift = 0;
-			break;
-		default:
-			continue;
+		for (j = 0; j < 6; j++) {
+			if (vp8d_pred_bc_tap[i][j].base != 0)
+				vp8d_reg_write(vpu, &vp8d_pred_bc_tap[i][j],
+					       vp8d_mc_filter[i][j]);
 		}
-
-		vp8d_reg_write(vpu, &reg, val);
 	}
 }
 
@@ -637,7 +695,7 @@ static void rk3228_vp8d_cfg_buffers(struct rockchip_vpu_ctx *ctx)
 		if (hdr->sgmnt_hdr.flags & V4L2_VP8_SEGMNT_HDR_FLAG_UPDATE_MAP)
 			reg |= VDPU_REG_FWD_PIC1_SEGMENT_UPD_E;
 	}
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_FWD_PIC(0));
+	vdpu_write_relaxed(vpu, reg, VDPU_REG_VP8_SEGMENT_VAL);
 
 	/* set output frame buffer address */
 	vdpu_write_relaxed(vpu,
@@ -735,28 +793,23 @@ void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx)
 
 	reg = VDPU_REG_DEC_CTRL0_DEC_MODE(10);
 	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_FORMAT);
-	
+
 	if (!(hdr->flags & V4L2_VP8_FRAME_HDR_FLAG_MB_NO_SKIP_COEFF))
-		reg = VDPU_REG_DEC_CTRL0_SKIP_MODE;
+		vp8d_reg_write(vpu, &vp8d_skip_mode, 1);
 	if (hdr->lf_hdr.level == 0)
-		reg |= VDPU_REG_DEC_CTRL0_FILTERING_DIS;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL0);
+		vp8d_reg_write(vpu, &vp8d_filter_disable, 1);
 
 	/* frame dimensions */
 	mb_width = MB_WIDTH(width);
 	mb_height = MB_HEIGHT(height);
-	reg = VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(mb_width)
-		| VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(mb_height);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_H264_PIC_MB_SIZE);
-
-	reg = VDPU_REG_DEC_CTRL1_PIC_MB_W_EXT(mb_width >> 9)
-		| VDPU_REG_DEC_CTRL1_PIC_MB_H_EXT(mb_height >> 8);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_PIC_MB_EXT_SIZE);
+	vp8d_reg_write(vpu, &vp8d_mb_width, mb_width);
+	vp8d_reg_write(vpu, &vp8d_mb_height, mb_height);
+	vp8d_reg_write(vpu, &vp8d_mb_width_ext, mb_width >> 9);
+	vp8d_reg_write(vpu, &vp8d_mb_height_ext, mb_height >> 8);
 
 	/* bool decode info */
-	reg = VDPU_REG_DEC_CTRL2_BOOLEAN_RANGE(hdr->bool_dec_range)
-		| VDPU_REG_DEC_CTRL2_BOOLEAN_VALUE(hdr->bool_dec_value);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_VP8_CTRL0);
+	vp8d_reg_write(vpu, &vp8d_bool_range, hdr->bool_dec_range);
+	vp8d_reg_write(vpu, &vp8d_bool_value, hdr->bool_dec_value);
 
 	reg = vdpu_read(vpu, VDPU_REG_VP8_DCT_START_BIT);
 	if (hdr->version != 3)
