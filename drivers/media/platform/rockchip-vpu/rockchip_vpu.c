@@ -636,10 +636,13 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, vpu);
 
-	ret = rockchip_vpu_enc_init_dummy_ctx(vpu);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to create dummy encode context\n");
-		goto err_dummy_enc;
+	/* Only rk3228 vpu need to workaround this vp8 encoder bug */
+	if (vpu->variant->vpu_type == RK3288_VPU) {
+		ret = rockchip_vpu_enc_init_dummy_ctx(vpu);
+		if (ret) {
+			dev_err(&pdev->dev, "Failed to create dummy encode context\n");
+			goto err_dummy_enc;
+		}
 	}
 
 	/* encoder */
