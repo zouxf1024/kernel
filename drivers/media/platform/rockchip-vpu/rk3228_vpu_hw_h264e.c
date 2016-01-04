@@ -882,6 +882,8 @@ int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx)
 	size_t width = ctx->src_fmt.width;
 	int ret;
 
+	vpu_debug_enter();
+
 	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264e.regs,
 					 sizeof(struct
 						rockchip_h264e_reg_params));
@@ -912,6 +914,8 @@ err_ext_buf_alloc:
 err_cabac_tbl_alloc:
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.regs);
 err_regs_alloc:
+	vpu_debug_leave();
+
 	return ret;
 }
 
@@ -919,9 +923,13 @@ void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 
+	vpu_debug_enter();
+
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ext_buf);
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.cabac_tbl);
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.regs);
+
+	vpu_debug_leave();
 }
 
 static void rk3228_vpu_h264e_set_buffers(struct rockchip_vpu_dev *vpu,
@@ -1204,6 +1212,7 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 		(struct rockchip_h264e_reg_params *) ctx->hw.h264e.regs.cpu;
 	u32 reg;
 
+	vpu_debug_enter();
 	/*
 	 * Program the hardware.
 	 */
@@ -1229,6 +1238,8 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 		| VEPU_REG_ENCODE_FORMAT(reg_params->coding_type)
 		| VEPU_REG_ENCODE_ENABLE;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENCODE_START);
+
+	vpu_debug_leave();
 }
 
 #ifndef RK3228_VPU_ENC_CTRL_H264_RET_PARAMS
@@ -1243,7 +1254,9 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 		ctx->ctrls[RK3228_VPU_ENC_CTRL_H264_RET_PARAMS]->p_cur.p;
 	u32 i, reg = VEPU_REG_CHECKPOINT(0);
 	u32 cpt_prev = 0, overflow = 0;
+	u32 irq_status;
 
+	vpu_debug_enter();
 
 	feedback->qp_sum = VEPU_REG_QP_SUM(vepu_read(vpu,
 						     VEPU_REG_QP_SUM_DIV2));
@@ -1264,4 +1277,6 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 	ctx->run.h264e.feedback = feedback;
 
 	rockchip_vpu_run_done(ctx, result);
+
+	vpu_debug_leave();
 }

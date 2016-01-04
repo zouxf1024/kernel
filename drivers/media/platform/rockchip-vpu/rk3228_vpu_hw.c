@@ -26,6 +26,8 @@ int rk3228_vepu_irq(int irq, struct rockchip_vpu_dev *vpu)
 {
 	u32 status = vepu_read(vpu, VEPU_REG_INTERRUPT);
 
+	vpu_debug(5, "enc status %x\n", status);
+
 	vepu_write(vpu, 0, VEPU_REG_INTERRUPT);
 
 	if (status & VEPU_REG_INTERRUPT_BIT) {
