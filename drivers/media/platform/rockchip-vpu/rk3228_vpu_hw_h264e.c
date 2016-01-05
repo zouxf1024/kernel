@@ -1215,8 +1215,7 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 	u32 reg;
 
 	vpu_debug_enter();
-	
-	rk3228_vpu_h264e_fill_params(vpu, ctx);	
+	rk3228_vpu_h264e_fill_params(vpu, ctx);
 	/*
 	 * Program the hardware.
 	 */
@@ -1273,6 +1272,9 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 		feedback->cp[i] = cpt + overflow;
 		reg += (i & 1);
 	}
+
+	vb2_set_plane_payload(&ctx->run.dst->b, 0,
+		4 + vepu_read(vpu, VEPU_REG_STR_BUF_LIMIT)  / 8);
 
 	rockchip_vpu_run_done(ctx, result);
 
