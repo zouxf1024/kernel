@@ -776,6 +776,8 @@ static void rk3228_vpu_h264e_fill_params(struct rockchip_vpu_dev *vpu,
 		(struct rockchip_h264e_reg_params *) ctx->hw.h264e.regs.cpu;
 	s32 i, mb_per_frame;
 
+	reg_params->coding_type = 3;
+
 	reg_params->asic_cfg_reg = 0;
 	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP32;
 	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP16;
@@ -947,7 +949,7 @@ static void rk3228_vpu_h264e_set_buffers(struct rockchip_vpu_dev *vpu,
 
 	rounded_size = ref_luma_size(ctx->src_fmt.width,
 				    ctx->src_fmt.height);
-	ref_buf_dma = rec_buf_dma = ctx->hw.vp8e.ext_buf.dma;
+	ref_buf_dma = rec_buf_dma = ctx->hw.h264e.ext_buf.dma;
 	if (ctx->hw.h264e.ref_rec_ptr)
 		rec_buf_dma += rounded_size * 3 / 2;
 	else
@@ -1213,14 +1215,16 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 	u32 reg;
 
 	vpu_debug_enter();
+	
+	rk3228_vpu_h264e_fill_params(vpu, ctx);	
 	/*
 	 * Program the hardware.
 	 */
 	rockchip_vpu_power_on(vpu);
 
-	rk3228_vpu_h264e_fill_params(vpu, ctx);
-
-	vepu_write(vpu, 0, VEPU_REG_ENCODE_START);
+	/* Start the hardware. */
+	reg = VEPU_REG_ENCODE_FORMAT(reg_params->coding_type);
+	vepu_write_relaxed(vpu, reg, VEPU_REG_ENCODE_START);
 
 	rk3228_vpu_h264e_set_params(vpu, ctx);
 	rk3228_vpu_h264e_set_buffers(vpu, ctx);
@@ -1232,8 +1236,8 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
 	/* Start the hardware. */
-	reg = VEPU_REG_MB_HEIGHT(reg_params->mbs_in_row)
-		| VEPU_REG_MB_WIDTH(reg_params->mbs_in_col)
+	reg = VEPU_REG_MB_HEIGHT(reg_params->mbs_in_col)
+		| VEPU_REG_MB_WIDTH(reg_params->mbs_in_row)
 		| VEPU_REG_PIC_TYPE(reg_params->frame_coding_type)
 		| VEPU_REG_ENCODE_FORMAT(reg_params->coding_type)
 		| VEPU_REG_ENCODE_ENABLE;

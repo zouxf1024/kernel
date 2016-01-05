@@ -1235,6 +1235,15 @@ static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
 
 		buf = vb_to_buf(vb);
 		rockchip_vpu_vp8e_assemble_bitstream(ctx, buf);
+	} else if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+	    && vb->state == VB2_BUF_STATE_DONE
+	    && ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264) {
+		u8 *output_strm = vb2_plane_vaddr(vb, 0);
+
+		output_strm[0] = 0;
+		output_strm[1] = 0;
+		output_strm[2] = 0;
+		output_strm[3] = 1;
 	}
 
 	vpu_debug_leave();
