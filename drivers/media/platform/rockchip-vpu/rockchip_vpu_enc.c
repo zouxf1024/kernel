@@ -53,6 +53,10 @@
 #define V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS	(V4L2_CID_CUSTOM_BASE + 1)
 #define V4L2_CID_PRIVATE_ROCKCHIP_HW_PARAMS	(V4L2_CID_CUSTOM_BASE + 2)
 #define V4L2_CID_PRIVATE_ROCKCHIP_RET_PARAMS	(V4L2_CID_CUSTOM_BASE + 3)
+#define V4L2_CID_PRIVATE_ROCKCHIP_H264_REG_PARAMS	\
+						(V4L2_CID_CUSTOM_BASE + 4)
+#define V4L2_CID_PRIVATE_ROCKCHIP_H264_RET_PARAMS	\
+						(V4L2_CID_CUSTOM_BASE + 5)
 
 static struct rockchip_vpu_fmt formats[] = {
 	/* Source formats. */
@@ -186,15 +190,15 @@ static struct rockchip_vpu_control controls[] = {
 		.elem_size = ROCKCHIP_RET_PARAMS_SIZE,
 	},
 	[ROCKCHIP_VPU_ENC_CTRL_H264_PARAMS] = {
-		.id = V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS,
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_H264_REG_PARAMS,
 		.type = V4L2_CTRL_TYPE_PRIVATE,
 		.name = "Rk3288 H264e Private Params",
-		.elem_size = sizeof(struct rockchip_h264e_reg_params),
+		.elem_size = sizeof(struct rockchip_vpu_h264e_params),
 		.max_stores = VIDEO_MAX_FRAME,
 		.can_store = true,
 	},
 	[ROCKCHIP_VPU_ENC_CTRL_H264_RET_PARAMS] = {
-		.id = V4L2_CID_PRIVATE_ROCKCHIP_RET_PARAMS,
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_H264_RET_PARAMS,
 		.type = V4L2_CTRL_TYPE_PRIVATE,
 		.name = "Rk3288 H264e Private Ret Params",
 		.is_volatile = true,
@@ -938,6 +942,7 @@ static int rockchip_vpu_enc_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_PRIVATE_ROCKCHIP_HEADER:
 	case V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS:
 	case V4L2_CID_PRIVATE_ROCKCHIP_HW_PARAMS:
+	case V4L2_CID_PRIVATE_ROCKCHIP_H264_REG_PARAMS:
 		/* Nothing to do here. The control is used directly. */
 		break;
 
@@ -964,6 +969,11 @@ static int rockchip_vpu_enc_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 
 	switch (ctrl->id) {
 	case V4L2_CID_PRIVATE_ROCKCHIP_RET_PARAMS:
+		memcpy(ctrl->p_new.p, ctx->run.priv_dst.cpu,
+			ROCKCHIP_RET_PARAMS_SIZE);
+		break;
+
+	case V4L2_CID_PRIVATE_ROCKCHIP_H264_RET_PARAMS:
 		memcpy(ctrl->p_new.p, ctx->run.priv_dst.cpu,
 			ROCKCHIP_RET_PARAMS_SIZE);
 		break;
@@ -1230,7 +1240,8 @@ static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
 	vpu_debug_leave();
 }
 
-static int rockchip_vpu_start_streaming(struct vb2_queue *q, unsigned int count)
+static int rockchip_vpu_start_streaming(struct vb2_queue *q,
+					unsigned int count)
 {
 	int ret = 0;
 	struct rockchip_vpu_ctx *ctx = fh_to_ctx(q->drv_priv);

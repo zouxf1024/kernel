@@ -303,7 +303,7 @@ struct rockchip_vpu_h264e_feedback {
 
 struct rockchip_vpu_h264e_run {
 	const struct rockchip_vpu_h264e_params *params;
-	struct rockchip_vpu_h264e_feedback *feedback;
+	/*struct rockchip_vpu_h264e_feedback *feedback;*/
 };
 
 /**

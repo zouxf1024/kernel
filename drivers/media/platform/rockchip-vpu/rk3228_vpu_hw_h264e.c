@@ -1242,16 +1242,12 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 	vpu_debug_leave();
 }
 
-#ifndef RK3228_VPU_ENC_CTRL_H264_RET_PARAMS
-#define RK3228_VPU_ENC_CTRL_H264_RET_PARAMS 5
-#endif
-
 void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 			  enum vb2_buffer_state result)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 	struct rockchip_vpu_h264e_feedback *feedback =
-		ctx->ctrls[RK3228_VPU_ENC_CTRL_H264_RET_PARAMS]->p_cur.p;
+		(struct rockchip_vpu_h264e_feedback *)ctx->run.priv_dst.cpu;
 	u32 i, reg = VEPU_REG_CHECKPOINT(0);
 	u32 cpt_prev = 0, overflow = 0;
 	u32 irq_status;
@@ -1273,8 +1269,6 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 		feedback->cp[i] = cpt + overflow;
 		reg += (i & 1);
 	}
-
-	ctx->run.h264e.feedback = feedback;
 
 	rockchip_vpu_run_done(ctx, result);
 
