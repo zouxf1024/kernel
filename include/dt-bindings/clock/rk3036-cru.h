@@ -27,6 +27,7 @@
 #define SCLK_SPI		65
 #define SCLK_SDMMC		68
 #define SCLK_SDIO		69
+#define SCLK_EMMC_PRE		70
 #define SCLK_EMMC		71
 #define SCLK_NANDC		76
 #define SCLK_UART0		77

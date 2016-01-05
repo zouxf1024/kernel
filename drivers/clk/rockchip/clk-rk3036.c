@@ -290,8 +290,10 @@ static struct rockchip_clk_branch rk3036_clk_branches[] __initdata = {
 	DIV(SCLK_SDIO, "sclk_sdio", "sclk_sdio_src", 0,
 			RK2928_CLKSEL_CON(11), 8, 7, DFLAGS),
 
-	COMPOSITE(SCLK_EMMC, "sclk_emmc", mux_mmc_src_p, 0,
-			RK2928_CLKSEL_CON(12), 12, 2, MFLAGS, 0, 7, DFLAGS,
+	MUX(SCLK_EMMC_PRE, "sclk_emmc_pre", mux_mmc_src_p, 0,
+			RK2928_CLKSEL_CON(12), 12, 2, MFLAGS),
+	COMPOSITE_NOMUX(SCLK_EMMC, "sclk_emmc", "sclk_emmc_pre", 0,
+			RK2928_CLKSEL_CON(12), 0, 7, DFLAGS,
 			RK2928_CLKGATE_CON(2), 14, GFLAGS),
 
 	MMC(SCLK_SDMMC_DRV,    "sdmmc_drv",    "sclk_sdmmc", RK3036_SDMMC_CON0, 1),
