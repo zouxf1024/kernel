@@ -40,7 +40,7 @@ int eth_mac_read_from_IDB(u8 *mac)
 	if(mac == NULL)
 		return -EFAULT;
 
-	GetSNSectorInfo(tempBuf);
+	// GetSNSectorInfo(tempBuf);
 #if 0
 	for (i = 0; i < 512; i++) {
 		printk("%02x, ", tempBuf[i]);
