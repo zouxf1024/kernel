@@ -328,6 +328,14 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.done = rockchip_vpu_run_done,
 		.reset = rk3228_vpu_dec_reset,
 	},
+    [RK3288_VPU_CODEC_H264D] = {
+		.init = rk3228_vpu_h264d_init,
+		.exit = rk3228_vpu_h264d_exit,
+		.irq = rk3228_vdpu_irq,
+		.run = rk3228_vpu_h264d_run,
+		.done = rockchip_vpu_run_done,
+		.reset = rk3228_vpu_dec_reset,
+	},
 	[RK3228_VPU_CODEC_H264E] = {
 		.init = rk3228_vpu_h264e_init,
 		.exit = rk3228_vpu_h264e_exit,
