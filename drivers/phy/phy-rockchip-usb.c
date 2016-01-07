@@ -21,12 +21,14 @@
 #include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/of_platform.h>
 #include <linux/phy/phy.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/reset.h>
 #include <linux/regmap.h>
 #include <linux/mfd/syscon.h>
+#include <linux/of_gpio.h>
 
 /*
  * The higher 16-bit of this register is used for write protection
@@ -41,13 +43,35 @@ struct rockchip_usb_phy {
 	struct regmap	*reg_base;
 	struct clk	*clk;
 	struct phy	*phy;
+	int (*rk_usb_phy_power)(struct rockchip_usb_phy *phy, bool on);
 };
 
-static int rockchip_usb_phy_power(struct rockchip_usb_phy *phy,
-					   bool siddq)
+static int rk32_usb_phy_power(struct rockchip_usb_phy *phy,
+			      bool on)
 {
+	/* Power down usb phy analog blocks by set siddq 1 */
+	bool siddq = !on;
+
 	return regmap_write(phy->reg_base, phy->reg_offset,
 			    SIDDQ_WRITE_ENA | (siddq ? SIDDQ_ON : SIDDQ_OFF));
+}
+
+static int rk33_usb_phy_power(struct rockchip_usb_phy *phy,
+			      bool on)
+{
+	if (on)
+		return regmap_write(phy->reg_base, phy->reg_offset, 0xffff0000);
+	else
+		return regmap_write(phy->reg_base, phy->reg_offset, 0xffff01d5);
+}
+
+static int rk322x_usb_phy_power(struct rockchip_usb_phy *phy,
+				bool on)
+{
+	if (on)
+		return regmap_write(phy->reg_base, phy->reg_offset, 0xffff0000);
+	else
+		return regmap_write(phy->reg_base, phy->reg_offset, 0xffff01d5);
 }
 
 static int rockchip_usb_phy_power_off(struct phy *_phy)
@@ -55,12 +79,13 @@ static int rockchip_usb_phy_power_off(struct phy *_phy)
 	struct rockchip_usb_phy *phy = phy_get_drvdata(_phy);
 	int ret = 0;
 
-	/* Power down usb phy analog blocks by set siddq 1 */
-	ret = rockchip_usb_phy_power(phy, 1);
+	ret = phy->rk_usb_phy_power(phy, 0);
 	if (ret)
 		return ret;
 
 	clk_disable_unprepare(phy->clk);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -75,19 +100,33 @@ static int rockchip_usb_phy_power_on(struct phy *_phy)
 		return ret;
 
 	/* Power up usb phy analog blocks by set siddq 0 */
-	ret = rockchip_usb_phy_power(phy, 0);
-	if (ret) {
-		clk_disable_unprepare(phy->clk);
+	ret = phy->rk_usb_phy_power(phy, 1);
+	if (ret)
 		return ret;
-	}
 
 	return 0;
 }
 
-static const struct phy_ops ops = {
+static struct phy_ops ops = {
 	.power_on	= rockchip_usb_phy_power_on,
 	.power_off	= rockchip_usb_phy_power_off,
 	.owner		= THIS_MODULE,
+};
+
+static const struct of_device_id rockchip_usb_phy_dt_ids[] = {
+	{
+		.compatible = "rockchip,rk3288-usb-phy",
+		.data = (void *)rk32_usb_phy_power
+	},
+	{
+		.compatible = "rockchip,rk3368-usb-phy",
+		.data = (void *)rk33_usb_phy_power
+	},
+	{
+		.compatible = "rockchip,rk322x-usb-phy",
+		.data = (void *)rk322x_usb_phy_power
+	},
+	{}
 };
 
 static int rockchip_usb_phy_probe(struct platform_device *pdev)
@@ -97,8 +136,17 @@ static int rockchip_usb_phy_probe(struct platform_device *pdev)
 	struct phy_provider *phy_provider;
 	struct device_node *child;
 	struct regmap *grf;
+	const struct of_device_id *match;
 	unsigned int reg_offset;
-	int err;
+	int (*rk_usb_phy_power)(struct rockchip_usb_phy *phy, bool siddq);
+
+	int gpio;
+	gpio = of_get_named_gpio(dev->of_node, "host_drv_gpio", 0);
+
+	if (gpio_is_valid(gpio)) {
+		devm_gpio_request(dev, gpio, "host_drv_gpio");
+		gpio_direction_output(gpio, 1);
+	}
 
 	grf = syscon_regmap_lookup_by_phandle(dev->of_node, "rockchip,grf");
 	if (IS_ERR(grf)) {
@@ -106,20 +154,24 @@ static int rockchip_usb_phy_probe(struct platform_device *pdev)
 		return PTR_ERR(grf);
 	}
 
+	match = of_match_device(rockchip_usb_phy_dt_ids, &pdev->dev);
+	if (match && match->data)
+		rk_usb_phy_power = match->data;
+	else
+		return PTR_ERR(match);
+
 	for_each_available_child_of_node(dev->of_node, child) {
 		rk_phy = devm_kzalloc(dev, sizeof(*rk_phy), GFP_KERNEL);
-		if (!rk_phy) {
-			err = -ENOMEM;
-			goto put_child;
-		}
+		if (!rk_phy)
+			return -ENOMEM;
 
 		if (of_property_read_u32(child, "reg", &reg_offset)) {
 			dev_err(dev, "missing reg property in node %s\n",
 				child->name);
-			err = -EINVAL;
-			goto put_child;
+			return -EINVAL;
 		}
 
+		rk_phy->rk_usb_phy_power = rk_usb_phy_power;
 		rk_phy->reg_offset = reg_offset;
 		rk_phy->reg_base = grf;
 
@@ -130,28 +182,17 @@ static int rockchip_usb_phy_probe(struct platform_device *pdev)
 		rk_phy->phy = devm_phy_create(dev, child, &ops);
 		if (IS_ERR(rk_phy->phy)) {
 			dev_err(dev, "failed to create PHY\n");
-			err = PTR_ERR(rk_phy->phy);
-			goto put_child;
+			return PTR_ERR(rk_phy->phy);
 		}
 		phy_set_drvdata(rk_phy->phy, rk_phy);
-
-		/* only power up usb phy when it use, so disable it when init*/
-		err = rockchip_usb_phy_power(rk_phy, 1);
-		if (err)
-			goto put_child;
 	}
 
 	phy_provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
-	return PTR_ERR_OR_ZERO(phy_provider);
-put_child:
-	of_node_put(child);
-	return err;
+	if (IS_ERR(phy_provider))
+		return (long)phy_provider;
+	else
+		return 0;
 }
-
-static const struct of_device_id rockchip_usb_phy_dt_ids[] = {
-	{ .compatible = "rockchip,rk3288-usb-phy" },
-	{}
-};
 
 MODULE_DEVICE_TABLE(of, rockchip_usb_phy_dt_ids);
 
@@ -159,6 +200,7 @@ static struct platform_driver rockchip_usb_driver = {
 	.probe		= rockchip_usb_phy_probe,
 	.driver		= {
 		.name	= "rockchip-usb-phy",
+		.owner	= THIS_MODULE,
 		.of_match_table = rockchip_usb_phy_dt_ids,
 	},
 };
