@@ -128,6 +128,8 @@
 };
 
 &emmc {
+	assigned-clocks = <&cru SCLK_EMMC_PRE>;
+	assigned-clock-parents = <&cru PLL_GPLL>;
 	status = "okay";
 };
 
