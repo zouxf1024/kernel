@@ -787,7 +787,8 @@ err_dec_alloc:
 err_enc_reg:
 	video_device_release(vpu->vfd_enc);
 err_enc_alloc:
-	rockchip_vpu_enc_free_dummy_ctx(vpu);
+	if (vpu->variant->vpu_type == RK3288_VPU)
+		rockchip_vpu_enc_free_dummy_ctx(vpu);
 err_dummy_enc:
 	v4l2_device_unregister(&vpu->v4l2_dev);
 err_v4l2_dev_reg:
@@ -819,7 +820,8 @@ static int rockchip_vpu_remove(struct platform_device *pdev)
 
 	video_unregister_device(vpu->vfd_dec);
 	video_unregister_device(vpu->vfd_enc);
-	rockchip_vpu_enc_free_dummy_ctx(vpu);
+	if (vpu->variant->vpu_type == RK3288_VPU)
+		rockchip_vpu_enc_free_dummy_ctx(vpu);
 	v4l2_device_unregister(&vpu->v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(vpu->alloc_ctx_vm);
 	vb2_dma_contig_cleanup_ctx(vpu->alloc_ctx);
