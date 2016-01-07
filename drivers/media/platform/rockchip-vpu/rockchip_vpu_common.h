@@ -124,6 +124,12 @@ struct rk3288_vpu_vp8e_buf_data {
 	u8 header[ROCKCHIP_HEADER_SIZE];
 };
 
+struct rk3228_vpu_h264e_buf_data {
+	size_t sps_size;
+	size_t pps_size;
+	size_t slices_size;
+};
+
 /**
  * struct rockchip_vpu_buf - Private data related to each VB2 buffer.
  * @list:		List head for queuing in buffer queue.
@@ -132,12 +138,15 @@ struct rk3288_vpu_vp8e_buf_data {
  */
 struct rockchip_vpu_buf {
 	struct vb2_buffer b;
-	struct list_head list;
 
+	u32 cc[20];
 	/* Mode-specific data. */
 	union {
+		struct rk3228_vpu_h264e_buf_data h264e;
 		struct rk3288_vpu_vp8e_buf_data vp8e;
 	};
+
+	struct list_head list;
 };
 
 /**
@@ -301,8 +310,23 @@ struct rockchip_vpu_h264e_feedback {
 	s32 rlc_count;
 };
 
+/* struct for assemble bitstream */
+struct stream_s {
+	u8 *buffer; /* point to first byte of stream */
+	u8 *stream; /* Pointer to next byte of stream */
+	u32 size;   /* Byte size of stream buffer */
+	u32 byte_cnt;    /* Byte counter */
+	u32 bit_cnt; /* Bit counter */
+	u32 byte_buffer; /* Byte buffer */
+	u32 buffered_bits;   /* Amount of bits in byte buffer, [0-7] */
+	s32 overflow;    /* This will signal a buffer overflow */
+};
+
 struct rockchip_vpu_h264e_run {
 	const struct rockchip_vpu_h264e_params *params;
+	struct stream_s sps;
+	struct stream_s pps;
+	u32 hw_write_offset;
 	/*struct rockchip_vpu_h264e_feedback *feedback;*/
 };
 
@@ -583,5 +607,9 @@ static inline u32 vdpu_read(struct rockchip_vpu_dev *vpu, u32 reg)
 	vpu_debug(6, "MARK: get reg[%03d]: %08x\n", reg / 4, val);
 	return val;
 }
+
+void stream_put_bits(struct stream_s *buffer, s32 value, s32 number,
+		     const char *name);
+int stream_buffer_init(struct stream_s *buffer, s32 size);
 
 #endif /* ROCKCHIP_VPU_COMMON_H_ */

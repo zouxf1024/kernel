@@ -66,6 +66,75 @@ void rockchip_vpu_aux_buf_free(struct rockchip_vpu_dev *vpu,
 }
 
 /*
+ * bit stream assembler
+ */
+
+static int stream_buffer_status(struct stream_s *stream)
+{
+	if(stream->byte_cnt + 5 > stream->size) {
+		stream->overflow = 1;
+		return -1;
+	}
+
+	return 0;
+}
+
+void stream_put_bits(struct stream_s *buffer, s32 value, s32 number,
+		     const char *name)
+{
+	s32 bits;
+	u32 byte_buffer = buffer->byte_buffer;
+	u8 *stream = buffer->stream;
+
+	if (stream_buffer_status(buffer) != 0)
+		return;
+
+	vpu_debug(0, "assemble %s value %x, bits %d\n", name, value, number);
+
+	BUG_ON(value >= (1 << number));
+	BUG_ON(number >= 25);
+
+	bits = number + buffer->buffered_bits;
+	value <<= (32 - bits);
+	byte_buffer = byte_buffer | value;
+
+	while (bits > 7) {
+		*stream = (u8)(byte_buffer >> 24);
+
+		bits -= 8;
+		byte_buffer <<= 8;
+		stream++;
+		buffer->byte_cnt++;
+	}
+
+	buffer->byte_buffer = byte_buffer;
+	buffer->buffered_bits = (u8)bits;
+	buffer->stream = stream;
+
+	return;
+}
+
+int stream_buffer_init(struct stream_s *buffer, s32 size)
+{
+	buffer->stream = kzalloc(size, GFP_KERNEL);
+	if (buffer->stream == NULL) {
+		vpu_err("allocate stream buffer failed\n");
+		return -1;
+	}
+	buffer->buffer = buffer->stream;
+	buffer->size = size;
+	buffer->byte_cnt = 0;
+	buffer->overflow = 0;
+	buffer->byte_buffer = 0;
+	buffer->buffered_bits = 0;
+
+	if(stream_buffer_status(buffer) != 0)
+		return -1;
+
+	return 0;
+}
+
+/*
  * Context scheduling.
  */
 
@@ -98,7 +167,9 @@ rockchip_vpu_encode_after_decode_war(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *dev = ctx->dev;
 
-	if (dev->was_decoding && rockchip_vpu_ctx_is_encoder(ctx))
+	/* disable workaround for vpu after rk3288 had fixed this bug */
+	if (dev->was_decoding && dev->variant->vpu_type == RK3288_VPU &&
+	    rockchip_vpu_ctx_is_encoder(ctx))
 		return dev->dummy_encode_ctx;
 
 	return ctx;

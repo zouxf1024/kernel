@@ -31,6 +31,9 @@ int rk3228_vepu_irq(int irq, struct rockchip_vpu_dev *vpu)
 	vepu_write(vpu, 0, VEPU_REG_INTERRUPT);
 
 	if (status & VEPU_REG_INTERRUPT_BIT) {
+		if (!(status & VEPU_REG_INTERRUPT_FRAME_READY)) {
+			panic("invalid interrupt\n");
+		}
 		vepu_write(vpu, 0, VEPU_REG_AXI_CTRL);
 		return 0;
 	}

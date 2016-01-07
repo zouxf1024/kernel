@@ -96,83 +96,6 @@ struct rockchip_vp8e_reg_params {
 	u32 loop_flt_delta[2];
 };
 
-struct rockchip_h264e_reg_params {
-	u32 mbs_in_col;
-	u32 mbs_in_row;
-	u32 qp;
-	u32 qp_min;
-	u32 qp_max;
-	u32 constrained_intra_prediction;
-	u32 frame_coding_type;
-	u32 coding_type;
-	u32 pixels_on_row;
-	u32 x_fill;
-	u32 y_fill;
-	u32 pps_id;
-	u32 idr_pic_id;
-	u32 frame_num;
-	u32 pic_init_qp;
-	s32 slice_alpha_offset;
-	s32 slice_beta_offset;
-	u32 filter_disable;
-	u32 transform8x8_mode;
-	u32 enable_cabac;
-	u32 cabac_init_idc;
-	s32 chroma_qp_index_offset;
-	u32 slice_size_mb_rows;
-	u32 input_image_format;
-	u32 input_image_rotation;
-	u32 output_strm_base;
-	u32 output_strm_size;
-	u32 first_free_bit;
-	u32 strm_start_msb;
-	u32 strm_start_lsb;
-	u32 rlc_base;
-	u32 rlc_limit_space;
-	union {
-		u32 nal;
-		u32 vp;
-		u32 gob;
-	} size_tbl_base;
-	u32 cp_distance_mbs;
-	u32 cp_target[10];
-	s32 target_error[7];
-	s32 delta_qp[7];
-	u32 rlc_count;
-	u32 qp_sum;
-	u32 h264_strm_mode;   /* 0 - byte stream, 1 - NAL units */
-	u32 size_tbl_present;
-	u32 input_luma_base_offset;
-	u32 input_chroma_base_offset;
-	u32 h264_inter4x4_disabled;
-	u32 disable_quarter_pixel_mv;
-	u32 vs_next_luma_base;
-	u32 vs_mode;
-	u32 vp_size;
-	u32 vp_mb_bits;
-	u32 intra_dc_vlc_thr;
-	u32 asic_cfg_reg;
-	u32 intra16_favor;
-	u32 inter_favor;
-	u32 skip_penalty;
-	s32 mad_qp_delta;
-	u32 mad_threshold;
-	u32 mad_count;
-	u32 rice_enable;
-	u32 rice_read_base;
-	u32 rice_write_base;
-	u32 cabac_ctx_base;
-	u32 color_conversion_coeff[6];
-	u32 mask_msb[3];
-
-	u8 dmv_penalty[128];
-	u8 dmv_qpel_penalty[128];
-	u32 split_mv_mode;
-	u32 diff_mv_penalty[3];
-	u32 split_penalty[4];
-	u32 zero_mv_favor_div2;
-};
-
 /**
  * struct rockchip_vpu_aux_buf - auxiliary DMA buffer for hardware data
  * @cpu:	CPU pointer to the buffer.
@@ -218,7 +141,6 @@ struct rockchip_vpu_h264d_hw_ctx {
 };
 
 struct rockchip_vpu_h264e_hw_ctx {
-	struct rockchip_vpu_aux_buf regs;
 	struct rockchip_vpu_aux_buf cabac_tbl;
 	struct rockchip_vpu_aux_buf ext_buf;
 	u8 ref_rec_ptr:1;
@@ -296,6 +218,8 @@ void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx);
 const struct rockchip_vp8e_reg_params *rockchip_vpu_vp8e_get_dummy_params(void);
 
 void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
+					struct rockchip_vpu_buf *dst_buf);
+void rockchip_vpu_h264e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 					struct rockchip_vpu_buf *dst_buf);
 
 #endif /* RK3288_VPU_HW_H_ */

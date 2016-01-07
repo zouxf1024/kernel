@@ -99,10 +99,11 @@ static irqreturn_t vepu_irq(int irq, void *dev_id)
 	struct rockchip_vpu_ctx *ctx = vpu->current_ctx;
 
 	if (!ctx->hw.codec_ops->irq(irq, vpu)) {
-		rockchip_vpu_power_off(vpu);
 		cancel_delayed_work(&vpu->watchdog_work);
 
 		ctx->hw.codec_ops->done(ctx, VB2_BUF_STATE_DONE);
+
+		rockchip_vpu_power_off(vpu);
 	}
 
 	return IRQ_HANDLED;
@@ -414,6 +415,34 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 
 	vb2_set_plane_payload(&dst_buf->b, 0,
 				hdr_size + ext_hdr_size + dct_size);
+}
+
+void rockchip_vpu_h264e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
+					struct rockchip_vpu_buf *dst_buf)
+{
+	size_t sps_size = dst_buf->h264e.sps_size;
+	size_t pps_size = dst_buf->h264e.pps_size;
+	size_t slices_size = dst_buf->h264e.slices_size;
+	size_t dst_size;
+	void *dst;
+
+	struct stream_s *sps = &ctx->run.h264e.sps;
+	struct stream_s *pps = &ctx->run.h264e.pps;
+
+	dst_size = vb2_plane_size(&dst_buf->b, 0);
+	dst = vb2_plane_vaddr(&dst_buf->b, 0);
+
+	if (WARN_ON(sps_size + pps_size + slices_size > dst_size))
+		return;
+
+	vpu_debug(1, "%s: sps_size = %u, pps_size = %u, slices_size = %u\n",
+		__func__, sps_size, pps_size, slices_size);
+
+	memcpy(dst, sps->buffer, sps_size);
+	memcpy(dst + sps_size, pps->buffer, pps_size);
+
+	vb2_set_plane_payload(&dst_buf->b, 0,
+			      sps_size + pps_size + slices_size);
 }
 
 /*

@@ -1238,12 +1238,16 @@ static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
 	} else if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
 	    && vb->state == VB2_BUF_STATE_DONE
 	    && ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264) {
-		u8 *output_strm = vb2_plane_vaddr(vb, 0);
+		struct rockchip_vpu_buf *buf;
+
+		buf = vb_to_buf(vb);
+		/*u8 *output_strm = vb2_plane_vaddr(vb, 0);
 
 		output_strm[0] = 0;
 		output_strm[1] = 0;
 		output_strm[2] = 0;
-		output_strm[3] = 1;
+		output_strm[3] = 1;*/
+		rockchip_vpu_h264e_assemble_bitstream(ctx, buf);
 	}
 
 	vpu_debug_leave();
@@ -1404,9 +1408,10 @@ static void rockchip_vpu_enc_prepare_run(struct rockchip_vpu_ctx *ctx)
 		memcpy(ctx->run.priv_src.cpu,
 			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HW_PARAMS),
 			ROCKCHIP_HW_PARAMS_SIZE);
-	} else if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264)
+	} else if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_H264) {
 		ctx->run.h264e.params =
 			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_H264_PARAMS);
+	}
 }
 
 static const struct rockchip_vpu_run_ops rockchip_vpu_enc_run_ops = {

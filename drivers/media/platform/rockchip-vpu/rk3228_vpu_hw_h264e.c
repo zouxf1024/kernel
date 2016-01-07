@@ -26,18 +26,6 @@
 #include "rk3228_vpu_regs.h"
 #include "rockchip_vpu_hw.h"
 
-#define mask_2b         ((u32)0x00000003)
-#define mask_3b         ((u32)0x00000007)
-#define mask_4b         ((u32)0x0000000F)
-#define mask_5b         ((u32)0x0000001F)
-#define mask_6b         ((u32)0x0000003F)
-#define mask_11b        ((u32)0x000007FF)
-#define mask_14b        ((u32)0x00003FFF)
-#define mask_16b        ((u32)0x0000FFFF)
-
-#define H264_BYTE_STREAM           0x00
-#define H264_NAL_UNIT              0x01
-
 /* H.264 motion estimation parameters */
 static const u32 h264_prev_mode_favor[52] = {
 	7, 7, 8, 8, 9, 9, 10, 10, 11, 12, 12, 13, 14, 15, 16, 17, 18,
@@ -47,7 +35,7 @@ static const u32 h264_prev_mode_favor[52] = {
 };
 
 /* sqrt(2^((qp-12)/3))*8 */
-static const u32 h264_diff_mv_penalty_rk30[52] = {
+static const u32 h264_diff_mv_penalty[52] = {
 	2, 2, 3, 3, 3, 4, 4, 4, 5, 6,
 	6, 7, 8, 9, 10, 11, 13, 14, 16, 18,
 	20, 23, 26, 29, 32, 36, 40, 45, 51, 57,
@@ -57,7 +45,7 @@ static const u32 h264_diff_mv_penalty_rk30[52] = {
 };
 
 /* 31*sqrt(2^((qp-12)/3))/4 */
-static const u32 h264_diff_mv_penalty4p_rk30[52] = {
+static const u32 h264_diff_mv_penalty4p[52] = {
 	2, 2, 2, 3, 3, 3, 4, 4, 5, 5,
 	6, 7, 8, 9, 10, 11, 12, 14, 16, 17,
 	20, 22, 25, 28, 31, 35, 39, 44, 49, 55,
@@ -81,7 +69,7 @@ static const u32 h264_inter_favor[52] = {
 	867, 915, 970, 1020, 1076, 1132, 1180, 1230, 1275, 1320, 1370
 };
 
-static u32 h264_skip_sad_penalty_rk30[52] = {
+static u32 h264_skip_sad_penalty[52] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 233, 205, 182, 163,
 	146, 132, 120, 109, 100,  92,  84,  78,  71,  66,  61,  56,  52,  48,
 	44,  41,  38,  35,  32,  30,  27,  25,  23,  21,  19,  17,  15,  14,
@@ -728,29 +716,30 @@ static const s32 h264_context_init[3][460][2] = {
 
 #define CLIP3(v, min, max)  ((v) < (min) ? (min) : ((v) > (max) ? (max) : (v)))
 
-static void rk3228_vpu_h264e_init_cabac_table(u32 *cabac_tbl,
-					      u32 cabac_init_idc)
+static void rk3228_vpu_h264e_init_cabac_table(struct rockchip_vpu_ctx *ctx)
 {
-	const s32(*ctx)[460][2];
+	u8 *table = ctx->hw.h264e.cabac_tbl.cpu;
+	s32 cabac_init_idc = ctx->run.h264e.params->cabac_init_idc;
+
+	const s32(*context)[460][2];
 	int i, j, qp;
-	u8 *table = (u8 *) cabac_tbl;
 
 	for (qp = 0; qp < 52; qp++) { /* All QP values */
 		for (j = 0; j < 2; j++) { /* Intra/Inter */
 			if (j == 0)
 				/*lint -e(545) */
-				ctx = &h264_context_init_intra;
+				context = &h264_context_init_intra;
 			else
 				/*lint -e(545) */
-				ctx = &h264_context_init[cabac_init_idc];
+				context = &h264_context_init[cabac_init_idc];
 
 			for (i = 0; i < 460; i++) {
-				s32 m = (s32) (*ctx)[i][0];
-				s32 n = (s32) (*ctx)[i][1];
+				s32 m = (s32) (*context)[i][0];
+				s32 n = (s32) (*context)[i][1];
 
-				s32 pre_ctx_state = CLIP3(1, 126,
-							  ((m * (s32) qp) >> 4)
-							  + n);
+				s32 pre_ctx_state =
+					CLIP3(1, 126,
+					      ((m * (s32) qp) >> 4) + n);
 
 				if (pre_ctx_state <= 63) {
 					table[qp * 464 * 2 + j * 464 + i] =
@@ -764,116 +753,149 @@ static void rk3228_vpu_h264e_init_cabac_table(u32 *cabac_tbl,
 			}
 		}
 	}
-	/* Swap_endianess(context_table, 52 * 2 * 464); */
-}
-
-
-static void rk3228_vpu_h264e_fill_params(struct rockchip_vpu_dev *vpu,
-				struct rockchip_vpu_ctx *ctx)
-{
-	const struct rockchip_vpu_h264e_params *params = ctx->run.h264e.params;
-	struct rockchip_h264e_reg_params *reg_params =
-		(struct rockchip_h264e_reg_params *) ctx->hw.h264e.regs.cpu;
-	s32 i, mb_per_frame;
-
-	reg_params->coding_type = 3;
-
-	reg_params->asic_cfg_reg = 0;
-	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP32;
-	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP16;
-	reg_params->asic_cfg_reg |= VEPU_REG_OUTPUT_SWAP8;
-
-	reg_params->intra16_favor = h264_intra16_favor[params->qp];
-	reg_params->inter_favor = h264_inter_favor[params->qp];
-
-	reg_params->mbs_in_row = (ctx->dst_fmt.width + 15) / 16;
-	reg_params->mbs_in_col = (ctx->dst_fmt.height + 15) / 16;
-
-	reg_params->frame_coding_type = params->frame_coding_type;
-	reg_params->frame_num = params->frame_num;
-
-	reg_params->pic_init_qp = params->pic_init_qp;
-	reg_params->slice_alpha_offset = params->slice_alpha_offset;
-	reg_params->slice_beta_offset = params->slice_beta_offset;
-	reg_params->chroma_qp_index_offset = params->chroma_qp_index_offset;
-	reg_params->filter_disable = params->filter_disable;
-	reg_params->idr_pic_id = params->idr_pic_id;
-	reg_params->pps_id = params->pps_id;
-	reg_params->frame_num = params->frame_num;
-	reg_params->slice_size_mb_rows = params->slice_size_mb_rows;
-	reg_params->h264_inter4x4_disabled = params->h264_inter4x4_disabled;
-	reg_params->enable_cabac = params->enable_cabac;
-	reg_params->transform8x8_mode = params->transform8x8_mode;
-	reg_params->cabac_init_idc = params->cabac_init_idc;
-
-	reg_params->qp = params->qp;
-	reg_params->mad_qp_delta = params->mad_qp_delta;
-	reg_params->mad_threshold = params->mad_threshold;
-	reg_params->qp_min = params->qp_min;
-	reg_params->qp_max = params->qp_max;
-	reg_params->cp_distance_mbs = params->cp_distance_mbs;
-
-	for (i = 0; i < 10; i++) {
-		reg_params->cp_target[i] = params->cp_target[i];
-		if (i < 5)
-			reg_params->target_error[i] = params->target_error[i];
-		if (i < 7)
-			reg_params->delta_qp[i] = params->delta_qp[i];
-	}
-
-	mb_per_frame = reg_params->mbs_in_row * reg_params->mbs_in_col;
-
-	if (mb_per_frame > 3600)
-		reg_params->disable_quarter_pixel_mv = 1;
-	else
-		reg_params->disable_quarter_pixel_mv = 0;
-
-	reg_params->rice_enable = 0;
-	reg_params->size_tbl_present = 0;
-
-	reg_params->input_chroma_base_offset = 0;
-	reg_params->input_luma_base_offset = 0;
-
-	reg_params->pixels_on_row = (ctx->src_fmt.width + 15) & (~15);
-
-	if (ctx->dst_fmt.width & 0x0f)
-		reg_params->x_fill = (16 - (ctx->dst_fmt.width & 0x0f)) / 4;
-	else
-		reg_params->x_fill = 0;
-
-	if (ctx->dst_fmt.height & 0x0f)
-		reg_params->y_fill = 16 - (ctx->dst_fmt.height & 0x0f);
-	else
-		reg_params->y_fill = 0;
-
-	reg_params->input_image_format = 0;
-	reg_params->input_image_rotation = 0;
-	reg_params->constrained_intra_prediction = 0;
-
-	reg_params->h264_strm_mode = 0; /* 0 is byte stream; 1 is nal unit */
-
-	reg_params->first_free_bit = 32;
-	reg_params->strm_start_lsb = 0;
-	reg_params->strm_start_msb = 0;
-	reg_params->output_strm_size = vb2_plane_size(&ctx->run.dst->b, 0);
-
-	reg_params->vs_mode = 0;
-	reg_params->vs_next_luma_base = 0;
-
-	rk3228_vpu_h264e_init_cabac_table(ctx->hw.h264e.cabac_tbl.cpu,
-					 reg_params->cabac_init_idc);
-	reg_params->cabac_ctx_base = ctx->hw.h264e.cabac_tbl.dma;
-
-	reg_params->rice_write_base = 0;
-
-	memset(reg_params->mask_msb, 0, sizeof(reg_params->mask_msb));
-	memset(reg_params->color_conversion_coeff, 0,
-	       sizeof(reg_params->color_conversion_coeff));
 }
 
 static inline unsigned int ref_luma_size(unsigned int w, unsigned int h)
 {
 	return round_up(w, MB_DIM) * round_up(h, MB_DIM);
+}
+
+static void write_ue(struct stream_s *fifo, u32 val,
+				  const char *name)
+{
+	u32 numBits = 0;
+
+	val++;
+	while(val >> ++numBits);
+
+	if (numBits > 12) {
+		u32 tmp;
+		tmp = numBits-1;
+
+		if (tmp > 24) {
+			tmp -= 24;
+			stream_put_bits(fifo, 0, 24, name);
+		}
+
+		stream_put_bits(fifo, 0, tmp, name);
+
+		if (numBits > 24) {
+			numBits -= 24;
+			stream_put_bits(fifo, val >> numBits, 24, name);
+			val = val >> numBits;
+		}
+
+		stream_put_bits(fifo, val, numBits, name);
+	} else {
+		stream_put_bits(fifo, val , 2 * numBits - 1, name);
+	}
+}
+
+static void write_se(struct stream_s *fifo, s32 val, const char *name)
+{
+	u32 tmp;
+
+	if (val > 0)
+		tmp = (u32)(2 * val - 1);
+	else
+		tmp = (u32)(-2 * val);
+
+	write_ue(fifo, tmp, name);
+}
+
+static int rk3228_vpu_h264e_assumble_sps(struct rockchip_vpu_ctx *ctx)
+{
+	struct stream_s *sps = &ctx->run.h264e.sps;
+
+	stream_put_bits(sps, 0, 8, "start code");
+	stream_put_bits(sps, 0, 8, "start code");
+	stream_put_bits(sps, 0, 8, "start code");
+	stream_put_bits(sps, 1, 8, "start code");
+
+	stream_put_bits(sps, 0, 1, "forbidden_zero_bit");
+	stream_put_bits(sps, 1, 2, "nal_ref_idc");
+	stream_put_bits(sps, 7, 5, "nal_unit_type");
+
+	stream_put_bits(sps, 77, 8, "profile_idc");
+	stream_put_bits(sps, 0, 1, "constraint_set0_flag");
+	stream_put_bits(sps, 0, 1, "constraint_set1_flag");
+	stream_put_bits(sps, 0, 1, "constraint_set2_flag");
+	stream_put_bits(sps, 1, 1, "constraint_set3_flag");
+
+	stream_put_bits(sps, 0, 4, "reserved_zero_4bits");
+	stream_put_bits(sps, 30, 8, "level_idc");
+
+	write_ue(sps, 0, "seq_parameter_set_id");
+
+	write_ue(sps, 16 - 4, "log2_max_frame_num_minus4");
+
+	write_ue(sps, 2, "pic_order_cnt_type");
+
+	write_ue(sps, 1, "num_ref_frames");
+
+	stream_put_bits(sps, 0, 1, "gaps_in_frame_num_value_allowed_flag");
+
+	write_ue(sps, MB_WIDTH(ctx->src_fmt.width) - 1,
+			      "pic_width_in_mbs_minus1");
+
+	write_ue(sps, MB_HEIGHT(ctx->src_fmt.height) - 1,
+			      "pic_height_in_map_units_minus1");
+
+	stream_put_bits(sps, 1, 1, "frame_mbs_only_flag");
+
+	stream_put_bits(sps, 0, 1, "direct_8x8_inference_flag");
+
+	stream_put_bits(sps, 0, 1, "frame_cropping_flag");
+
+	stream_put_bits(sps, 0, 1, "vui_parameters_present_flag");
+
+	stream_put_bits(sps, 1, 1, "rbsp_stop_one_bit");
+
+	return 0;
+}
+
+static int rk3228_vpu_h264e_assumble_pps(struct rockchip_vpu_ctx *ctx)
+{
+	struct stream_s *pps = &ctx->run.h264e.pps;
+
+	stream_put_bits(pps, 0, 8, "start code");
+	stream_put_bits(pps, 0, 8, "start code");
+	stream_put_bits(pps, 0, 8, "start code");
+	stream_put_bits(pps, 1, 8, "start code");
+
+	stream_put_bits(pps, 0, 1, "forbidden_zero_bit");
+	stream_put_bits(pps, 1, 2, "nal_ref_idc");
+	stream_put_bits(pps, 8, 5, "nal_unit_type");
+
+	write_ue(pps, 0, "pic_parameter_set_id");
+	write_ue(pps, 0, "seq_parameter_set_id");
+
+	stream_put_bits(pps, ctx->run.h264e.params->enable_cabac, 1,
+			"entropy_coding_mode_flag");
+	stream_put_bits(pps, 0, 1, "pic_order_present_flag");
+
+	write_ue(pps, 0, "num_slice_groups_minus1");
+	write_ue(pps, 0, "num_ref_idx_l0_active_minus1");
+	write_ue(pps, 0, "num_ref_idx_l1_active_minus1");
+
+	stream_put_bits(pps, 0, 1, "weighted_pred_flag");
+	stream_put_bits(pps, 0, 2, "weighted_bipred_idc");
+
+	write_se(pps, ctx->run.h264e.params->pic_init_qp - 26,
+		 "pic_init_qp_minus26");
+	write_se(pps, 0, "pic_init_qs_minus26");
+	write_se(pps, ctx->run.h264e.params->chroma_qp_index_offset,
+		 "chroma_qp_index_offset");
+
+	stream_put_bits(pps, 1, 1,
+			"deblocking_filter_control_present_flag");
+	stream_put_bits(pps, 0, 1, "constrained_intra_pred_flag");
+
+	stream_put_bits(pps, 0, 1, "redundant_pic_cnt_present_flag");
+
+	stream_put_bits(pps, 1, 1, "rbsp_stop_one_bit");
+
+	return 0;
 }
 
 int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx)
@@ -886,16 +908,8 @@ int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx)
 
 	vpu_debug_enter();
 
-	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264e.regs,
-					 sizeof(struct
-						rockchip_h264e_reg_params));
-	if (ret) {
-		vpu_err("allocate h264e regs failed\n");
-		goto err_regs_alloc;
-	}
-
 	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264e.cabac_tbl,
-				      52 * 2 * 464);
+					 52 * 2 * 464);
 	if (ret) {
 		vpu_err("allocate h264e cabac_tbl failed\n");
 		goto err_cabac_tbl_alloc;
@@ -903,19 +917,27 @@ int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx)
 
 	ref_buf_size = ref_luma_size(width, height) * 3 / 2;
 	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264e.ext_buf,
-				       2 * ref_buf_size);
+					 2 * ref_buf_size);
 	if (ret) {
 		vpu_err("allocate ext_buf failed\n");
 		goto err_ext_buf_alloc;
 	}
 
+	if (0 > stream_buffer_init(&ctx->run.h264e.sps, 128))
+		goto err_init_sps_buffer;
+
+	if (0 > stream_buffer_init(&ctx->run.h264e.pps, 128))
+		goto err_init_pps_buffer;
+
 	return ret;
 
+err_init_pps_buffer:
+	kfree(&ctx->run.h264e.sps.buffer);
+err_init_sps_buffer:
+	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.ext_buf);
 err_ext_buf_alloc:
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.cabac_tbl);
 err_cabac_tbl_alloc:
-	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.regs);
-err_regs_alloc:
 	vpu_debug_leave();
 
 	return ret;
@@ -927,9 +949,10 @@ void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx)
 
 	vpu_debug_enter();
 
+	kfree(ctx->run.h264e.sps.buffer);
+	kfree(ctx->run.h264e.pps.buffer);
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.vp8e.ext_buf);
 	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.cabac_tbl);
-	rockchip_vpu_aux_buf_free(vpu, &ctx->hw.h264e.regs);
 
 	vpu_debug_leave();
 }
@@ -941,7 +964,8 @@ static void rk3228_vpu_h264e_set_buffers(struct rockchip_vpu_dev *vpu,
 	size_t rounded_size;
 	dma_addr_t dst_dma;
 
-	dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0);
+	dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0) +
+		ctx->run.h264e.hw_write_offset;
 
 	vepu_write_relaxed(vpu, dst_dma, VEPU_REG_ADDR_OUTPUT_STREAM);
 
@@ -993,19 +1017,47 @@ static s32 exp_golomb_signed(s32 val)
 static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 					struct rockchip_vpu_ctx *ctx)
 {
-	struct rockchip_h264e_reg_params *reg_params =
-		(struct rockchip_h264e_reg_params *) ctx->hw.h264e.regs.cpu;
+	const struct rockchip_vpu_h264e_params *params = ctx->run.h264e.params;
 	s32 scaler, i;
 	u32 reg;
-	u32 prev_mode_favor = h264_prev_mode_favor[reg_params->qp];
+	u32 prev_mode_favor = h264_prev_mode_favor[params->qp];
+
+	u32 mbs_in_row = MB_WIDTH(ctx->dst_fmt.width);
+	u32 mbs_in_col = MB_HEIGHT(ctx->dst_fmt.height);
+
+	u32 first_free_bit = 0;
+	u32 x_fill = 0;
+	u32 y_fill = 0;
+	u32 constrained_intra_prediction = 0;
+	u32 skip_penalty;
+
+	u8 dmv_penalty[128];
+	u8 dmv_qpel_penalty[128];
+	u32 diff_mv_penalty[3];
+	u32 split_penalty[4];
+
+	/* If frame encode type for current frame is intra, write sps pps to
+	   the output buffer */
+	ctx->run.h264e.hw_write_offset = 0;
+	if (params->frame_coding_type == 1) {
+		ctx->run.h264e.hw_write_offset = ctx->run.h264e.sps.byte_cnt +
+			ctx->run.h264e.pps.byte_cnt;
+		first_free_bit = (ctx->run.h264e.hw_write_offset & 0x7) * 8;
+		ctx->run.h264e.hw_write_offset &= ~0x7;
+	}
+
+	if (ctx->dst_fmt.width & 0x0f)
+		x_fill = (16 - (ctx->dst_fmt.width & 0x0f)) / 4;
+
+	if (ctx->dst_fmt.height & 0x0f)
+		y_fill = 16 - (ctx->dst_fmt.height & 0x0f);
 
 	vepu_write_relaxed(vpu, 0, VEPU_REG_INTRA_AREA_CTRL);
 
-	vepu_write_relaxed(vpu, reg_params->strm_start_msb,
-			   VEPU_REG_STR_HDR_REM_MSB);
-	vepu_write_relaxed(vpu, reg_params->strm_start_lsb,
-			   VEPU_REG_STR_HDR_REM_LSB);
-	vepu_write_relaxed(vpu, reg_params->output_strm_size,
+	vepu_write_relaxed(vpu, 0, VEPU_REG_STR_HDR_REM_MSB);
+	vepu_write_relaxed(vpu, 0, VEPU_REG_STR_HDR_REM_LSB);
+	vepu_write_relaxed(vpu, vb2_plane_size(&ctx->run.dst->b, 0) -
+				ctx->run.h264e.hw_write_offset,
 			   VEPU_REG_STR_BUF_LIMIT);
 
 	reg = VEPU_REG_AXI_CTRL_READ_ID(0);
@@ -1015,214 +1067,197 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	reg |= VEPU_REG_AXI_CTRL_BIRST_DISCARD(0);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_AXI_CTRL);
 
-	vepu_write_relaxed(vpu, reg_params->mad_qp_delta,
+	vepu_write_relaxed(vpu, params->mad_qp_delta,
 			   VEPU_QP_ADJUST_MAD_DELTA_ROI);
 
-	scaler = max(1,
-		     200 / (reg_params->mbs_in_row + reg_params->mbs_in_col));
-	reg_params->skip_penalty =
-		min(255, h264_skip_sad_penalty_rk30[reg_params->qp] * scaler);
+	scaler = max(1U, 200 / (mbs_in_row + mbs_in_col));
+	skip_penalty = min(255U, h264_skip_sad_penalty[params->qp] * scaler);
 
-	if (reg_params->disable_quarter_pixel_mv)
+	if (mbs_in_row * mbs_in_col > 3600)
 		reg = VEPU_REG_DISABLE_QUARTER_PIXEL_MV;
-	reg |= VEPU_REG_CABAC_INIT_IDC(reg_params->cabac_init_idc);
-	if (reg_params->enable_cabac)
+	reg |= VEPU_REG_CABAC_INIT_IDC(params->cabac_init_idc);
+	if (params->enable_cabac)
 		reg |= VEPU_REG_ENTROPY_CODING_MODE;
-	if (reg_params->transform8x8_mode)
+	if (params->transform8x8_mode)
 		reg |= VEPU_REG_H264_TRANS8X8_MODE;
-	if (reg_params->h264_inter4x4_disabled)
+	if (params->h264_inter4x4_disabled)
 		reg |= VEPU_REG_H264_INTER4X4_MODE;
-	if (reg_params->h264_strm_mode)
-		reg |= VEPU_REG_H264_STREAM_MODE;
-	reg |= VEPU_REG_H264_SLICE_SIZE(reg_params->slice_size_mb_rows);
+	/*reg |= VEPU_REG_H264_STREAM_MODE;*/
+	reg |= VEPU_REG_H264_SLICE_SIZE(params->slice_size_mb_rows);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL0);
 
-	reg = VEPU_REG_STREAM_START_OFFSET(reg_params->first_free_bit) |
-		VEPU_REG_MACROBLOCK_PENALTY(reg_params->skip_penalty) |
-		VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(reg_params->x_fill) |
-		VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(reg_params->y_fill);
+	reg = VEPU_REG_STREAM_START_OFFSET(first_free_bit) |
+		VEPU_REG_MACROBLOCK_PENALTY(skip_penalty) |
+		VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x_fill) |
+		VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(y_fill);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_OVER_FILL_STRM_OFFSET);
 
-	reg = VEPU_REG_IN_IMG_CHROMA_OFFSET(reg_params->input_chroma_base_offset
-					    )
-		| VEPU_REG_IN_IMG_LUMA_OFFSET(reg_params->input_luma_base_offset
-					      )
-		| VEPU_REG_IN_IMG_CTRL_ROW_LEN(reg_params->pixels_on_row);
+	reg = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
+		| VEPU_REG_IN_IMG_LUMA_OFFSET(0)
+		| VEPU_REG_IN_IMG_CTRL_ROW_LEN(mbs_in_row * 16);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_INPUT_LUMA_INFO);
 
-	reg = VEPU_REG_CHECKPOINT_CHECK1(reg_params->cp_target[0])
-		| VEPU_REG_CHECKPOINT_CHECK0(reg_params->cp_target[1]);
+	reg = VEPU_REG_CHECKPOINT_CHECK1(params->cp_target[0])
+		| VEPU_REG_CHECKPOINT_CHECK0(params->cp_target[1]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHECKPOINT(0));
 
-	reg = VEPU_REG_CHECKPOINT_CHECK1(reg_params->cp_target[2])
-		| VEPU_REG_CHECKPOINT_CHECK0(reg_params->cp_target[3]);
+	reg = VEPU_REG_CHECKPOINT_CHECK1(params->cp_target[2])
+		| VEPU_REG_CHECKPOINT_CHECK0(params->cp_target[3]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHECKPOINT(1));
 
-	reg = VEPU_REG_CHECKPOINT_CHECK1(reg_params->cp_target[4])
-		| VEPU_REG_CHECKPOINT_CHECK0(reg_params->cp_target[5]);
+	reg = VEPU_REG_CHECKPOINT_CHECK1(params->cp_target[4])
+		| VEPU_REG_CHECKPOINT_CHECK0(params->cp_target[5]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHECKPOINT(2));
 
-	reg = VEPU_REG_CHECKPOINT_CHECK1(reg_params->cp_target[6])
-		| VEPU_REG_CHECKPOINT_CHECK0(reg_params->cp_target[7]);
+	reg = VEPU_REG_CHECKPOINT_CHECK1(params->cp_target[6])
+		| VEPU_REG_CHECKPOINT_CHECK0(params->cp_target[7]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHECKPOINT(3));
 
-	reg = VEPU_REG_CHECKPOINT_CHECK1(reg_params->cp_target[8])
-		| VEPU_REG_CHECKPOINT_CHECK0(reg_params->cp_target[9]);
+	reg = VEPU_REG_CHECKPOINT_CHECK1(params->cp_target[8])
+		| VEPU_REG_CHECKPOINT_CHECK0(params->cp_target[9]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHECKPOINT(4));
 
-	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(reg_params->target_error[0])
-		| VEPU_REG_CHKPT_WORD_ERR_CHK0(reg_params->target_error[1]);
+	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(params->target_error[0])
+		| VEPU_REG_CHKPT_WORD_ERR_CHK0(params->target_error[1]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHKPT_WORD_ERR(0));
 
-	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(reg_params->target_error[2])
-		| VEPU_REG_CHKPT_WORD_ERR_CHK0(reg_params->target_error[3]);
+	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(params->target_error[2])
+		| VEPU_REG_CHKPT_WORD_ERR_CHK0(params->target_error[3]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHKPT_WORD_ERR(1));
 
-	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(reg_params->target_error[4])
-		| VEPU_REG_CHKPT_WORD_ERR_CHK0(reg_params->target_error[5]);
+	reg = VEPU_REG_CHKPT_WORD_ERR_CHK1(params->target_error[4])
+		| VEPU_REG_CHKPT_WORD_ERR_CHK0(params->target_error[5]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHKPT_WORD_ERR(2));
 
-	reg = VEPU_REG_CHKPT_DELTA_QP_CHK6(reg_params->delta_qp[6])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK5(reg_params->delta_qp[5])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK4(reg_params->delta_qp[4])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK3(reg_params->delta_qp[3])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK2(reg_params->delta_qp[2])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK1(reg_params->delta_qp[1])
-		| VEPU_REG_CHKPT_DELTA_QP_CHK0(reg_params->delta_qp[0]);
+	reg = VEPU_REG_CHKPT_DELTA_QP_CHK6(params->delta_qp[6])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK5(params->delta_qp[5])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK4(params->delta_qp[4])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK3(params->delta_qp[3])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK2(params->delta_qp[2])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK1(params->delta_qp[1])
+		| VEPU_REG_CHKPT_DELTA_QP_CHK0(params->delta_qp[0]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_CHKPT_DELTA_QP);
 
-	reg = VEPU_REG_MAD_THRESHOLD(reg_params->mad_threshold)
-		| VEPU_REG_IN_IMG_CTRL_FMT(reg_params->input_image_format)
-		| VEPU_REG_IN_IMG_ROTATE_MODE(reg_params->input_image_rotation);
-	if (reg_params->size_tbl_present)
-		reg |= VEPU_REG_SIZE_TABLE_PRESENT;
+	reg = VEPU_REG_MAD_THRESHOLD(params->mad_threshold)
+		| VEPU_REG_IN_IMG_CTRL_FMT(ctx->vpu_src_fmt->enc_fmt)
+		| VEPU_REG_IN_IMG_ROTATE_MODE(0);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL1);
 
-	reg = VEPU_REG_INTRA16X16_MODE(reg_params->intra16_favor)
-		| VEPU_REG_INTER_MODE(reg_params->inter_favor);
+	reg = VEPU_REG_INTRA16X16_MODE(h264_intra16_favor[params->qp])
+		| VEPU_REG_INTER_MODE(h264_inter_favor[params->qp]);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_INTRA_INTER_MODE);
 
-	reg = VEPU_REG_PPS_INIT_QP(reg_params->pic_init_qp)
-		| VEPU_REG_SLICE_FILTER_ALPHA(reg_params->slice_alpha_offset)
-		| VEPU_REG_SLICE_FILTER_BETA(reg_params->slice_beta_offset)
-		| VEPU_REG_CHROMA_QP_OFFSET(reg_params->chroma_qp_index_offset)
-		| VEPU_REG_IDR_PIC_ID(reg_params->idr_pic_id);
+	reg = VEPU_REG_PPS_INIT_QP(params->pic_init_qp)
+		| VEPU_REG_SLICE_FILTER_ALPHA(params->slice_alpha_offset)
+		| VEPU_REG_SLICE_FILTER_BETA(params->slice_beta_offset)
+		| VEPU_REG_CHROMA_QP_OFFSET(params->chroma_qp_index_offset)
+		| VEPU_REG_IDR_PIC_ID(params->idr_pic_id);
 
-	if (reg_params->filter_disable)
+	if (params->filter_disable)
 		reg |= VEPU_REG_FILTER_DISABLE;
 
-	if (reg_params->constrained_intra_prediction)
+	if (constrained_intra_prediction)
 		reg |= VEPU_REG_CONSTRAINED_INTRA_PREDICTION;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL2);
 
-	vepu_write_relaxed(vpu, reg_params->vs_next_luma_base,
-			   VEPU_REG_ADDR_NEXT_PIC);
-	vepu_write_relaxed(vpu, reg_params->rice_write_base,
-			   VEPU_REG_ADDR_MV_OUT);
-	vepu_write_relaxed(vpu, reg_params->cabac_ctx_base,
+	vepu_write_relaxed(vpu, 0, VEPU_REG_ADDR_NEXT_PIC);
+	vepu_write_relaxed(vpu, 0, VEPU_REG_ADDR_MV_OUT);
+	vepu_write_relaxed(vpu, ctx->hw.h264e.cabac_tbl.dma,
 			   VEPU_REG_ADDR_CABAC_TBL);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_ROI1);
-	vepu_write_relaxed(vpu,  0, VEPU_REG_ROI2);
+	vepu_write_relaxed(vpu, 0, VEPU_REG_ROI2);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_STABLILIZATION_OUTPUT);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB2YUV_CONVERSION_COEF1);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB2YUV_CONVERSION_COEF2);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB2YUV_CONVERSION_COEF3);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB_MASK_MSB);
 
-	reg_params->split_mv_mode = 1;
-	reg_params->diff_mv_penalty[0] =
-		h264_diff_mv_penalty4p_rk30[reg_params->qp];
-	reg_params->diff_mv_penalty[1] =
-		h264_diff_mv_penalty_rk30[reg_params->qp];
-	reg_params->diff_mv_penalty[2] =
-		h264_diff_mv_penalty_rk30[reg_params->qp];
-	reg_params->split_penalty[0] = 0;
-	reg_params->split_penalty[1] = 0;
-	reg_params->split_penalty[2] = 0;
-	reg_params->split_penalty[3] = 0;
+	diff_mv_penalty[0] =
+		h264_diff_mv_penalty4p[params->qp];
+	diff_mv_penalty[1] =
+		h264_diff_mv_penalty[params->qp];
+	diff_mv_penalty[2] =
+		h264_diff_mv_penalty[params->qp];
+	split_penalty[0] = 0;
+	split_penalty[1] = 0;
+	split_penalty[2] = 0;
+	split_penalty[3] = 0;
 
-	reg_params->zero_mv_favor_div2 = 10;
+	reg = VEPU_REG_1MV_PENALTY(diff_mv_penalty[1])
+		| VEPU_REG_1MV_4MV_PENALTY(diff_mv_penalty[2])
+		| VEPU_REG_4MV_PENALTY(diff_mv_penalty[0]);
 
-	reg = VEPU_REG_1MV_PENALTY(reg_params->diff_mv_penalty[1])
-		| VEPU_REG_1MV_4MV_PENALTY(reg_params->diff_mv_penalty[2])
-		| VEPU_REG_4MV_PENALTY(reg_params->diff_mv_penalty[0]);
-	if (reg_params->split_mv_mode)
-		reg |= VEPU_REG_SPLIT_MV_MODE_EN;
+	reg |= VEPU_REG_SPLIT_MV_MODE_EN;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_MV_PENALTY);
 
-	reg = VEPU_REG_H264_LUMA_INIT_QP(reg_params->qp)
-		| VEPU_REG_H264_QP_MAX(reg_params->qp_max)
-		| VEPU_REG_H264_QP_MIN(reg_params->qp_min)
-		| VEPU_REG_H264_CHKPT_DISTANCE(reg_params->cp_distance_mbs);
+	reg = VEPU_REG_H264_LUMA_INIT_QP(params->qp)
+		| VEPU_REG_H264_QP_MAX(params->qp_max)
+		| VEPU_REG_H264_QP_MIN(params->qp_min)
+		| VEPU_REG_H264_CHKPT_DISTANCE(params->cp_distance_mbs);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_QP_VAL);
 
-	reg = VEPU_REG_ZERO_MV_FAVOR_D2(reg_params->zero_mv_favor_div2);
+	reg = VEPU_REG_ZERO_MV_FAVOR_D2(10);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_MVC_RELATE);
 
-	reg = reg_params->asic_cfg_reg;
-	reg |= VEPU_REG_INPUT_SWAP8;
-	reg |= VEPU_REG_INPUT_SWAP16;
-	reg |= VEPU_REG_INPUT_SWAP32;
+	reg = VEPU_REG_OUTPUT_SWAP32
+		| VEPU_REG_OUTPUT_SWAP16
+		| VEPU_REG_OUTPUT_SWAP8
+		| VEPU_REG_INPUT_SWAP8
+		| VEPU_REG_INPUT_SWAP16
+		| VEPU_REG_INPUT_SWAP32;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_DATA_ENDIAN);
 
-	reg = VEPU_REG_PPS_ID(reg_params->pps_id)
+	reg = VEPU_REG_PPS_ID(params->pps_id)
 		| VEPU_REG_INTRA_PRED_MODE(prev_mode_favor)
-		| VEPU_REG_FRAME_NUM(reg_params->frame_num);
+		| VEPU_REG_FRAME_NUM(params->frame_num);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL3);
 
-	reg = 0;
-	if (reg_params->rice_enable)
-		reg = VEPU_REG_MV_WRITE_EN;
-	reg |= VEPU_REG_INTERRUPT_TIMEOUT_EN;
+	reg = VEPU_REG_INTERRUPT_TIMEOUT_EN;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_INTERRUPT);
 
 	for (i = 0; i < 128; i++) {
-		reg_params->dmv_penalty[i] = i;
-		reg_params->dmv_qpel_penalty[i] = min(255,
-						      exp_golomb_signed(i));
+		dmv_penalty[i] = i;
+		dmv_qpel_penalty[i] = min(255, exp_golomb_signed(i));
 	}
 
 	for (i = 0; i < 128; i += 4) {
-		reg = VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i],
-						     3);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 1], 2);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 2], 1);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 3], 0);
-		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TABLE(i / 4));
+		reg =VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i], 3);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 1], 2);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 2], 1);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 3], 0);
+		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TBL(i / 4));
 	}
 
 	for (i = 0; i < 128; i += 4) {
-		reg = VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i],
-						     3);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 1], 2);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 2], 1);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(reg_params->dmv_penalty[i
-						      + 3], 0);
-		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TABLE(i / 4));
+		reg = VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i], 3);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 1], 2);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 2], 1);
+		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 3], 0);
+		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TBL(i / 4));
 	}
 }
 
 void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
-	struct rockchip_h264e_reg_params *reg_params =
-		(struct rockchip_h264e_reg_params *) ctx->hw.h264e.regs.cpu;
+	const struct rockchip_vpu_h264e_params *params = ctx->run.h264e.params;
 	u32 reg;
+	u32 mbs_in_row = (ctx->dst_fmt.width + 15) / 16;
+	u32 mbs_in_col = (ctx->dst_fmt.height + 15) / 16;
 
 	vpu_debug_enter();
-	rk3228_vpu_h264e_fill_params(vpu, ctx);
+
+	rk3228_vpu_h264e_assumble_sps(ctx);
+	rk3228_vpu_h264e_assumble_pps(ctx);
+	rk3228_vpu_h264e_init_cabac_table(ctx);
+
 	/*
 	 * Program the hardware.
 	 */
 	rockchip_vpu_power_on(vpu);
 
-	/* Start the hardware. */
-	reg = VEPU_REG_ENCODE_FORMAT(reg_params->coding_type);
+	/* Select encode mode first. */
+	reg = VEPU_REG_ENCODE_FORMAT(3);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENCODE_START);
 
 	rk3228_vpu_h264e_set_params(vpu, ctx);
@@ -1235,10 +1270,10 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx)
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
 	/* Start the hardware. */
-	reg = VEPU_REG_MB_HEIGHT(reg_params->mbs_in_col)
-		| VEPU_REG_MB_WIDTH(reg_params->mbs_in_row)
-		| VEPU_REG_PIC_TYPE(reg_params->frame_coding_type)
-		| VEPU_REG_ENCODE_FORMAT(reg_params->coding_type)
+	reg = VEPU_REG_MB_HEIGHT(mbs_in_col)
+		| VEPU_REG_MB_WIDTH(mbs_in_row)
+		| VEPU_REG_PIC_TYPE(params->frame_coding_type)
+		| VEPU_REG_ENCODE_FORMAT(3)
 		| VEPU_REG_ENCODE_ENABLE;
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENCODE_START);
 
@@ -1253,16 +1288,15 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 		(struct rockchip_vpu_h264e_feedback *)ctx->run.priv_dst.cpu;
 	u32 i, reg = VEPU_REG_CHECKPOINT(0);
 	u32 cpt_prev = 0, overflow = 0;
-	u32 irq_status;
 
 	vpu_debug_enter();
 
-	feedback->qp_sum = VEPU_REG_QP_SUM(vepu_read(vpu,
-						     VEPU_REG_QP_SUM_DIV2));
-	feedback->mad_count = VEPU_REG_MB_CNT_SET(vepu_read(vpu,
-							    VEPU_REG_MB_CTRL));
-	feedback->rlc_count = VEPU_REG_RLC_SUM_OUT(vepu_read(vpu,
-							     VEPU_REG_RLC_SUM));
+	feedback->qp_sum =
+		VEPU_REG_QP_SUM(vepu_read(vpu, VEPU_REG_QP_SUM_DIV2));
+	feedback->mad_count =
+		VEPU_REG_MB_CNT_SET(vepu_read(vpu, VEPU_REG_MB_CTRL));
+	feedback->rlc_count =
+		VEPU_REG_RLC_SUM_OUT(vepu_read(vpu, VEPU_REG_RLC_SUM));
 
 	for (i = 0; i < 10; i++) {
 		u32 cpt = VEPU_REG_CHECKPOINT_RESULT(vepu_read(vpu, reg));
@@ -1273,8 +1307,21 @@ void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 		reg += (i & 1);
 	}
 
-	vb2_set_plane_payload(&ctx->run.dst->b, 0,
-		4 + vepu_read(vpu, VEPU_REG_STR_BUF_LIMIT)  / 8);
+	if (ctx->run.h264e.hw_write_offset) {
+		ctx->run.dst->h264e.sps_size =
+			ctx->run.h264e.sps.byte_cnt;
+		ctx->run.dst->h264e.pps_size =
+			ctx->run.h264e.pps.byte_cnt;
+		vpu_debug(1, "sps %d, pps %d\n",
+			  ctx->run.dst->h264e.sps_size,
+			  ctx->run.dst->h264e.pps_size);
+	} else {
+		ctx->run.dst->h264e.sps_size = 0;
+		ctx->run.dst->h264e.pps_size = 0;
+	}
+
+	ctx->run.dst->h264e.slices_size =
+		vepu_read(vpu, VEPU_REG_STR_BUF_LIMIT) / 8;
 
 	rockchip_vpu_run_done(ctx, result);
 
