@@ -850,6 +850,10 @@ static int rk3228_vpu_h264e_assumble_sps(struct rockchip_vpu_ctx *ctx)
 	stream_put_bits(sps, 0, 1, "vui_parameters_present_flag");
 
 	stream_put_bits(sps, 1, 1, "rbsp_stop_one_bit");
+	if (sps->buffered_bits > 0)
+		stream_put_bits(sps, 0, 8 - sps->buffered_bits,
+				"bsp_alignment_zero_bits");
+
 
 	return 0;
 }
@@ -893,7 +897,16 @@ static int rk3228_vpu_h264e_assumble_pps(struct rockchip_vpu_ctx *ctx)
 
 	stream_put_bits(pps, 0, 1, "redundant_pic_cnt_present_flag");
 
+	if (ctx->run.h264e.params->transform8x8_mode) {
+		stream_put_bits(pps, 1, 1, "transform_8x8_mode_flag");
+		stream_put_bits(pps, 0, 1, "pic_scaling_matrix_present_flag");
+		write_se(pps, ctx->run.h264e.params->chroma_qp_index_offset,
+			 "chroma_qp_index_offset");
+	}
 	stream_put_bits(pps, 1, 1, "rbsp_stop_one_bit");
+	if (pps->buffered_bits > 0)
+		stream_put_bits(pps, 0, 8 - pps->buffered_bits,
+				"bsp_alignment_zero_bits");
 
 	return 0;
 }
