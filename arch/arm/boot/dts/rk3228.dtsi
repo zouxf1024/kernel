@@ -268,8 +268,8 @@
 	vpu: video-codec@20020000 {
 		compatible = "rockchip,rk3228-vpu";
 		reg = <0x20020000 0x800>;
-		interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "vepu", "vdpu";
 		clocks = <&cru ACLK_VCODEC>, <&cru HCLK_VCODEC>;
 		clock-names = "aclk_vcodec", "hclk_vcodec";
