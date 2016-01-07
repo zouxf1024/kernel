@@ -132,21 +132,18 @@ struct rk3228_vpu_h264e_buf_data {
 
 /**
  * struct rockchip_vpu_buf - Private data related to each VB2 buffer.
+ * @vb:			Pointer to related VB2 buffer.
  * @list:		List head for queuing in buffer queue.
- * @b:			Pointer to related VB2 buffer.
  * @flags:		Buffer state. See enum rockchip_vpu_buf_flags.
  */
 struct rockchip_vpu_buf {
-	struct vb2_buffer b;
-
-	u32 cc[20];
+	struct vb2_v4l2_buffer b;
+	struct list_head list;
 	/* Mode-specific data. */
 	union {
 		struct rk3228_vpu_h264e_buf_data h264e;
 		struct rk3288_vpu_vp8e_buf_data vp8e;
 	};
-
-	struct list_head list;
 };
 
 /**
@@ -531,7 +528,7 @@ static inline struct rockchip_vpu_ctx *ctrl_to_ctx(struct v4l2_ctrl *ctrl)
 
 static inline struct rockchip_vpu_buf *vb_to_buf(struct vb2_buffer *vb)
 {
-	return container_of(vb, struct rockchip_vpu_buf, b);
+	return container_of(to_vb2_v4l2_buffer(vb), struct rockchip_vpu_buf, b);
 }
 
 static inline bool rockchip_vpu_ctx_is_encoder(struct rockchip_vpu_ctx *ctx)

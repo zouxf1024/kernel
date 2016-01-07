@@ -250,13 +250,13 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 		ctx->run_ops->run_done(ctx, result);
 
 	if (!rockchip_vpu_ctx_is_dummy_encode(ctx)) {
-		struct vb2_buffer *src = &ctx->run.src->b;
-		struct vb2_buffer *dst = &ctx->run.dst->b;
+		struct vb2_buffer *src = &ctx->run.src->b.vb2_buf;
+		struct vb2_buffer *dst = &ctx->run.dst->b.vb2_buf;
 
 		to_vb2_v4l2_buffer(dst)->timestamp =
 			to_vb2_v4l2_buffer(src)->timestamp;
-		vb2_buffer_done(&ctx->run.src->b, result);
-		vb2_buffer_done(&ctx->run.dst->b, result);
+		vb2_buffer_done(&ctx->run.src->b.vb2_buf, result);
+		vb2_buffer_done(&ctx->run.dst->b.vb2_buf, result);
 	}
 
 	dev->current_ctx = NULL;

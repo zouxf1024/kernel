@@ -143,8 +143,8 @@ static void rk3288_vpu_vp8e_set_buffers(struct rockchip_vpu_dev *vpu,
 		dst_dma = vpu->dummy_encode_dst.dma;
 		dst_size = vpu->dummy_encode_dst.size;
 	} else {
-		dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0);
-		dst_size = vb2_plane_size(&ctx->run.dst->b, 0);
+		dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0);
+		dst_size = vb2_plane_size(&ctx->run.dst->b.vb2_buf, 0);
 	}
 
 	/*
@@ -166,9 +166,9 @@ static void rk3288_vpu_vp8e_set_buffers(struct rockchip_vpu_dev *vpu,
 	ctx->run.dst->vp8e.hdr_size = params->hdr_len + (start_offset >> 3);
 
 	if (params->enc_ctrl & VEPU_REG_ENC_CTRL_KEYFRAME_BIT)
-		to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags |= V4L2_BUF_FLAG_KEYFRAME;
+		to_vb2_v4l2_buffer(&ctx->run.dst->b.vb2_buf)->flags |= V4L2_BUF_FLAG_KEYFRAME;
 	else
-		to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags &= ~V4L2_BUF_FLAG_KEYFRAME;
+		to_vb2_v4l2_buffer(&ctx->run.dst->b.vb2_buf)->flags &= ~V4L2_BUF_FLAG_KEYFRAME;
 
 	/*
 	 * We assume here that 1/10 of the buffer is enough for headers.
@@ -218,13 +218,13 @@ static void rk3288_vpu_vp8e_set_buffers(struct rockchip_vpu_dev *vpu,
 					VEPU_REG_ADDR_IN_CR);
 	} else {
 		vepu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(
-					&ctx->run.src->b, PLANE_Y),
+					&ctx->run.src->b.vb2_buf, PLANE_Y),
 					VEPU_REG_ADDR_IN_LUMA);
 		vepu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(
-					&ctx->run.src->b, PLANE_CB),
+					&ctx->run.src->b.vb2_buf, PLANE_CB),
 					VEPU_REG_ADDR_IN_CB);
 		vepu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(
-					&ctx->run.src->b, PLANE_CR),
+					&ctx->run.src->b.vb2_buf, PLANE_CR),
 					VEPU_REG_ADDR_IN_CR);
 	}
 
@@ -346,7 +346,7 @@ void rk3288_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx)
 		| VEPU_REG_ENC_CTRL_ENC_MODE_VP8
 		| VEPU_REG_ENC_CTRL_EN_BIT;
 
-	if (to_vb2_v4l2_buffer(&ctx->run.dst->b)->flags & V4L2_BUF_FLAG_KEYFRAME)
+	if (to_vb2_v4l2_buffer(&ctx->run.dst->b.vb2_buf)->flags & V4L2_BUF_FLAG_KEYFRAME)
 		reg |= VEPU_REG_ENC_CTRL_KEYFRAME_BIT;
 
 	vepu_write(vpu, reg, VEPU_REG_ENC_CTRL);

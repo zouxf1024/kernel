@@ -1317,9 +1317,9 @@ static void rockchip_vpu_stop_streaming(struct vb2_queue *q)
 
 	while (!list_empty(&queue)) {
 		b = list_first_entry(&queue, struct rockchip_vpu_buf, list);
-		for (i = 0; i < b->b.num_planes; i++)
-			vb2_set_plane_payload(&b->b, i, 0);
-		vb2_buffer_done(&b->b, VB2_BUF_STATE_ERROR);
+		for (i = 0; i < b->b.vb2_buf.num_planes; i++)
+			vb2_set_plane_payload(&b->b.vb2_buf, i, 0);
+		vb2_buffer_done(&b->b.vb2_buf, VB2_BUF_STATE_ERROR);
 		list_del(&b->list);
 	}
 
@@ -1394,7 +1394,7 @@ const struct v4l2_ioctl_ops *get_enc_v4l2_ioctl_ops(void)
 
 static void rockchip_vpu_enc_prepare_run(struct rockchip_vpu_ctx *ctx)
 {
-	struct vb2_buffer *vb2_src = &ctx->run.src->b;
+	struct vb2_buffer *vb2_src = &ctx->run.src->b.vb2_buf;
 	unsigned config_store = to_vb2_v4l2_buffer(vb2_src)->config_store;
 
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, config_store);

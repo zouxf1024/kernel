@@ -487,7 +487,7 @@ static void rk3288_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 	u32 count = 0;
 	u32 i;
 
-	src_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b, 0);
+	src_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b.vb2_buf, 0);
 
 	/*
 	 * Calculate control partition mb data info
@@ -587,13 +587,13 @@ static void rk3288_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 
 	/* set last frame address */
 	if (hdr->last_frame >= ctx->vq_dst.num_buffers)
-		buf = &ctx->run.dst->b;
+		buf = &ctx->run.dst->b.vb2_buf;
 	else
 		buf = ctx->dst_bufs[hdr->last_frame];
 
 	if (!hdr->key_frame)
 		vdpu_write_relaxed(vpu,
-			vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0),
+			vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0),
 			VDPU_REG_ADDR_REF(0));
 	else
 		vdpu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(buf, 0),
@@ -601,7 +601,7 @@ static void rk3288_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 
 	/* set golden reference frame buffer address */
 	if (hdr->golden_frame >= ctx->vq_dst.num_buffers)
-		buf = &ctx->run.dst->b;
+		buf = &ctx->run.dst->b.vb2_buf;
 	else
 		buf = ctx->dst_bufs[hdr->golden_frame];
 
@@ -612,7 +612,7 @@ static void rk3288_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 
 	/* set alternate reference frame buffer address */
 	if (hdr->alt_frame >= ctx->vq_dst.num_buffers)
-		buf = &ctx->run.dst->b;
+		buf = &ctx->run.dst->b.vb2_buf;
 	else
 		buf = ctx->dst_bufs[hdr->alt_frame];
 
@@ -644,7 +644,7 @@ static void rk3288_vp8d_cfg_buffers(struct rockchip_vpu_ctx *ctx)
 
 	/* set output frame buffer address */
 	vdpu_write_relaxed(vpu,
-			vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0),
+			vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0),
 			VDPU_REG_ADDR_DST);
 }
 

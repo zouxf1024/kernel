@@ -384,8 +384,8 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	void *dst;
 	u32 *tag;
 
-	dst_size = vb2_plane_size(&dst_buf->b, 0);
-	dst = vb2_plane_vaddr(&dst_buf->b, 0);
+	dst_size = vb2_plane_size(&dst_buf->b.vb2_buf, 0);
+	dst = vb2_plane_vaddr(&dst_buf->b.vb2_buf, 0);
 	tag = dst; /* To access frame tag words. */
 
 	if (WARN_ON(hdr_size + ext_hdr_size + dct_size > dst_size))
@@ -401,7 +401,7 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	memcpy(dst, dst_buf->vp8e.header, hdr_size);
 
 	/* Patch frame tag at first 32-bit word of the frame. */
-	if (to_vb2_v4l2_buffer(&dst_buf->b)->flags & V4L2_BUF_FLAG_KEYFRAME) {
+	if (to_vb2_v4l2_buffer(&dst_buf->b.vb2_buf)->flags & V4L2_BUF_FLAG_KEYFRAME) {
 		tag_size = VP8_KEY_FRAME_HDR_SIZE;
 		tag[0] &= ~VP8_FRAME_TAG_KEY_FRAME_BIT;
 	} else {
@@ -413,7 +413,7 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	tag[0] |= (hdr_size + ext_hdr_size - tag_size)
 						<< VP8_FRAME_TAG_LENGTH_SHIFT;
 
-	vb2_set_plane_payload(&dst_buf->b, 0,
+	vb2_set_plane_payload(&dst_buf->b.vb2_buf, 0,
 				hdr_size + ext_hdr_size + dct_size);
 }
 
@@ -429,8 +429,8 @@ void rockchip_vpu_h264e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	struct stream_s *sps = &ctx->run.h264e.sps;
 	struct stream_s *pps = &ctx->run.h264e.pps;
 
-	dst_size = vb2_plane_size(&dst_buf->b, 0);
-	dst = vb2_plane_vaddr(&dst_buf->b, 0);
+	dst_size = vb2_plane_size(&dst_buf->b.vb2_buf, 0);
+	dst = vb2_plane_vaddr(&dst_buf->b.vb2_buf, 0);
 
 	if (WARN_ON(sps_size + pps_size + slices_size > dst_size))
 		return;
@@ -441,7 +441,7 @@ void rockchip_vpu_h264e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	memcpy(dst, sps->buffer, sps_size);
 	memcpy(dst + sps_size, pps->buffer, pps_size);
 
-	vb2_set_plane_payload(&dst_buf->b, 0,
+	vb2_set_plane_payload(&dst_buf->b.vb2_buf, 0,
 			      sps_size + pps_size + slices_size);
 }
 
