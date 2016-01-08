@@ -45,7 +45,7 @@ MODULE_PARM_DESC(debug,
  */
 
 int rockchip_vpu_aux_buf_alloc(struct rockchip_vpu_dev *vpu,
-			    struct rockchip_vpu_aux_buf *buf, size_t size)
+			       struct rockchip_vpu_aux_buf *buf, size_t size)
 {
 	buf->cpu = dma_alloc_coherent(vpu->dev, size, &buf->dma, GFP_KERNEL);
 	if (!buf->cpu)
@@ -56,7 +56,7 @@ int rockchip_vpu_aux_buf_alloc(struct rockchip_vpu_dev *vpu,
 }
 
 void rockchip_vpu_aux_buf_free(struct rockchip_vpu_dev *vpu,
-			     struct rockchip_vpu_aux_buf *buf)
+			       struct rockchip_vpu_aux_buf *buf)
 {
 	dma_free_coherent(vpu->dev, buf->size, buf->cpu, buf->dma);
 
@@ -65,13 +65,95 @@ void rockchip_vpu_aux_buf_free(struct rockchip_vpu_dev *vpu,
 	buf->size = 0;
 }
 
+/* fifo write assembler */
+void fifo_packet_reset(struct fifo_s *pkt)
+{
+	pkt->index  = 0;
+	pkt->bitpos = 0;
+	pkt->bvalue = 0;
+	pkt->size   = 0;
+}
+
+void fifo_write_bits(struct fifo_s *pkt, u64 invalue, u8 lbits, const char *name)
+{
+	u8 hbits = 0;
+
+	if (!lbits)
+		return;
+
+	hbits = 64 - lbits;
+	invalue = (invalue << hbits) >> hbits;
+
+	pkt->bvalue |= invalue << pkt->bitpos;  // high bits value
+	if ((pkt->bitpos + lbits) >= 64) {
+		pkt->pbuf[pkt->index] = pkt->bvalue;
+		pkt->bvalue = invalue >> (64 - pkt->bitpos);  // low bits value
+		pkt->index++;
+	}
+	pkt->pbuf[pkt->index] = pkt->bvalue;
+	pkt->bitpos = (pkt->bitpos + lbits) & 63;
+}
+
+void fifo_align_bits(struct fifo_s *pkt, u8 align_bits)
+{
+	u32 word_offset = 0, bits_offset = 0, bitlen = 0;
+
+	word_offset = (align_bits >= 64)
+		      ? ((pkt->index & (((align_bits & 0xfe0) >> 6) - 1)) << 6)
+		      : 0;
+	bits_offset = (align_bits - (word_offset + (pkt->bitpos % align_bits)))
+		      % align_bits;
+	while (bits_offset > 0) {
+		bitlen = (bits_offset >= 8) ? 8 : bits_offset;
+		fifo_write_bits(pkt, 0, bitlen, "align");
+		bits_offset -= bitlen;
+	}
+}
+
+void fifo_write_bytes(struct fifo_s *pkt, void *psrc, u32 size)
+{
+	u8   hbits   = 0;
+	u32  bitslen = 0;
+	u8  *pdst    = NULL;
+
+	hbits = 64 - pkt->bitpos;
+	pkt->pbuf[pkt->index] = pkt->bitpos ? ((pkt->bvalue << hbits) >> hbits)
+				: 0;
+	if (size) {
+		pdst = (u8 *)&pkt->pbuf[pkt->index];
+		pdst += pkt->bitpos / 8;
+
+		memcpy(pdst, psrc, size);
+		bitslen = size * 8 + pkt->bitpos;
+
+		pkt->index += bitslen / 64;
+		pkt->bitpos = bitslen & 63;
+
+		hbits = 64 - pkt->bitpos;
+		pkt->bvalue = pkt->bitpos
+			      ? ((pkt->pbuf[pkt->index] << hbits) >> hbits) : 0;
+	}
+}
+
+void fifo_packet_init(struct fifo_s *pkt, void *p_start, s32 size)
+{
+	pkt->index  = 0;
+	pkt->bitpos = 0;
+	pkt->bvalue = 0;
+	pkt->size   = size;
+	pkt->buflen = (pkt->size + 7) / 8;
+	pkt->pbuf   = (u64 *)p_start;
+}
+
+/* int fifo_packet_alloc (struct fifo_s *pkt, s32 header, s32 size); */
+
 /*
  * bit stream assembler
  */
 
 static int stream_buffer_status(struct stream_s *stream)
 {
-	if(stream->byte_cnt + 5 > stream->size) {
+	if (stream->byte_cnt + 5 > stream->size) {
 		stream->overflow = 1;
 		return -1;
 	}
@@ -114,9 +196,12 @@ void stream_put_bits(struct stream_s *buffer, s32 value, s32 number,
 	return;
 }
 
-int stream_buffer_init(struct stream_s *buffer, s32 size)
+int stream_buffer_init(struct stream_s *buffer, u8 *stream, s32 size)
 {
-	buffer->stream = kzalloc(size, GFP_KERNEL);
+	if (stream == NULL) {
+		buffer->stream = kzalloc(size, GFP_KERNEL);
+	}
+
 	if (buffer->stream == NULL) {
 		vpu_err("allocate stream buffer failed\n");
 		return -1;
@@ -128,7 +213,7 @@ int stream_buffer_init(struct stream_s *buffer, s32 size)
 	buffer->byte_buffer = 0;
 	buffer->buffered_bits = 0;
 
-	if(stream_buffer_status(buffer) != 0)
+	if (stream_buffer_status(buffer) != 0)
 		return -1;
 
 	return 0;
@@ -162,7 +247,7 @@ static void __rockchip_vpu_dequeue_run_locked(struct rockchip_vpu_ctx *ctx)
 	ctx->run.dst = dst;
 }
 
-static struct rockchip_vpu_ctx *
+static struct rockchip_vpu_ctx*
 rockchip_vpu_encode_after_decode_war(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *dev = ctx->dev;
@@ -228,7 +313,7 @@ out:
 }
 
 static void __rockchip_vpu_try_context_locked(struct rockchip_vpu_dev *dev,
-					    struct rockchip_vpu_ctx *ctx)
+					      struct rockchip_vpu_ctx *ctx)
 {
 	if (!list_empty(&ctx->list))
 		/* Context already queued. */
@@ -239,7 +324,7 @@ static void __rockchip_vpu_try_context_locked(struct rockchip_vpu_dev *dev,
 }
 
 void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
-			 enum vb2_buffer_state result)
+			   enum vb2_buffer_state result)
 {
 	struct rockchip_vpu_dev *dev = ctx->dev;
 	unsigned long flags;
@@ -254,7 +339,7 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 		struct vb2_buffer *dst = &ctx->run.dst->b;
 
 		to_vb2_v4l2_buffer(dst)->timestamp =
-			to_vb2_v4l2_buffer(src)->timestamp;
+						     to_vb2_v4l2_buffer(src)->timestamp;
 		vb2_buffer_done(&ctx->run.src->b, result);
 		vb2_buffer_done(&ctx->run.dst->b, result);
 	}
@@ -276,7 +361,7 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 }
 
 void rockchip_vpu_try_context(struct rockchip_vpu_dev *dev,
-			    struct rockchip_vpu_ctx *ctx)
+			      struct rockchip_vpu_ctx *ctx)
 {
 	unsigned long flags;
 
@@ -301,10 +386,10 @@ void rockchip_vpu_try_context(struct rockchip_vpu_dev *dev,
 			  V4L2_CTRL_DRIVER_PRIV(x))
 
 int rockchip_vpu_ctrls_setup(struct rockchip_vpu_ctx *ctx,
-			   const struct v4l2_ctrl_ops *ctrl_ops,
-			   struct rockchip_vpu_control *controls,
-			   unsigned num_ctrls,
-			   const char *const *(*get_menu)(u32))
+			     const struct v4l2_ctrl_ops *ctrl_ops,
+			     struct rockchip_vpu_control *controls,
+			     unsigned num_ctrls,
+			     const char* const* (*get_menu)(u32))
 {
 	struct v4l2_ctrl_config cfg;
 	int i;
@@ -345,28 +430,29 @@ int rockchip_vpu_ctrls_setup(struct rockchip_vpu_ctx *ctx,
 			}
 
 			ctx->ctrls[i] = v4l2_ctrl_new_custom(
-				&ctx->ctrl_handler, &cfg, NULL);
+							     &ctx->ctrl_handler,
+							     &cfg, NULL);
 		} else {
 			if (controls[i].type == V4L2_CTRL_TYPE_MENU) {
 				ctx->ctrls[i] =
-				    v4l2_ctrl_new_std_menu
-					(&ctx->ctrl_handler,
-					 ctrl_ops,
-					 controls[i].id,
-					 controls[i].maximum,
-					 0,
-					 controls[i].
-					 default_value);
+						v4l2_ctrl_new_std_menu
+						(&ctx->ctrl_handler,
+						 ctrl_ops,
+						 controls[i].id,
+						 controls[i].maximum,
+						 0,
+						 controls[i].
+						 default_value);
 			} else {
 				ctx->ctrls[i] =
-				    v4l2_ctrl_new_std(&ctx->ctrl_handler,
-						      ctrl_ops,
-						      controls[i].id,
-						      controls[i].minimum,
-						      controls[i].maximum,
-						      controls[i].step,
-						      controls[i].
-						      default_value);
+						v4l2_ctrl_new_std(&ctx->ctrl_handler,
+								  ctrl_ops,
+								  controls[i].id,
+								  controls[i].minimum,
+								  controls[i].maximum,
+								  controls[i].step,
+								  controls[i].
+								  default_value);
 			}
 		}
 
@@ -557,7 +643,7 @@ static int rockchip_vpu_release(struct file *filp)
 }
 
 static unsigned int rockchip_vpu_poll(struct file *filp,
-				    struct poll_table_struct *wait)
+				      struct poll_table_struct *wait)
 {
 	struct rockchip_vpu_ctx *ctx = fh_to_ctx(filp->private_data);
 	struct vb2_queue *src_q, *dst_q;
@@ -578,9 +664,9 @@ static unsigned int rockchip_vpu_poll(struct file *filp,
 	if ((!vb2_is_streaming(src_q) || list_empty(&src_q->queued_list)) &&
 	    (!vb2_is_streaming(dst_q) || list_empty(&dst_q->queued_list))) {
 		vpu_debug(0, "src q streaming %d, dst q streaming %d, src list empty(%d), dst list empty(%d)\n",
-				src_q->streaming, dst_q->streaming,
-				list_empty(&src_q->queued_list),
-				list_empty(&dst_q->queued_list));
+			  src_q->streaming, dst_q->streaming,
+			  list_empty(&src_q->queued_list),
+			  list_empty(&dst_q->queued_list));
 		return POLLERR;
 	}
 
@@ -595,10 +681,10 @@ static unsigned int rockchip_vpu_poll(struct file *filp,
 
 	if (!list_empty(&src_q->done_list))
 		src_vb = list_first_entry(&src_q->done_list, struct vb2_buffer,
-						done_entry);
+					  done_entry);
 
 	if (src_vb && (src_vb->state == VB2_BUF_STATE_DONE ||
-			src_vb->state == VB2_BUF_STATE_ERROR))
+		       src_vb->state == VB2_BUF_STATE_ERROR))
 		rc |= POLLOUT | POLLWRNORM;
 
 	spin_unlock_irqrestore(&src_q->done_lock, flags);
@@ -607,10 +693,10 @@ static unsigned int rockchip_vpu_poll(struct file *filp,
 
 	if (!list_empty(&dst_q->done_list))
 		dst_vb = list_first_entry(&dst_q->done_list, struct vb2_buffer,
-						done_entry);
+					  done_entry);
 
 	if (dst_vb && (dst_vb->state == VB2_BUF_STATE_DONE ||
-			dst_vb->state == VB2_BUF_STATE_ERROR))
+		       dst_vb->state == VB2_BUF_STATE_ERROR))
 		rc |= POLLIN | POLLRDNORM;
 
 	spin_unlock_irqrestore(&dst_q->done_lock, flags);
@@ -630,7 +716,7 @@ static int rockchip_vpu_mmap(struct file *filp, struct vm_area_struct *vma)
 		vpu_debug(4, "mmaping source\n");
 
 		ret = vb2_mmap(&ctx->vq_src, vma);
-	} else {		/* capture */
+	} else {        /* capture */
 		vpu_debug(4, "mmaping destination\n");
 
 		vma->vm_pgoff -= (DST_QUEUE_OFF_BASE >> PAGE_SHIFT);
@@ -655,7 +741,7 @@ static const struct v4l2_file_operations rockchip_vpu_fops = {
  * Platform driver.
  */
 
-static void *rockchip_get_drv_data(struct platform_device *pdev);
+static void* rockchip_get_drv_data(struct platform_device *pdev);
 
 static int rockchip_vpu_probe(struct platform_device *pdev)
 {
@@ -687,7 +773,7 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 
 	dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &attrs_novm);
 	vpu->alloc_ctx = vb2_dma_contig_init_ctx_attrs(&pdev->dev,
-								&attrs_novm);
+						       &attrs_novm);
 	if (IS_ERR(vpu->alloc_ctx)) {
 		ret = PTR_ERR(vpu->alloc_ctx);
 		goto err_dma_contig;
@@ -743,8 +829,8 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 	}
 
 	v4l2_info(&vpu->v4l2_dev,
-		"Rockchip VPU encoder registered as /vpu/video%d\n",
-		vfd->num);
+		  "Rockchip VPU encoder registered as /vpu/video%d\n",
+		  vfd->num);
 
 	/* decoder */
 	vfd = video_device_alloc();
@@ -773,8 +859,8 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 	}
 
 	v4l2_info(&vpu->v4l2_dev,
-		"Rockchip VPU decoder registered as /vpu/video%d\n",
-		vfd->num);
+		  "Rockchip VPU decoder registered as /vpu/video%d\n",
+		  vfd->num);
 
 	vpu_debug_leave();
 
@@ -871,14 +957,14 @@ static const struct of_device_id of_rockchip_vpu_match[] = {
 MODULE_DEVICE_TABLE(of, of_rockchip_vpu_match);
 #endif
 
-static void *rockchip_get_drv_data(struct platform_device *pdev)
+static void* rockchip_get_drv_data(struct platform_device *pdev)
 {
 	void *driver_data = NULL;
 
 	if (pdev->dev.of_node) {
 		const struct of_device_id *match;
 		match = of_match_node(of_rockchip_vpu_match,
-				pdev->dev.of_node);
+				      pdev->dev.of_node);
 		if (match)
 			driver_data = (void *)match->data;
 	} else {
@@ -918,12 +1004,12 @@ static struct platform_driver rockchip_vpu_driver = {
 	.remove = rockchip_vpu_remove,
 	.id_table = vpu_driver_ids,
 	.driver = {
-		   .name = ROCKCHIP_VPU_NAME,
-		   .owner = THIS_MODULE,
+		.name = ROCKCHIP_VPU_NAME,
+		.owner = THIS_MODULE,
 #ifdef CONFIG_OF
-		   .of_match_table = of_match_ptr(of_rockchip_vpu_match),
+		.of_match_table = of_match_ptr(of_rockchip_vpu_match),
 #endif
-		   .pm = &rockchip_vpu_pm_ops,
+		.pm = &rockchip_vpu_pm_ops,
 	},
 };
 module_platform_driver(rockchip_vpu_driver);

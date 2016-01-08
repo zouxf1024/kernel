@@ -209,6 +209,11 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 			   enum vb2_buffer_state result);
 
+/* Run ops for rk3228 H264 decoder */
+int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264d_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_h264d_run(struct rockchip_vpu_ctx *ctx);
+
 /* Run ops for rk3228 VP8 decoder */
 int rk3228_vpu_vp8d_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_vp8d_exit(struct rockchip_vpu_ctx *ctx);

@@ -209,7 +209,7 @@ struct rockchip_vpu_dev {
 	void __iomem *dec_base;
 	struct dma_iommu_mapping *mapping;
 
-	struct mutex vpu_mutex;	/* video_device lock */
+	struct mutex vpu_mutex; /* video_device lock */
 	spinlock_t irqlock;
 	unsigned long state;
 	struct list_head ready_ctxs;
@@ -320,6 +320,17 @@ struct stream_s {
 	u32 byte_buffer; /* Byte buffer */
 	u32 buffered_bits;   /* Amount of bits in byte buffer, [0-7] */
 	s32 overflow;    /* This will signal a buffer overflow */
+};
+
+/* struct for fifo write */
+struct fifo_s {
+	u32 header;
+	u32 buflen; /* max buf length, 64bit uint */
+	u32	index; /* current uint position */
+	u64	*pbuf; /* outpacket data */
+	u64	bvalue; /* buffer value, 64 bit */
+	u8 bitpos; /* bit pos in 64bit */
+	u32	size; /* data size,except header */
 };
 
 struct rockchip_vpu_h264e_run {
@@ -505,7 +516,7 @@ extern int debug;
 #define vpu_err(fmt, args...)					\
 	pr_err("%s:%d: " fmt, __func__, __LINE__, ##args)
 
-static inline char *fmt2str(u32 fmt, char *str)
+static inline char* fmt2str(u32 fmt, char *str)
 {
 	char a = fmt & 0xFF;
 	char b = (fmt >> 8) & 0xFF;
@@ -518,18 +529,18 @@ static inline char *fmt2str(u32 fmt, char *str)
 }
 
 /* Structure access helpers. */
-static inline struct rockchip_vpu_ctx *fh_to_ctx(struct v4l2_fh *fh)
+static inline struct rockchip_vpu_ctx* fh_to_ctx(struct v4l2_fh *fh)
 {
 	return container_of(fh, struct rockchip_vpu_ctx, fh);
 }
 
-static inline struct rockchip_vpu_ctx *ctrl_to_ctx(struct v4l2_ctrl *ctrl)
+static inline struct rockchip_vpu_ctx* ctrl_to_ctx(struct v4l2_ctrl *ctrl)
 {
 	return container_of(ctrl->handler,
 			    struct rockchip_vpu_ctx, ctrl_handler);
 }
 
-static inline struct rockchip_vpu_buf *vb_to_buf(struct vb2_buffer *vb)
+static inline struct rockchip_vpu_buf* vb_to_buf(struct vb2_buffer *vb)
 {
 	return container_of(vb, struct rockchip_vpu_buf, b);
 }
@@ -548,26 +559,26 @@ rockchip_vpu_ctx_is_dummy_encode(struct rockchip_vpu_ctx *ctx)
 }
 
 int rockchip_vpu_ctrls_setup(struct rockchip_vpu_ctx *ctx,
-			   const struct v4l2_ctrl_ops *ctrl_ops,
-			   struct rockchip_vpu_control *controls,
-			   unsigned num_ctrls,
-			   const char *const *(*get_menu)(u32));
+			     const struct v4l2_ctrl_ops *ctrl_ops,
+			     struct rockchip_vpu_control *controls,
+			     unsigned num_ctrls,
+			     const char* const* (*get_menu)(u32));
 void rockchip_vpu_ctrls_delete(struct rockchip_vpu_ctx *ctx);
 
 void rockchip_vpu_try_context(struct rockchip_vpu_dev *dev,
-			    struct rockchip_vpu_ctx *ctx);
+			      struct rockchip_vpu_ctx *ctx);
 
 void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
-			 enum vb2_buffer_state result);
+			   enum vb2_buffer_state result);
 
 int rockchip_vpu_aux_buf_alloc(struct rockchip_vpu_dev *vpu,
-			    struct rockchip_vpu_aux_buf *buf, size_t size);
+			       struct rockchip_vpu_aux_buf *buf, size_t size);
 void rockchip_vpu_aux_buf_free(struct rockchip_vpu_dev *vpu,
-			     struct rockchip_vpu_aux_buf *buf);
+			       struct rockchip_vpu_aux_buf *buf);
 
 /* Register accessors. */
 static inline void vepu_write_relaxed(struct rockchip_vpu_dev *vpu,
-				       u32 val, u32 reg)
+				      u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel_relaxed(val, vpu->enc_base + reg);
@@ -588,7 +599,7 @@ static inline u32 vepu_read(struct rockchip_vpu_dev *vpu, u32 reg)
 }
 
 static inline void vdpu_write_relaxed(struct rockchip_vpu_dev *vpu,
-				       u32 val, u32 reg)
+				      u32 val, u32 reg)
 {
 	vpu_debug(6, "MARK: set reg[%03d]: %08x\n", reg / 4, val);
 	writel_relaxed(val, vpu->dec_base + reg);
@@ -610,6 +621,14 @@ static inline u32 vdpu_read(struct rockchip_vpu_dev *vpu, u32 reg)
 
 void stream_put_bits(struct stream_s *buffer, s32 value, s32 number,
 		     const char *name);
-int stream_buffer_init(struct stream_s *buffer, s32 size);
+int stream_buffer_init(struct stream_s *buffer, u8 *stream, s32 size);
+
+void fifo_packet_reset(struct fifo_s *pkt);
+void fifo_write_bits(struct fifo_s *pkt, u64 invalue,
+		     u8 lbits, const char *name);
+void fifo_align_bits(struct fifo_s *pkt, u8 align_bits);
+void fifo_write_bytes(struct fifo_s *pkt, void *psrc, u32 size);
+void fifo_packet_init(struct fifo_s *pkt, void *p_start, s32 size);
+/* int fifo_packet_alloc (struct fifo_s *pkt, s32 header, s32 size); */
 
 #endif /* ROCKCHIP_VPU_COMMON_H_ */

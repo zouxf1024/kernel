@@ -1,4 +1,3 @@
-
 /*
  * Rockchip VPU codec driver
  *
@@ -30,180 +29,379 @@
 /* Max. number of DPB pictures supported by hardware. */
 #define RK3228_VPU_H264_NUM_DPB		16
 
-#define RKV_ALIGN(x, a)         (((x)+(a)-1)&~((a)-1))
+#define RKV_ALIGN(x, a)			(((x) + (a) - 1) & ~((a) - 1))
 
 /* Size with u32 units. */
-#define RKV_CABAC_INIT_BUFFER_SIZE      (460 * 8)
-#define RKV_POC_BUFFER_SIZE             (34)
-#define RKV_RPS_SIZE                    (128)
-#define RKV_SPSPPS_SIZE                 (256 * 32)
-#define RKV_SCALING_LIST_SIZE           (6 * 16 + 2 * 64)
+#define RKV_CABAC_INIT_BUFFER_SIZE	(460 * 8)
+#define RKV_POC_BUFFER_SIZE		(34)
+#define RKV_RPS_SIZE			(128)
+#define RKV_SPSPPS_SIZE			(256 * 32)
+#define RKV_SCALING_LIST_SIZE		(6 * 16 + 2 * 64)
+#define RKV_ERROR_INFO_SIZE		(256*144*4)
 
 /* Data structure describing auxilliary buffer format. */
 struct rk3228_vpu_h264d_priv_tbl {
-	u32 cabac_table[RKV_CABAC_INIT_BUFFER_SIZE];
-	u32 scaling_list[RKV_SCALING_LIST_SIZE];
-    u32 rps[RKV_RPS_SIZE];
+	u8 cabac_table[RKV_CABAC_INIT_BUFFER_SIZE];
+	u8 scaling_list[RKV_SCALING_LIST_SIZE];
+	u8 rps[RKV_RPS_SIZE];
+	u8 pps[RKV_SPSPPS_SIZE];
+	u8 err_info[RKV_ERROR_INFO_SIZE];
 };
 
 /* Constant CABAC table. */
 static const u32 h264_cabac_table[] = {
-	0x3602f114, 0xf1144a03, 0x4a033602, 0x68e97fe4, 0x36ff35fa, 0x21173307,
-    0x00150217, 0x31000901, 0x390576db, 0x41f54ef3, 0x310c3e01, 0x321149fc,
-    0x2b094012, 0x431a001d, 0x68095a10, 0x68ec7fd2, 0x4ef34301, 0x3e0141f5,
-    0x5fef56fa, 0x2d093dfa, 0x51fa45fd, 0x370660f5, 0x56fb4307, 0x3a005802,
-    0x5ef64cfd, 0x45043605, 0x580051fd, 0x4afb43f9, 0x50fb4afc, 0x3a0148f9,
-    0x3f002900, 0x3f003f00, 0x560453f7, 0x48f96100, 0x3e03290d, 0x4efc2d00,
-    0x7ee560fd, 0x65e762e4, 0x52e443e9, 0x53f05eec, 0x5beb6eea, 0x5df366ee,
-    0x5cf97fe3, 0x60f959fb, 0x2efd6cf3, 0x39ff41ff, 0x4afd5df7, 0x57f85cf7,
-    0x36057ee9, 0x3b063c06, 0x30ff4506, 0x45fc4400, 0x55fe58f8, 0x4bff4efa,
-    0x36024df9, 0x44fd3205, 0x2a063201, 0x3f0151fc, 0x430046fc, 0x4cfe3902,
-    0x4004230b, 0x230b3d01, 0x180c1912, 0x240d1d0d, 0x49f95df6, 0x2e0d49fe,
-    0x64f93109, 0x35023509, 0x3dfe3505, 0x38003800, 0x3cfb3ff3, 0x39043eff,
-    0x390445fa, 0x3304270e, 0x4003440d, 0x3f093d01, 0x27103207, 0x34042c05,
-    0x3cfb300b, 0x3b003bff, 0x2c052116, 0x4eff2b0e, 0x45093c00, 0x28021c0b,
-    0x31002c03, 0x2c022e00, 0x2f003302, 0x3e022704, 0x36002e06, 0x3a023603,
-    0x33063f04, 0x35073906, 0x37063406, 0x240e2d0b, 0x52ff3508, 0x4efd3707,
-    0x1f162e0f, 0x071954ff, 0x031cf91e, 0x0020041c, 0x061eff22, 0x0920061e,
-    0x1b1a131f, 0x14251e1a, 0x4611221c, 0x3b054301, 0x1e104309, 0x23122012,
-    0x1f181d16, 0x2b122617, 0x3f0b2914, 0x40093b09, 0x59fe5eff, 0x4cfa6cf7,
-    0x2d002cfe, 0x40fd3400, 0x46fc3bfe, 0x52f84bfc, 0x4df766ef, 0x2a001803,
-    0x37003000, 0x47f93bfa, 0x57f553f4, 0x3a0177e2, 0x24ff1dfd, 0x2b022601,
-    0x3a0037fa, 0x4afd4000, 0x46005af6, 0x1f051dfc, 0x3b012a07, 0x48fd3afe,
-    0x61f551fd, 0x05083a00, 0x120e0e0a, 0x28021b0d, 0x46fd3a00, 0x55f84ffa,
-    0x6af30000, 0x57f66af0, 0x6eee72eb, 0x6eea62f2, 0x67ee6aeb, 0x6ce96beb,
-    0x60f670e6, 0x5bfb5ff4, 0x5eea5df7, 0x430956fb, 0x55f650fc, 0x3c0746ff,
-    0x3d053a09, 0x320f320c, 0x36113112, 0x2e07290a, 0x310733ff, 0x29093408,
-    0x37022f06, 0x2c0a290d, 0x35053206, 0x3f04310d, 0x45fe4006, 0x46063bfe,
-    0x1f092c0a, 0x35032b0c, 0x260a220e, 0x280d34fd, 0x2c072011, 0x320d2607,
-    0x2b1a390a, 0x0e0b0b0e, 0x0b120b09, 0xfe170915, 0xf120f120, 0xe927eb22,
-    0xe129df2a, 0xf426e42e, 0xe82d1d15, 0xe630d335, 0xed2bd541, 0x091ef627,
-    0x1b141a12, 0x52f23900, 0x61ed4bfb, 0x001b7ddd, 0xfc1f001c, 0x0822061b,
-    0x16180a1e, 0x20161321, 0x29151f1a, 0x2f172c1a, 0x470e4110, 0x3f063c08,
-    0x18154111, 0x171a1417, 0x171c201b, 0x2817181c, 0x1d1c2018, 0x39132a17,
-    0x3d163516, 0x280c560b, 0x3b0e330b, 0x47f94ffc, 0x46f745fb, 0x44f642f8,
-    0x45f449ed, 0x43f146f0, 0x46ed3eec, 0x41ea42f0, 0xfe093fec, 0xf721f71a,
-    0xfe29f927, 0x0931032d, 0x3b241b2d, 0x23f942fa, 0x2df82af9, 0x38f430fb,
-    0x3efb3cfa, 0x4cf842f8, 0x51fa55fb, 0x51f94df6, 0x49ee50ef, 0x53f64afc,
-    0x43f747f7, 0x42f83dff, 0x3b0042f2, 0xf3153b02, 0xf927f221, 0x0233fe2e,
-    0x113d063c, 0x3e2a2237, 0x00000000, 0x00000000, 0x3602f114, 0xf1144a03,
-    0x4a033602, 0x68e97fe4, 0x36ff35fa, 0x19163307, 0x00100022, 0x290409fe,
-    0x410276e3, 0x4ff347fa, 0x32093405, 0x360a46fd, 0x1613221a, 0x02390028,
-    0x451a2429, 0x65f17fd3, 0x47fa4cfc, 0x34054ff3, 0x5af34506, 0x2b083400,
-    0x52fb45fe, 0x3b0260f6, 0x57fd4b02, 0x380164fd, 0x55fa4afd, 0x51fd3b00,
-    0x5ffb56f9, 0x4dff42ff, 0x56fe4601, 0x3d0048fb, 0x3f002900, 0x3f003f00,
-    0x560453f7, 0x48f96100, 0x3e03290d, 0x33070f0d, 0x7fd95002, 0x60ef5bee,
-    0x62dd51e6, 0x61e966e8, 0x63e877e5, 0x66ee6eeb, 0x50007fdc, 0x5ef959fb,
-    0x27005cfc, 0x54f14100, 0x49fe7fdd, 0x5bf768f4, 0x37037fe1, 0x37073807,
-    0x35fd3d08, 0x4af94400, 0x67f358f7, 0x59f75bf3, 0x4cf85cf2, 0x6ee957f4,
-    0x4ef669e8, 0x63ef70ec, 0x7fba7fb2, 0x7fd27fce, 0x4efb42fc, 0x48f847fc,
-    0x37ff3b02, 0x4bfa46f9, 0x77de59f8, 0x14204bfd, 0x7fd4161e, 0x3dfb3600,
-    0x3cff3a00, 0x43f83dfd, 0x4af254e7, 0x340541fb, 0x3d003902, 0x46f545f7,
-    0x47fc3712, 0x3d073a00, 0x19122909, 0x2b052009, 0x2c002f09, 0x2e023300,
-    0x42fc2613, 0x2a0c260f, 0x59002209, 0x1c0a2d04, 0xf5211f0a, 0x0f12d534,
-    0xea23001c, 0x0022e726, 0xf420ee27, 0x0000a266, 0xfc21f138, 0xfb250a1d,
-    0xf727e333, 0xc645de34, 0xfb2cc143, 0xe3370720, 0x00000120, 0xe721241b,
-    0xe424e222, 0xe526e426, 0xf023ee22, 0xf820f222, 0x0023fa25, 0x121c0a1e,
-    0x291d191a, 0x48024b00, 0x230e4d08, 0x23111f12, 0x2d111e15, 0x2d122a14,
-    0x36101a1b, 0x38104207, 0x430a490b, 0x70e974f6, 0x3df947f1, 0x42fb3500,
-    0x50f74df5, 0x57f654f7, 0x65eb7fde, 0x35fb27fd, 0x4bf53df9, 0x5bef4df1,
-    0x6fe76be7, 0x4cf57ae4, 0x34f62cf6, 0x3af739f6, 0x45f948f0, 0x4afb45fc,
-    0x420256f7, 0x200122f7, 0x34051f0b, 0x43fe37fe, 0x59f84900, 0x04073403,
-    0x0811080a, 0x25031310, 0x49fb3dff, 0x4efc46ff, 0x7eeb0000, 0x6eec7ce9,
-    0x7ce77ee6, 0x79e569ef, 0x66ef75e5, 0x74e575e6, 0x5ff67adf, 0x5ff864f2,
-    0x72e46fef, 0x50fe59fa, 0x55f752fc, 0x48ff51f8, 0x43014005, 0x45003809,
-    0x45074501, 0x43fa45f9, 0x40fe4df0, 0x43fa3d02, 0x390240fd, 0x42fd41fd,
-    0x33093e00, 0x47fe42ff, 0x46ff4bfe, 0x3c0e48f7, 0x2f002510, 0x250b2312,
-    0x290a290c, 0x290c3002, 0x3b00290d, 0x28133203, 0x32124203, 0xfa12fa13,
-    0xf41a000e, 0xe721f01f, 0xe425ea21, 0xe22ae227, 0xdc2dd62f, 0xef29de31,
-    0xb9450920, 0xc042c13f, 0xd936b64d, 0xf629dd34, 0xff280024, 0x1a1c0e1e,
-    0x370c2517, 0xdf25410b, 0xdb28dc27, 0xdf2ee226, 0xe828e22a, 0xf426e331,
-    0xfd26f628, 0x141ffb2e, 0x2c191e1d, 0x310b300c, 0x16162d1a, 0x151b1617,
-    0x1c1a1421, 0x221b181e, 0x27192a12, 0x460c3212, 0x470e3615, 0x2019530b,
-    0x36153115, 0x51fa55fb, 0x51f94df6, 0x49ee50ef, 0x53f64afc, 0x43f747f7,
-    0x42f83dff, 0x3b0042f2, 0xf6113b02, 0xf72af320, 0x0035fb31, 0x0a440340,
-    0x392f1b42, 0x180047fb, 0x2afe24ff, 0x39f734fe, 0x41fc3ffa, 0x52f943fc,
-    0x4cfd51fd, 0x4efa48f9, 0x44f248f4, 0x4cfa46fd, 0x3efb42fb, 0x3dfc3900,
-    0x36013cf7, 0xf6113a02, 0xf72af320, 0x0035fb31, 0x0a440340, 0x392f1b42,
-    0x00000000, 0x00000000, 0x3602f114, 0xf1144a03, 0x4a033602, 0x68e97fe4,
-    0x36ff35fa, 0x101d3307, 0x000e0019, 0x3efd33f6, 0x101a63e5, 0x66e855fc,
-    0x39063905, 0x390e49ef, 0x0a142814, 0x0036001d, 0x610c2a25, 0x75ea7fe0,
-    0x55fc4afe, 0x390566e8, 0x58f25dfa, 0x37042cfa, 0x67f159f5, 0x391374eb,
-    0x54043a14, 0x3f016006, 0x6af355fb, 0x4b063f05, 0x65ff5afd, 0x4ffc3703,
-    0x61f44bfe, 0x3c0132f9, 0x3f002900, 0x3f003f00, 0x560453f7, 0x48f96100,
-    0x3e03290d, 0x58f72207, 0x7fdc7fec, 0x5ff25bef, 0x56e754e7, 0x5bef59f4,
-    0x4cf27fe1, 0x5af367ee, 0x500b7fdb, 0x54024c05, 0x37fa4e05, 0x53f23d04,
-    0x4ffb7fdb, 0x5bf568f5, 0x41007fe2, 0x48004ffe, 0x38fa5cfc, 0x47f84403,
-    0x56fc62f3, 0x52fb58f4, 0x43fc48fd, 0x59f048f8, 0x3bff45f7, 0x39044205,
-    0x47fe47fc, 0x4aff3a02, 0x45ff2cfc, 0x33f93e00, 0x2afa2ffc, 0x35fa29fd,
-    0x4ef74c08, 0x340953f5, 0x5afb4300, 0x48f14301, 0x50f84bfb, 0x40eb53eb,
-    0x40e71ff3, 0x4b095ee3, 0x4af83f11, 0x1bfe23fb, 0x41035b0d, 0x4d0845f9,
-    0x3e0342f6, 0x51ec44fd, 0x07011e00, 0x4aeb17fd, 0x7ce94210, 0xee2c2511,
-    0x7feade32, 0x2a002704, 0x1d0b2207, 0x25061f08, 0x28032a07, 0x2b0d2108,
-    0x2f04240d, 0x3a023703, 0x2c083c06, 0x2a0e2c0b, 0x38043007, 0x250d3404,
-    0x3a133109, 0x2d0c300a, 0x21144500, 0xee233f08, 0xfd1ce721, 0x001b0a18,
-    0xd434f222, 0x1113e827, 0x1d24191f, 0x0f222118, 0x4916141e, 0x1f132214,
-    0x10132c1b, 0x240f240f, 0x15191c15, 0x0c1f141e, 0x2a18101b, 0x380e5d00,
-    0x261a390f, 0x73e87fe8, 0x3ef752ea, 0x3b003500, 0x59f355f2, 0x5cf55ef3,
-    0x64eb7fe3, 0x43f439f2, 0x4df647f5, 0x58f055eb, 0x62f168e9, 0x52f67fdb,
-    0x3df830f8, 0x46f942f8, 0x4ff64bf2, 0x5cf453f7, 0x4ffc6cee, 0x4bf045ea,
-    0x3a013afe, 0x53f74ef3, 0x63f351fc, 0x26fa51f3, 0x3afa3ef3, 0x49f03bfe,
-    0x56f34cf6, 0x57f653f7, 0x7fea0000, 0x78e77fe7, 0x72ed7fe5, 0x76e775e9,
-    0x71e875e6, 0x78e176e4, 0x5ef67cdb, 0x63f666f1, 0x7fce6af3, 0x39115cfb,
-    0x5ef356fb, 0x4dfe5bf4, 0x49ff4700, 0x51f94004, 0x390f4005, 0x44004301,
-    0x440143f6, 0x40024d00, 0x4efb4400, 0x3b053707, 0x360e4102, 0x3c052c0f,
-    0x4cfe4602, 0x460c56ee, 0x46f44005, 0x3805370b, 0x41024500, 0x36054afa,
-    0x4cfa3607, 0x4dfe52f5, 0x2a194dfe, 0xf710f311, 0xeb1bf411, 0xd829e225,
-    0xd130d72a, 0xd82ee027, 0xd72ecd34, 0xed2bd934, 0xc93d0b20, 0xce3ed238,
-    0xec2dbd51, 0x0f1cfe23, 0x01270122, 0x2614111e, 0x360f2d12, 0xf0244f00,
-    0xef25f225, 0x0f220120, 0x19180f1d, 0x101f1622, 0x1c1f1223, 0x1c242921,
-    0x3e152f1b, 0x1a131f12, 0x17181824, 0x1e18101b, 0x29161d1f, 0x3c102a16,
-    0x3c0e340f, 0x7bf04e03, 0x38163515, 0x21153d19, 0x3d113213, 0x4af84efd,
-    0x48f648f7, 0x47f44bee, 0x46fb3ff5, 0x48f24bef, 0x35f843f0, 0x34f73bf2,
-    0xfe0944f5, 0xfc1ff61e, 0x0721ff21, 0x17250c1f, 0x4014261f, 0x25f947f7,
-    0x31f52cf8, 0x3bf438f6, 0x43f73ff8, 0x4ff644fa, 0x4af84efd, 0x48f648f7,
-    0x47f44bee, 0x46fb3ff5, 0x48f24bef, 0x35f843f0, 0x34f73bf2, 0xfe0944f5,
-    0xfc1ff61e, 0x0721ff21, 0x17250c1f, 0x4014261f, 0x00000000, 0x00000000,
-    0x3602f114, 0xf1144a03, 0x4a033602, 0x68e97fe4, 0x36ff35fa, 0x00003307,
-    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-    0x3f002900, 0x3f003f00, 0x560453f7, 0x48f96100, 0x3e03290d, 0x37010b00,
-    0x7fef4500, 0x520066f3, 0x6beb4af9, 0x7fe17fe5, 0x5fee7fe8, 0x72eb7fe5,
-    0x7bef7fe2, 0x7af073f4, 0x3ff473f5, 0x54f144fe, 0x46fd68f3, 0x5af65df8,
-    0x4aff7fe2, 0x5bf961fa, 0x38fc7fec, 0x4cf952fb, 0x5df97dea, 0x4dfd57f5,
-    0x3ffc47fb, 0x54f444fc, 0x41f93ef9, 0x38053d08, 0x400142fe, 0x4efe3d00,
-    0x34073201, 0x2c00230a, 0x2d01260b, 0x2c052e00, 0x3301111f, 0x131c3207,
-    0x3e0e2110, 0x64f16cf3, 0x5bf365f3, 0x58f65ef4, 0x56f654f0, 0x57f353f9,
-    0x46015eed, 0x4afb4800, 0x66f83b12, 0x5f0064f1, 0x48024bfc, 0x47fd4bf5,
-    0x45f32e0f, 0x41003e00, 0x48f12515, 0x36103909, 0x480c3e00, 0x090f0018,
-    0x120d1908, 0x130d090f, 0x120c250a, 0x21141d06, 0x2d041e0f, 0x3e003a01,
-    0x260c3d07, 0x270f2d0b, 0x2c0d2a0b, 0x290c2d10, 0x221e310a, 0x370a2a12,
-    0x2e113311, 0xed1a5900, 0xef1aef16, 0xec1ce71e, 0xe525e921, 0xe428e921,
-    0xf521ef26, 0xfa29f128, 0x11290126, 0x031bfa1e, 0xf025161a, 0xf826fc23,
-    0x0325fd26, 0x002a0526, 0x16271023, 0x251b300e, 0x440c3c15, 0x47fd6102,
-    0x32fb2afa, 0x3efe36fd, 0x3f013a00, 0x4aff48fe, 0x43fb5bf7, 0x27fd1bfb,
-    0x2e002cfe, 0x44f840f0, 0x4dfa4ef6, 0x5cf456f6, 0x3cf637f1, 0x41fc3efa,
-    0x4cf849f4, 0x58f750f9, 0x61f56eef, 0x4ff554ec, 0x4afc49fa, 0x60f356f3,
-    0x75ed61f5, 0x21fb4ef8, 0x35fe30fc, 0x47f33efd, 0x56f44ff6, 0x61f25af3,
-    0x5dfa0000, 0x4ff854fa, 0x47ff4200, 0x3cfe3e00, 0x4bfb3bfe, 0x3afc3efd,
-    0x4fff42f7, 0x44034700, 0x3ef92c0a, 0x280e240f, 0x1d0c1b10, 0x24142c01,
-    0x2a052012, 0x3e0a3001, 0x40092e11, 0x61f568f4, 0x58f960f0, 0x55f955f8,
-    0x58f355f7, 0x4dfd4204, 0x4cfa4cfd, 0x4cff3a0a, 0x63f953ff, 0x5f025ff2,
-    0x4afb4c00, 0x4bf54600, 0x41004401, 0x3e0349f2, 0x44ff3e04, 0x370b4bf3,
-    0x460c4005, 0x1306060f, 0x0e0c1007, 0x0b0d0d12, 0x100f0f0d, 0x170d170c,
-    0x1a0e140f, 0x28112c0e, 0x11182f11, 0x16191515, 0x1d161b1f, 0x320e2313,
-    0x3f07390a, 0x52fc4dfe, 0x45095efd, 0xdd246df4, 0xe620de24, 0xe02ce225,
-    0xf122ee22, 0xf921f128, 0x0021fb23, 0x0d210226, 0x3a0d2317, 0x001afd1d,
-    0xf91f1e16, 0xfd22f123, 0xff240322, 0x0b200522, 0x0c220523, 0x1d1e0b27,
-    0x271d1a22, 0x151f4213, 0x32191f1f, 0x70ec78ef, 0x55f572ee, 0x59f25cf1,
-    0x51f147e6, 0x440050f2, 0x38e846f2, 0x32e844e9, 0xf3174af5, 0xf128f31a,
-    0x032cf231, 0x222c062d, 0x52133621, 0x17ff4bfd, 0x2b012201, 0x37fe3600,
-    0x40013d00, 0x5cf74400, 0x61f36af2, 0x5af45af1, 0x49f658ee, 0x56f24ff7,
-    0x46f649f6, 0x42fb45f6, 0x3afb40f7, 0xf6153b02, 0xf81cf518, 0x031dff1c,
-    0x1423091d, 0x430e241d,
+	0x14f10236, 0x034a14f1, 0x0236034a, 0xe47fe968, 0xfa35ff36, 0x07330000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+	0x0029003f, 0x003f003f, 0xf7530456, 0x0061f948, 0x0d29033e, 0x000b0137,
+	0x0045ef7f, 0xf3660052, 0xf94aeb6b, 0xe57fe17f, 0xe87fee5f, 0xe57feb72,
+	0xe27fef7b, 0xf473f07a, 0xf573f43f, 0xfe44f154, 0xf368fd46, 0xf85df65a,
+	0xe27fff4a, 0xfa61f95b, 0xec7ffc38, 0xfb52f94c, 0xea7df95d, 0xf557fd4d,
+	0xfb47fc3f, 0xfc44f454, 0xf93ef941, 0x083d0538, 0xfe420140, 0x003dfe4e,
+	0x01320734, 0x0a23002c, 0x0b26012d, 0x002e052c, 0x1f110133, 0x07321c13,
+	0x10210e3e, 0xf36cf164, 0xf365f35b, 0xf45ef658, 0xf054f656, 0xf953f357,
+	0xed5e0146, 0x0048fb4a, 0x123bf866, 0xf164005f, 0xfc4b0248, 0xf54bfd47,
+	0x0f2ef345, 0x003e0041, 0x1525f148, 0x09391036, 0x003e0c48, 0x18000f09,
+	0x08190d12, 0x0f090d13, 0x0a250c12, 0x061d1421, 0x0f1e042d, 0x013a003e,
+	0x073d0c26, 0x0b2d0f27, 0x0b2a0d2c, 0x102d0c29, 0x0a311e22, 0x122a0a37,
+	0x1133112e, 0x00591aed, 0x16ef1aef, 0x1ee71cec, 0x21e925e5, 0x21e928e4,
+	0x26ef21f5, 0x28f129fa, 0x26012911, 0x1efa1b03, 0x1a1625f0, 0x23fc26f8,
+	0x26fd2503, 0x26052a00, 0x23102716, 0x0e301b25, 0x153c0c44, 0x0261fd47,
+	0xfa2afb32, 0xfd36fe3e, 0x003a013f, 0xfe48ff4a, 0xf75bfb43, 0xfb1bfd27,
+	0xfe2c002e, 0xf040f844, 0xf64efa4d, 0xf656f45c, 0xf137f63c, 0xfa3efc41,
+	0xf449f84c, 0xf950f758, 0xef6ef561, 0xec54f54f, 0xfa49fc4a, 0xf356f360,
+	0xf561ed75, 0xf84efb21, 0xfc30fe35, 0xfd3ef347, 0xf64ff456, 0xf35af261,
+	0x0000fa5d, 0xfa54f84f, 0x0042ff47, 0x003efe3c, 0xfe3bfb4b, 0xfd3efc3a,
+	0xf742ff4f, 0x00470344, 0x0a2cf93e, 0x0f240e28, 0x101b0c1d, 0x012c1424,
+	0x1220052a, 0x01300a3e, 0x112e0940, 0xf468f561, 0xf060f958, 0xf855f955,
+	0xf755f358, 0x0442fd4d, 0xfd4cfa4c, 0x0a3aff4c, 0xff53f963, 0xf25f025f,
+	0x004cfb4a, 0x0046f54b, 0x01440041, 0xf249033e, 0x043eff44, 0xf34b0b37,
+	0x05400c46, 0x0f060613, 0x07100c0e, 0x120d0d0b, 0x0d0f0f10, 0x0c170d17,
+	0x0f140e1a, 0x0e2c1128, 0x112f1811, 0x15151916, 0x1f1b161d, 0x13230e32,
+	0x0a39073f, 0xfe4dfc52, 0xfd5e0945, 0xf46d24dd, 0x24de20e6, 0x25e22ce0,
+	0x22ee22f1, 0x28f121f9, 0x23fb2100, 0x2602210d, 0x17230d3a, 0x1dfd1a00,
+	0x161e1ff9, 0x23f122fd, 0x220324ff, 0x2205200b, 0x2305220c, 0x270b1e1d,
+	0x221a1d27, 0x13421f15, 0x1f1f1932, 0xef78ec70, 0xee72f555, 0xf15cf259,
+	0xe647f151, 0xf2500044, 0xf246e838, 0xe944e832, 0xf54a17f3, 0x1af328f1,
+	0x31f22c03, 0x2d062c22, 0x21361352, 0xfd4bff17, 0x0122012b, 0x0036fe37,
+	0x003d0140, 0x0044f75c, 0xf26af361, 0xf15af45a, 0xee58f649, 0xf74ff256,
+	0xf649f646, 0xf645fb42, 0xf740fb3a, 0x023b15f6, 0x18f51cf8, 0x1cff1d03,
+	0x1d092314, 0x1d240e43, 0x14f10236, 0x034a14f1, 0x0236034a, 0xe47fe968,
+	0xfa35ff36, 0x07331721, 0x17021500, 0x01090031, 0xdb760539, 0xf34ef541,
+	0x013e0c31, 0xfc491132, 0x1240092b, 0x1d001a43, 0x105a0968, 0xd27fec68,
+	0x0143f34e, 0xf541013e, 0xfa56ef5f, 0xfa3d092d, 0xfd45fa51, 0xf5600637,
+	0x0743fb56, 0x0258003a, 0xfd4cf65e, 0x05360445, 0xfd510058, 0xf943fb4a,
+	0xfc4afb50, 0xf948013a, 0x0029003f, 0x003f003f, 0xf7530456, 0x0061f948,
+	0x0d29033e, 0x002dfc4e, 0xfd60e57e, 0xe462e765, 0xe943e452, 0xec5ef053,
+	0xea6eeb5b, 0xee66f35d, 0xe37ff95c, 0xfb59f960, 0xf36cfd2e, 0xff41ff39,
+	0xf75dfd4a, 0xf75cf857, 0xe97e0536, 0x063c063b, 0x0645ff30, 0x0044fc45,
+	0xf858fe55, 0xfa4eff4b, 0xf94d0236, 0x0532fd44, 0x0132062a, 0xfc51013f,
+	0xfc460043, 0x0239fe4c, 0x0b230440, 0x013d0b23, 0x12190c18, 0x0d1d0d24,
+	0xf65df949, 0xfe490d2e, 0x0931f964, 0x09350235, 0x0535fe3d, 0x00380038,
+	0xf33ffb3c, 0xff3e0439, 0xfa450439, 0x0e270433, 0x0d440340, 0x013d093f,
+	0x07321027, 0x052c0434, 0x0b30fb3c, 0xff3b003b, 0x1621052c, 0x0e2bff4e,
+	0x003c0945, 0x0b1c0228, 0x032c0031, 0x002e022c, 0x0233002f, 0x0427023e,
+	0x062e0036, 0x0336023a, 0x043f0633, 0x06390735, 0x06340637, 0x0b2d0e24,
+	0x0835ff52, 0x0737fd4e, 0x0f2e161f, 0xff541907, 0x1ef91c03, 0x1c042000,
+	0x22ff1e06, 0x1e062009, 0x1f131a1b, 0x1a1e2514, 0x1c221146, 0x0143053b,
+	0x0943101e, 0x12201223, 0x161d181f, 0x1726122b, 0x14290b3f, 0x093b0940,
+	0xff5efe59, 0xf76cfa4c, 0xfe2c002d, 0x0034fd40, 0xfe3bfc46, 0xfc4bf852,
+	0xef66f74d, 0x0318002a, 0x00300037, 0xfa3bf947, 0xf453f557, 0xe277013a,
+	0xfd1dff24, 0x0126022b, 0xfa37003a, 0x0040fd4a, 0xf65a0046, 0xfc1d051f,
+	0x072a013b, 0xfe3afd48, 0xfd51f561, 0x003a0805, 0x0a0e0e12, 0x0d1b0228,
+	0x003afd46, 0xfa4ff855, 0x0000f36a, 0xf06af657, 0xeb72ee6e, 0xf262ea6e,
+	0xeb6aee67, 0xeb6be96c, 0xe670f660, 0xf45ffb5b, 0xf75dea5e, 0xfb560943,
+	0xfc50f655, 0xff46073c, 0x093a053d, 0x0c320f32, 0x12311136, 0x0a29072e,
+	0xff330731, 0x08340929, 0x062f0237, 0x0d290a2c, 0x06320535, 0x0d31043f,
+	0x0640fe45, 0xfe3b0646, 0x0a2c091f, 0x0c2b0335, 0x0e220a26, 0xfd340d28,
+	0x1120072c, 0x07260d32, 0x0a391a2b, 0x0e0b0b0e, 0x090b120b, 0x150917fe,
+	0x20f120f1, 0x22eb27e9, 0x2adf29e1, 0x2ee426f4, 0x151d2de8, 0x35d330e6,
+	0x41d52bed, 0x27f61e09, 0x121a141b, 0x0039f252, 0xfb4bed61, 0xdd7d1b00,
+	0x1c001ffc, 0x1b062208, 0x1e0a1816, 0x21131620, 0x1a1f1529, 0x1a2c172f,
+	0x10410e47, 0x083c063f, 0x11411518, 0x17141a17, 0x1b201c17, 0x1c181728,
+	0x18201c1d, 0x172a1339, 0x1635163d, 0x0b560c28, 0x0b330e3b, 0xfc4ff947,
+	0xfb45f746, 0xf842f644, 0xed49f445, 0xf046f143, 0xec3eed46, 0xf042ea41,
+	0xec3f09fe, 0x1af721f7, 0x27f929fe, 0x2d033109, 0x2d1b243b, 0xfa42f923,
+	0xf92af82d, 0xfb30f438, 0xfa3cfb3e, 0xf842f84c, 0xfb55fa51, 0xf64df951,
+	0xef50ee49, 0xfc4af653, 0xf747f743, 0xff3df842, 0xf242003b, 0x023b15f3,
+	0x21f227f9, 0x2efe3302, 0x3c063d11, 0x37222a3e, 0x14f10236, 0x034a14f1,
+	0x0236034a, 0xe47fe968, 0xfa35ff36, 0x07331619, 0x22001000, 0xfe090429,
+	0xe3760241, 0xfa47f34f, 0x05340932, 0xfd460a36, 0x1a221316, 0x28003902,
+	0x29241a45, 0xd37ff165, 0xfc4cfa47, 0xf34f0534, 0x0645f35a, 0x0034082b,
+	0xfe45fb52, 0xf660023b, 0x024bfd57, 0xfd640138, 0xfd4afa55, 0x003bfd51,
+	0xf956fb5f, 0xff42ff4d, 0x0146fe56, 0xfb48003d, 0x0029003f, 0x003f003f,
+	0xf7530456, 0x0061f948, 0x0d29033e, 0x0d0f0733, 0x0250d97f, 0xee5bef60,
+	0xe651dd62, 0xe866e961, 0xe577e863, 0xeb6eee66, 0xdc7f0050, 0xfb59f95e,
+	0xfc5c0027, 0x0041f154, 0xdd7ffe49, 0xf468f75b, 0xe17f0337, 0x07380737,
+	0x083dfd35, 0x0044f94a, 0xf758f367, 0xf35bf759, 0xf25cf84c, 0xf457e96e,
+	0xe869f64e, 0xec70ef63, 0xb27fba7f, 0xce7fd27f, 0xfc42fb4e, 0xfc47f848,
+	0x023bff37, 0xf946fa4b, 0xf859de77, 0xfd4b2014, 0x1e16d47f, 0x0036fb3d,
+	0x003aff3c, 0xfd3df843, 0xe754f24a, 0xfb410534, 0x0239003d, 0xf745f546,
+	0x1237fc47, 0x003a073d, 0x09291219, 0x0920052b, 0x092f002c, 0x0033022e,
+	0x1326fc42, 0x0f260c2a, 0x09220059, 0x042d0a1c, 0x0a1f21f5, 0x34d5120f,
+	0x1c0023ea, 0x26e72200, 0x27ee20f4, 0x66a20000, 0x38f121fc, 0x1d0a25fb,
+	0x33e327f7, 0x34de45c6, 0x43c12cfb, 0x200737e3, 0x20010000, 0x1b2421e7,
+	0x22e224e4, 0x26e426e5, 0x22ee23f0, 0x22f220f8, 0x25fa2300, 0x1e0a1c12,
+	0x1a191d29, 0x004b0248, 0x084d0e23, 0x121f1123, 0x151e112d, 0x142a122d,
+	0x1b1a1036, 0x07421038, 0x0b490a43, 0xf674e970, 0xf147f93d, 0x0035fb42,
+	0xf54df750, 0xf754f657, 0xde7feb65, 0xfd27fb35, 0xf93df54b, 0xf14def5b,
+	0xe76be76f, 0xe47af54c, 0xf62cf634, 0xf639f73a, 0xf048f945, 0xfc45fb4a,
+	0xf7560242, 0xf7220120, 0x0b1f0534, 0xfe37fe43, 0x0049f859, 0x03340704,
+	0x0a081108, 0x10130325, 0xff3dfb49, 0xff46fc4e, 0x0000eb7e, 0xe97cec6e,
+	0xe67ee77c, 0xef69e579, 0xe575ef66, 0xe675e574, 0xdf7af65f, 0xf264f85f,
+	0xef6fe472, 0xfa59fe50, 0xfc52f755, 0xf851ff48, 0x05400143, 0x09380045,
+	0x01450745, 0xf945fa43, 0xf04dfe40, 0x023dfa43, 0xfd400239, 0xfd41fd42,
+	0x003e0933, 0xff42fe47, 0xfe4bff46, 0xf7480e3c, 0x1025002f, 0x12230b25,
+	0x0c290a29, 0x02300c29, 0x0d29003b, 0x03321328, 0x03421232, 0x13fa12fa,
+	0x0e001af4, 0x1ff021e7, 0x21ea25e4, 0x27e22ae2, 0x2fd62ddc, 0x31de29ef,
+	0x200945b9, 0x3fc142c0, 0x4db636d9, 0x34dd29f6, 0x240028ff, 0x1e0e1c1a,
+	0x17250c37, 0x0b4125df, 0x27dc28db, 0x26e22edf, 0x2ae228e8, 0x31e326f4,
+	0x28f626fd, 0x2efb1f14, 0x1d1e192c, 0x0c300b31, 0x1a2d1616, 0x17161b15,
+	0x21141a1c, 0x1e181b22, 0x122a1927, 0x12320c46, 0x15360e47, 0x0b531920,
+	0x15311536, 0xfb55fa51, 0xf64df951, 0xef50ee49, 0xfc4af653, 0xf747f743,
+	0xff3df842, 0xf242003b, 0x023b11f6, 0x20f32af7, 0x31fb3500, 0x4003440a,
+	0x421b2f39, 0xfb470018, 0xff24fe2a, 0xfe34f739, 0xfa3ffc41, 0xfc43f952,
+	0xfd51fd4c, 0xf948fa4e, 0xf448f244, 0xfd46fa4c, 0xfb42fb3e, 0x0039fc3d,
+	0xf73c0136, 0x023a11f6, 0x20f32af7, 0x31fb3500, 0x4003440a, 0x421b2f39,
+	0x14f10236, 0x034a14f1, 0x0236034a, 0xe47fe968, 0xfa35ff36, 0x07331d10,
+	0x19000e00, 0xf633fd3e, 0xe5631a10, 0xfc55e866, 0x05390639, 0xef490e39,
+	0x1428140a, 0x1d003600, 0x252a0c61, 0xe07fea75, 0xfe4afc55, 0xe8660539,
+	0xfa5df258, 0xfa2c0437, 0xf559f167, 0xeb741339, 0x143a0454, 0x0660013f,
+	0xfb55f36a, 0x053f064b, 0xfd5aff65, 0x0337fc4f, 0xfe4bf461, 0xf932013c,
+	0x0029003f, 0x003f003f, 0xf7530456, 0x0061f948, 0x0d29033e, 0x0722f758,
+	0xec7fdc7f, 0xef5bf25f, 0xe754e756, 0xf459ef5b, 0xe17ff24c, 0xee67f35a,
+	0xdb7f0b50, 0x054c0254, 0x054efa37, 0x043df253, 0xdb7ffb4f, 0xf568f55b,
+	0xe27f0041, 0xfe4f0048, 0xfc5cfa38, 0x0344f847, 0xf362fc56, 0xf458fb52,
+	0xfd48fc43, 0xf848f059, 0xf745ff3b, 0x05420439, 0xfc47fe47, 0x023aff4a,
+	0xfc2cff45, 0x003ef933, 0xfc2ffa2a, 0xfd29fa35, 0x084cf74e, 0xf5530934,
+	0x0043fb5a, 0x0143f148, 0xfb4bf850, 0xeb53eb40, 0xf31fe740, 0xe35e094b,
+	0x113ff84a, 0xfb23fe1b, 0x0d5b0341, 0xf945084d, 0xf642033e, 0xfd44ec51,
+	0x001e0107, 0xfd17eb4a, 0x1042e97c, 0x11252cee, 0x32deea7f, 0x0427002a,
+	0x07220b1d, 0x081f0625, 0x072a0328, 0x08210d2b, 0x0d24042f, 0x0337023a,
+	0x063c082c, 0x0b2c0e2a, 0x07300438, 0x04340d25, 0x0931133a, 0x0a300c2d,
+	0x00451421, 0x083f23ee, 0x21e71cfd, 0x180a1b00, 0x22f234d4, 0x27e81311,
+	0x1f19241d, 0x1821220f, 0x1e141649, 0x1422131f, 0x1b2c1310, 0x0f240f24,
+	0x151c1915, 0x1e141f0c, 0x1b10182a, 0x005d0e38, 0x0f391a26, 0xe87fe873,
+	0xea52f73e, 0x0035003b, 0xf255f359, 0xf35ef55c, 0xe37feb64, 0xf239f443,
+	0xf547f64d, 0xeb55f058, 0xe968f162, 0xdb7ff652, 0xf830f83d, 0xf842f946,
+	0xf24bf64f, 0xf753f45c, 0xee6cfc4f, 0xea45f04b, 0xfe3a013a, 0xf34ef753,
+	0xfc51f363, 0xf351fa26, 0xf33efa3a, 0xfe3bf049, 0xf64cf356, 0xf753f657,
+	0x0000ea7f, 0xe77fe778, 0xe57fed72, 0xe975e776, 0xe675e871, 0xe476e178,
+	0xdb7cf65e, 0xf166f663, 0xf36ace7f, 0xfb5c1139, 0xfb56f35e, 0xf45bfe4d,
+	0x0047ff49, 0x0440f951, 0x05400f39, 0x01430044, 0xf6430144, 0x004d0240,
+	0x0044fb4e, 0x0737053b, 0x02410e36, 0x0f2c053c, 0x0246fe4c, 0xee560c46,
+	0x0540f446, 0x0b370538, 0x00450241, 0xfa4a0536, 0x0736fa4c, 0xf552fe4d,
+	0xfe4d192a, 0x11f310f7, 0x11f41beb, 0x25e229d8, 0x2ad730d1, 0x27e02ed8,
+	0x34cd2ed7, 0x34d92bed, 0x200b3dc9, 0x38d23ece, 0x51bd2dec, 0x23fe1c0f,
+	0x22012701, 0x1e111426, 0x122d0f36, 0x004f24f0, 0x25f225ef, 0x2001220f,
+	0x1d0f1819, 0x22161f10, 0x23121f1c, 0x2129241c, 0x1b2f153e, 0x121f131a,
+	0x24181817, 0x1b10181e, 0x1f1d1629, 0x162a103c, 0x0f340e3c, 0x034ef07b,
+	0x15351638, 0x193d1521, 0x1332113d, 0xfd4ef84a, 0xf748f648, 0xee4bf447,
+	0xf53ffb46, 0xef4bf248, 0xf043f835, 0xf23bf734, 0xf54409fe, 0x1ef61ffc,
+	0x21ff2107, 0x1f0c2517, 0x1f261440, 0xf747f925, 0xf82cf531, 0xf638f43b,
+	0xf83ff743, 0xfa44f64f, 0xfd4ef84a, 0xf748f648, 0xee4bf447, 0xf53ffb46,
+	0xef4bf248, 0xf043f835, 0xf23bf734, 0xf54409fe, 0x1ef61ffc, 0x21ff2107,
+	0x1f0c2517, 0x1f261440,
 };
+
+static void rk3228_vpu_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
+{
+	struct fifo_s stream;
+	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
+	const struct v4l2_ctrl_h264_pps *pps = ctx->run.h264d.pps;
+	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
+	struct rk3228_vpu_h264d_priv_tbl *priv_tbl = &(ctx->hw.h264d.priv_tbl);
+	u32 scaling_distance;
+	dma_addr_t scaling_list_address;
+	u8 *hw_pps = priv_tbl->pps;
+	u32 i;
+
+	memset(hw_pps, 0, sizeof(*hw_pps) * RKV_SPSPPS_SIZE);
+	fifo_packet_init(&stream, hw_pps, RKV_SPSPPS_SIZE);
+
+	/* write sps */
+	fifo_write_bits(&stream, -1, 4, "seq_parameter_set_id");
+	fifo_write_bits(&stream, -1, 8, "profile_idc");
+	fifo_write_bits(&stream, -1, 1, "constraint_set3_flag");
+	fifo_write_bits(&stream, sps->chroma_format_idc, 2,
+			"chroma_format_idc");
+	fifo_write_bits(&stream, sps->bit_depth_luma_minus8 + 8, 3,
+			"bit_depth_luma");
+	fifo_write_bits(&stream, sps->bit_depth_chroma_minus8 + 8, 3,
+			"bit_depth_chroma");
+	fifo_write_bits(&stream, 0, 1, "qpprime_y_zero_transform_bypass_flag");
+	fifo_write_bits(&stream, sps->log2_max_frame_num_minus4, 4,
+			"log2_max_frame_num_minus4");
+	fifo_write_bits(&stream, sps->max_num_ref_frames, 5,
+			"max_num_ref_frames");
+	fifo_write_bits(&stream, sps->pic_order_cnt_type, 2,
+			"pic_order_cnt_type");
+	fifo_write_bits(&stream, sps->log2_max_pic_order_cnt_lsb_minus4, 4,
+			"log2_max_pic_order_cnt_lsb_minus4");
+	fifo_write_bits(&stream,
+			(sps->flags
+			 & V4L2_H264_SPS_FLAG_DELTA_PIC_ORDER_ALWAYS_ZERO >> 2),
+			1, "delta_pic_order_always_zero_flag");
+	fifo_write_bits(&stream, sps->pic_width_in_mbs_minus1 + 1, 9,
+			"pic_width_in_mbs");
+	fifo_write_bits(&stream, sps->pic_height_in_map_units_minus1, 9,
+			"pic_height_in_mbs");
+	fifo_write_bits(&stream,
+			((sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) >> 1),
+			1, "frame_mbs_only_flag");
+	fifo_write_bits(&stream,
+			(sps->flags
+			 & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD >> 5),
+			1, "mb_adaptive_frame_field_flag");
+	fifo_write_bits(&stream,
+			(sps->flags
+			 & V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE >> 6), 1,
+			"direct_8x8_inference_flag");
+
+	fifo_write_bits(&stream, 0, 1, "mvc_extension_enable");
+	fifo_write_bits(&stream, 0, 2, "num_views");
+	fifo_write_bits(&stream, 0, 10, "view_id[2]");
+	fifo_write_bits(&stream, 0, 10, "view_id[2]");
+	fifo_write_bits(&stream, 0, 1, "num_anchor_refs_l0");
+	fifo_write_bits(&stream, 0, 10, "anchor_ref_l0");
+	fifo_write_bits(&stream, 0, 1, "num_anchor_refs_l1");
+	fifo_write_bits(&stream, 0, 10, "anchor_ref_l1");
+	fifo_write_bits(&stream, 0, 1, "num_non_anchor_refs_l0");
+	fifo_write_bits(&stream, 0, 10, "non_anchor_ref_l0");
+	fifo_write_bits(&stream, 0, 1, "num_non_anchor_refs_l1");
+	fifo_write_bits(&stream, 0, 10, "non_anchor_ref_l1");
+
+	fifo_align_bits(&stream, 32);
+
+	/* write pps */
+	fifo_write_bits(&stream, -1, 8, "pps_pic_parameter_set_id");
+	fifo_write_bits(&stream, -1, 5, "pps_seg_parameter_set_id");
+	fifo_write_bits(&stream,
+			(pps->flags & V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE),
+			1, "entropy_coding_mode_flag");
+	fifo_write_bits(&stream,
+			(pps->flags
+			 & V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT >> 1),
+			1, "bottom_field_pic_order_in_frame_present_flag");
+	fifo_write_bits(&stream, pps->num_ref_idx_l0_default_active_minus1, 5,
+			"num_ref_idx_l0_default_active_minus1");
+	fifo_write_bits(&stream, pps->num_ref_idx_l1_default_active_minus1, 5,
+			"num_ref_idx_l1_default_active_minus1");
+	fifo_write_bits(&stream,
+			((pps->flags & V4L2_H264_PPS_FLAG_WEIGHTED_PRED) >> 2),
+			1, "weighted_pred_flag");
+	fifo_write_bits(&stream, pps->weighted_bipred_idc, 2,
+			"weighted_bipred_idc");
+	fifo_write_bits(&stream, pps->pic_init_qp_minus26, 7,
+			"pic_init_qp_minus26");
+	fifo_write_bits(&stream, pps->pic_init_qs_minus26, 6,
+			"pic_init_qs_minus26");
+	fifo_write_bits(&stream, pps->chroma_qp_index_offset, 5,
+			"chroma_qp_index_offset");
+	fifo_write_bits(&stream,
+			(pps->flags
+			 & V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT
+			 >> 3), 1, "deblocking_filter_control_present_flag");
+	fifo_write_bits(&stream,
+			(pps->flags & V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED
+			 >> 4), 1, "constrained_intra_pred_flag");
+	fifo_write_bits(&stream,
+			(pps->flags & V4L2_H264_PPS_FLAG_TRANSFORM_8X8_MODE
+			 >> 6), 1, "transform_8x8_mode_flag");
+	fifo_write_bits(&stream, pps->second_chroma_qp_index_offset, 5,
+			"second_chroma_qp_index_offset");
+	fifo_write_bits(&stream,
+			(pps->flags
+			 & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT >> 7),
+			1, "scaleing_list_enable_flag");
+
+	scaling_distance =
+		offsetof(struct rk3228_vpu_h264d_priv_tbl, scaling_list);
+
+	scaling_list_address =
+		ctx->hw.h264d.priv_tbl.dma + scaling_distance;
+	fifo_write_bits(&stream, scaling_list_address, 32,
+			"scaling_list_address");
+
+	for (i = 0; i < 16; i++)
+		fifo_write_bits(&stream,
+				(dpb->flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM
+				 ? 1 : 0), 1, "is_long_term");
+
+	for (i = 0; i < 16; i++)
+		fifo_write_bits(&stream, 0, 1, "voidx");
+
+	fifo_align_bits(&stream, 64);
+}
+
+static void rk3228_vpu_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
+{
+	struct fifo_s stream;
+	const struct v4l2_ctrl_h264_decode_param *dec_param =
+		ctx->run.h264d.decode_param;
+	const struct v4l2_ctrl_h264_slice_param *slice =
+		ctx->run.h264d.slice_param;
+	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
+	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
+
+	struct rk3228_vpu_h264d_priv_tbl *priv_tbl =
+		&(ctx->hw.h264d.priv_tbl);
+
+	u8 *hw_rps = priv_tbl->rps;
+	u32 i, j;
+
+	memset(hw_rps, 0, sizeof(*hw_rps) * RKV_RPS_SIZE);
+
+	fifo_packet_init(&stream, hw_rps, RKV_RPS_SIZE);
+
+	for (i = 0; i < 16; i++) {
+		u32 frame_num_wrap = 0;
+
+		if (dpb[i].flags) {
+			frame_num_wrap = (dpb[i].frame_num > slice->frame_num
+					  ? ((dpb[i].frame_num - 1)
+					     << (sps->log2_max_frame_num_minus4
+						 + 4))
+					  : dpb[i].frame_num);
+		}
+
+		fifo_write_bits(&stream, frame_num_wrap, 16, "frame_num_wrap");
+	}
+
+	for (i = 0; i < 16; i++)
+		fifo_write_bits(&stream, 0, 1, "NULL");
+
+	for (i = 0; i < 16; i++)
+		fifo_write_bits(&stream, 0, 1, "voidx");
+
+	for (j = 0; j < 3; j++) {
+		for (i = 0; i < 32; i++) {
+			switch (j) {
+			case 0:
+				fifo_write_bits(&stream,
+						dec_param->ref_pic_list_p0[i],
+						5, "dpb_idx");
+				break;
+			case 1:
+				fifo_write_bits(&stream,
+						dec_param->ref_pic_list_b0[i],
+						5, "dpb_idx");
+				break;
+			case 2:
+				fifo_write_bits(&stream,
+						dec_param->ref_pic_list_b1[i],
+						5, "dpb_idx");
+				break;
+			}
+			fifo_write_bits(&stream, 0, 1, "bottom_flag");
+			fifo_write_bits(&stream, 0, 1, "voidx");
+		}
+	}
+
+	fifo_align_bits(&stream, 128);
+}
 
 int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx)
 {
@@ -211,7 +409,8 @@ int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx)
 	int ret;
 
 	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264d.priv_tbl,
-				sizeof(struct rk3228_vpu_h264d_priv_tbl));
+					 sizeof(struct
+						rk3228_vpu_h264d_priv_tbl));
 	if (ret) {
 		vpu_err("allocate h264 priv_tbl failed\n");
 		return ret;
@@ -229,11 +428,7 @@ static void rk3228_vpu_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
 {
 	struct rk3228_vpu_h264d_priv_tbl *tbl = ctx->hw.h264d.priv_tbl.cpu;
 	const struct v4l2_ctrl_h264_scaling_matrix *scaling =
-						ctx->run.h264d.scaling_matrix;
-	const struct v4l2_ctrl_h264_decode_param *dec_param =
-						ctx->run.h264d.decode_param;
-	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
-	int i;
+		ctx->run.h264d.scaling_matrix;
 
 	/*
 	 * Prepare auxiliary buffer.
@@ -243,341 +438,151 @@ static void rk3228_vpu_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
 	 */
 	memcpy(tbl->cabac_table, h264_cabac_table, sizeof(h264_cabac_table));
 
-	memcpy(tbl->scaling_list, scaling, sizeof(tbl->scaling_list));
+	memcpy(tbl->scaling_list, scaling,
+	       sizeof(struct v4l2_ctrl_h264_scaling_matrix));
+
+	rk3228_vpu_h264d_assemble_hw_pps(ctx);
+	rk3228_vpu_h264d_assemble_hw_rps(ctx);
 }
 
-static void rk3228_vpu_h264d_set_params(struct rockchip_vpu_ctx *ctx)
+static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_h264_decode_param *dec_param =
-						ctx->run.h264d.decode_param;
-	const struct v4l2_ctrl_h264_slice_param *slice =
-						ctx->run.h264d.slice_param;
+		ctx->run.h264d.decode_param;
 	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
-	const struct v4l2_ctrl_h264_pps *pps = ctx->run.h264d.pps;
-    const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
+	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
 	struct rockchip_vpu_dev *vpu = ctx->dev;
+	dma_addr_t priv_start_addr = ctx->hw.h264d.priv_tbl.dma;
+	dma_addr_t rlc_addr;
+	dma_addr_t refer_addr;
+	u32 rlc_len;
+	u32 hor_virstride = 0;
+	u32 ver_virstride = 0;
+	u32 y_virstride = 0;
+	u32 yuv_virstride = 0;
+	u32 offset;
+	dma_addr_t dst_addr;
 	u32 reg, i;
 
-    reg = RKVDEC_IN_ENDIAN;
-    vdpu_write_relaxed(vpu, reg, RKVDEC_REG_SYSCTRL);
+	reg = RKVDEC_IN_ENDIAN
+		| RKVDEC_MODE(1);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_SYSCTRL);
 
-    u32 hor_virstride = 0;
-    u32 ver_virstride = 0;
-    u32 y_virstride = 0;
-    u32 yuv_virstride = 0;
+	hor_virstride = RKV_ALIGN((sps->bit_depth_luma_minus8 + 8)
+				  * ctx->dst_fmt.width, 128) / 8;
+	ver_virstride = ctx->dst_fmt.height;
+	hor_virstride = RKV_ALIGN(hor_virstride, 256) | 256;
+	ver_virstride = RKV_ALIGN(ver_virstride, 16);
+	y_virstride = hor_virstride * ver_virstride;
 
-    hor_virstride = RKV_ALIGN((sps->bit_depth_luma_minus8 + 8) * ctx->dst_fmt.width) / 8;
-    ver_virstride = ctx->dst_fmt.height;
-    hor_virstride = RKV_ALIGN(hor_virstride, 256) | 256;
-    ver_virstride = RKV_ALIGN(ver_virstride, 16);
-    y_virstride = hor_virstride * ver_virstride;
+	if (sps->chroma_format_idc == 0)
+		yuv_virstride = y_virstride;
+	else if (sps->chroma_format_idc == 1)
+		yuv_virstride += y_virstride + y_virstride / 2;
+	else if (sps->chroma_format_idc == 2)
+		yuv_virstride += 2 * y_virstride;
 
-    if (sps->chroma_format_idc == 0)
-        yuv_virstride = y_virstride;
-    else if (sps->chroma_format_idc == 1)
-        yuv_virstride += y_virstride + y_virstride / 2;
-    else if (sps->chroma_format_idc == 2)
-        yuv_virstride += 2 * y_virstride;
+	reg = RKVDEC_Y_HOR_VIRSTRIDE(hor_virstride / 16) |
+			RKVDEC_UV_HOR_VIRSTRIDE(hor_virstride / 16) |
+			RKVDEC_SLICE_NUM_HIGHBIT |
+			RKVDEC_SLICE_NUM_LOWBITS(0x7ff);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PICPAR);
 
-    reg = RKVDEC_Y_HOR_VIRSTRIDE(hor_virstride / 16) |
-        RKVDEC_UV_HOR_VIRSTRIDE(hor_virstride / 16) |
-        RKVDEC_SLICE_NUM_HIGHBIT |
-        RKVDEC_SLICE_NUM_LOWBITS(0x7ff);
-    vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PICPAR);
+	/* config rlc base address */
+	rlc_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b, 0);
+	rlc_len = vb2_plane_size(&ctx->run.src->b, 0);
 
-    /* config rlc base address */
-    reg = RKVDEC_STRM_RLC_BASE();
-    vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_RLC_BASE);
+	reg = RKVDEC_STRM_RLC_BASE(rlc_addr);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_RLC_BASE);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_RLCWRITE_BASE);
 
-    reg = RKVDEC_Y_VIRSTRIDE(y_virstride / 16);
-    vdpu_write_relaxed(vpu, reg, RKVDEC_REG_Y_VIRSTRIDE);
+	reg = RKVDEC_STRM_LEN(rlc_len);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_LEN);
 
-    reg = RKVDEC_YUV_VIRSTRIDE(yuv_virstride / 16);
-    vdpu_write_relaxed(vpu, reg, RKVDEC_REG_YUV_VIRSTRIDE);
+	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, cabac_table);
 
-    for (i = 0;i < 15;i++) {
-        reg = 0;
-        if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE ||
-            dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM) {
-            reg = RKVDEC_FIELD_REF;
-        }
+	/* config cabac table */
+	reg = RKVDEC_CABACTBL_BASE(priv_start_addr + offset);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CABACTBL_PROB_BASE);
 
-    }
-    for (i = 0; i < RK3228_VPU_H264_NUM_DPB; ++i) {
+	/* config output base address */
+	dst_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b,
+							    0);
 
-		tbl->poc[i * 2 + 0] = dpb[i].top_field_order_cnt;
-		tbl->poc[i * 2 + 1] = dpb[i].bottom_field_order_cnt;
+	reg = RKVDEC_DECOUT_BASE(dst_addr);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_DECOUT_BASE);
 
-		vpu_debug(2, "poc [%02d]: %08x %08x\n", i,
-			tbl->poc[i*2+0], tbl->poc[i*2+1]);
-	}
+	reg = RKVDEC_Y_VIRSTRIDE(y_virstride / 16);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_Y_VIRSTRIDE);
 
-	tbl->poc[32] = dec_param->top_field_order_cnt;
-	tbl->poc[33] = dec_param->bottom_field_order_cnt;
+	reg = RKVDEC_YUV_VIRSTRIDE(yuv_virstride / 16);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_YUV_VIRSTRIDE);
 
-	vpu_debug(2, "poc curr: %08x %08x\n", tbl->poc[32], tbl->poc[33]);
+	/* config ref pic address & poc */
+	for (i = 0; i < 16; i++) {
+		struct vb2_buffer *vb_buf;
 
-	/* Decoder control register 0. */
-	reg = VDPU_REG_DEC_CTRL0_DEC_AXI_WR_ID(0xff);
-	if (sps->flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD)
-		reg |= VDPU_REG_DEC_CTRL0_SEQ_MBAFF_E;
-	if (sps->profile_idc > 66)
-		reg |= VDPU_REG_DEC_CTRL0_PICORD_COUNT_E
-			| VDPU_REG_DEC_CTRL0_WRITE_MVS_E;
-	if (!(sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) &&
-	    (sps->flags & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD ||
-	     slice->flags & V4L2_SLICE_FLAG_FIELD_PIC))
-		reg |= VDPU_REG_DEC_CTRL0_PIC_INTERLACE_E;
-	if (slice->flags & V4L2_SLICE_FLAG_FIELD_PIC)
-		reg |= VDPU_REG_DEC_CTRL0_PIC_FIELDMODE_E;
-	if (!(slice->flags & V4L2_SLICE_FLAG_BOTTOM_FIELD))
-		reg |= VDPU_REG_DEC_CTRL0_PIC_TOPFIELD_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL0);
-
-	/* Decoder control register 1. */
-	reg = VDPU_REG_DEC_CTRL1_PIC_MB_WIDTH(sps->pic_width_in_mbs_minus1 + 1)
-		| VDPU_REG_DEC_CTRL1_PIC_MB_HEIGHT_P(
-			sps->pic_height_in_map_units_minus1 + 1)
-		| VDPU_REG_DEC_CTRL1_REF_FRAMES(sps->max_num_ref_frames);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL1);
-
-	/* Decoder control register 2. */
-	reg = VDPU_REG_DEC_CTRL2_CH_QP_OFFSET(pps->chroma_qp_index_offset)
-		| VDPU_REG_DEC_CTRL2_CH_QP_OFFSET2(
-			pps->second_chroma_qp_index_offset);
-	if (pps->flags & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT)
-		reg |= VDPU_REG_DEC_CTRL2_TYPE1_QUANT_E;
-	if (slice->flags &  V4L2_SLICE_FLAG_FIELD_PIC)
-		reg |= VDPU_REG_DEC_CTRL2_FIELDPIC_FLAG_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL2);
-
-	/* Decoder control register 3. */
-	reg = VDPU_REG_DEC_CTRL3_START_CODE_E
-		| VDPU_REG_DEC_CTRL3_INIT_QP(pps->pic_init_qp_minus26 + 26)
-		| VDPU_REG_DEC_CTRL3_STREAM_LEN(
-			vb2_get_plane_payload(&ctx->run.src->b, 0));
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL3);
-
-	/* Decoder control register 4. */
-	reg = VDPU_REG_DEC_CTRL4_FRAMENUM_LEN(
-			sps->log2_max_frame_num_minus4 + 4)
-		| VDPU_REG_DEC_CTRL4_FRAMENUM(slice->frame_num)
-		| VDPU_REG_DEC_CTRL4_WEIGHT_BIPR_IDC(pps->weighted_bipred_idc);
-	if (pps->flags & V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE)
-		reg |= VDPU_REG_DEC_CTRL4_CABAC_E;
-	if (sps->flags & V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE)
-		reg |= VDPU_REG_DEC_CTRL4_DIR_8X8_INFER_E;
-	if (sps->profile_idc >= 0 && sps->chroma_format_idc == 0)
-		reg |= VDPU_REG_DEC_CTRL4_BLACKWHITE_E;
-	if (pps->flags & V4L2_H264_PPS_FLAG_WEIGHTED_PRED)
-		reg |= VDPU_REG_DEC_CTRL4_WEIGHT_PRED_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL4);
-
-	/* Decoder control register 5. */
-	reg = VDPU_REG_DEC_CTRL5_REFPIC_MK_LEN(
-			slice->dec_ref_pic_marking_bit_size)
-		| VDPU_REG_DEC_CTRL5_IDR_PIC_ID(slice->idr_pic_id);
-	if (pps->flags & V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED)
-		reg |= VDPU_REG_DEC_CTRL5_CONST_INTRA_E;
-	if (pps->flags & V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)
-		reg |= VDPU_REG_DEC_CTRL5_FILT_CTRL_PRES;
-	if (pps->flags & V4L2_H264_PPS_FLAG_REDUNDANT_PIC_CNT_PRESENT)
-		reg |= VDPU_REG_DEC_CTRL5_RDPIC_CNT_PRES;
-	if (pps->flags & V4L2_H264_PPS_FLAG_TRANSFORM_8X8_MODE)
-		reg |= VDPU_REG_DEC_CTRL5_8X8TRANS_FLAG_E;
-	if (dec_param->idr_pic_flag)
-		reg |= VDPU_REG_DEC_CTRL5_IDR_PIC_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL5);
-
-	/* Decoder control register 6. */
-	reg = VDPU_REG_DEC_CTRL6_PPS_ID(slice->pic_parameter_set_id)
-		| VDPU_REG_DEC_CTRL6_REFIDX0_ACTIVE(
-			pps->num_ref_idx_l0_default_active_minus1 + 1)
-		| VDPU_REG_DEC_CTRL6_REFIDX1_ACTIVE(
-			pps->num_ref_idx_l1_default_active_minus1 + 1)
-		| VDPU_REG_DEC_CTRL6_POC_LENGTH(slice->pic_order_cnt_bit_size);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_DEC_CTRL6);
-
-	/* Error concealment register. */
-	vdpu_write_relaxed(vpu, 0, VDPU_REG_ERR_CONC);
-
-	/* Prediction filter tap register. */
-	vdpu_write_relaxed(vpu, VDPU_REG_PRED_FLT_PRED_BC_TAP_0_0(1)
-				| VDPU_REG_PRED_FLT_PRED_BC_TAP_0_1(-5 & 0x3ff)
-				| VDPU_REG_PRED_FLT_PRED_BC_TAP_0_2(20),
-				VDPU_REG_PRED_FLT);
-
-	/* Reference picture buffer control register. */
-	vdpu_write_relaxed(vpu, 0, VDPU_REG_REF_BUF_CTRL);
-
-	/* Reference picture buffer control register 2. */
-	vdpu_write_relaxed(vpu, VDPU_REG_REF_BUF_CTRL2_APF_THRESHOLD(8),
-				VDPU_REG_REF_BUF_CTRL2);
-}
-
-
-static void rk3228_vpu_h264d_set_ref(struct rockchip_vpu_ctx *ctx)
-{
-	const struct v4l2_ctrl_h264_decode_param *dec_param =
-						ctx->run.h264d.decode_param;
-	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
-	const u8 *dpb_map = ctx->run.h264d.dpb_map;
-	struct rockchip_vpu_dev *vpu = ctx->dev;
-	u32 dpb_longterm = 0;
-	u32 dpb_valid = 0;
-	int reg_num;
-	u32 reg;
-	int i;
-
-	/*
-	 * Set up bit maps of valid and long term DPBs.
-	 * NOTE: The bits are reversed, i.e. MSb is DPB 0.
-	 */
-	for (i = 0; i < RK3228_VPU_H264_NUM_DPB; ++i) {
-		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE)
-			dpb_valid |= BIT(RK3228_VPU_H264_NUM_DPB - 1 - i);
-
-		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
-			dpb_longterm |= BIT(RK3228_VPU_H264_NUM_DPB - 1 - i);
-	}
-	vdpu_write_relaxed(vpu, dpb_valid << 16, VDPU_REG_VALID_REF);
-	vdpu_write_relaxed(vpu, dpb_longterm << 16, VDPU_REG_LT_REF);
-
-	/*
-	 * Set up reference frame picture numbers.
-	 *
-	 * Each VDPU_REG_REF_PIC(x) register contains numbers of two
-	 * subsequential reference pictures.
-	 */
-	for (i = 0; i < RK3228_VPU_H264_NUM_DPB; i += 2) {
-		reg = 0;
-
-		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
-			reg |= VDPU_REG_REF_PIC_REFER0_NBR(dpb[i].pic_num);
-		else
-			reg |= VDPU_REG_REF_PIC_REFER0_NBR(dpb[i].frame_num);
-
-		if (dpb[i + 1].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
-			reg |= VDPU_REG_REF_PIC_REFER1_NBR(dpb[i + 1].pic_num);
-		else
-			reg |= VDPU_REG_REF_PIC_REFER1_NBR(
-					dpb[i + 1].frame_num);
-
-		vdpu_write_relaxed(vpu, reg, VDPU_REG_REF_PIC(i / 2));
-	}
-
-	/*
-	 * Each VDPU_REG_BD_REF_PIC(x) register contains three entries
-	 * of each forward and backward picture list.
-	 */
-	reg_num = 0;
-	for (i = 0; i < 15; i += 3) {
-		reg = VDPU_REG_BD_REF_PIC_BINIT_RLIST_F0(
-				dpb_map[dec_param->ref_pic_list_b0[i + 0]])
-			| VDPU_REG_BD_REF_PIC_BINIT_RLIST_F1(
-				dpb_map[dec_param->ref_pic_list_b0[i + 1]])
-			| VDPU_REG_BD_REF_PIC_BINIT_RLIST_F2(
-				dpb_map[dec_param->ref_pic_list_b0[i + 2]])
-			| VDPU_REG_BD_REF_PIC_BINIT_RLIST_B0(
-				dpb_map[dec_param->ref_pic_list_b1[i + 0]])
-			| VDPU_REG_BD_REF_PIC_BINIT_RLIST_B1(
-				dpb_map[dec_param->ref_pic_list_b1[i + 1]])
-			| VDPU_REG_BD_REF_PIC_BINIT_RLIST_B2(
-				dpb_map[dec_param->ref_pic_list_b1[i + 2]]);
-		vdpu_write_relaxed(vpu, reg, VDPU_REG_BD_REF_PIC(reg_num++));
-	}
-
-	/*
-	 * VDPU_REG_BD_P_REF_PIC register contains last entries (index 15)
-	 * of forward and backward reference picture lists and first 4 entries
-	 * of P forward picture list.
-	 */
-	reg = VDPU_REG_BD_P_REF_PIC_BINIT_RLIST_F15(
-			dpb_map[dec_param->ref_pic_list_b0[15]])
-		| VDPU_REG_BD_P_REF_PIC_BINIT_RLIST_B15(
-			dpb_map[dec_param->ref_pic_list_b1[15]])
-		| VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F0(
-			dpb_map[dec_param->ref_pic_list_p0[0]])
-		| VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F1(
-			dpb_map[dec_param->ref_pic_list_p0[1]])
-		| VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F2(
-			dpb_map[dec_param->ref_pic_list_p0[2]])
-		| VDPU_REG_BD_P_REF_PIC_PINIT_RLIST_F3(
-			dpb_map[dec_param->ref_pic_list_p0[3]]);
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_BD_P_REF_PIC);
-
-	/*
-	 * Each VDPU_REG_FWD_PIC(x) register contains six consecutive
-	 * entries of P forward picture list, starting from index 4.
-	 */
-	reg_num = 0;
-	for (i = 4; i < RK3228_VPU_H264_NUM_DPB; i += 6) {
-		reg = VDPU_REG_FWD_PIC_PINIT_RLIST_F0(
-				dpb_map[dec_param->ref_pic_list_p0[i + 0]])
-			| VDPU_REG_FWD_PIC_PINIT_RLIST_F1(
-				dpb_map[dec_param->ref_pic_list_p0[i + 1]])
-			| VDPU_REG_FWD_PIC_PINIT_RLIST_F2(
-				dpb_map[dec_param->ref_pic_list_p0[i + 2]])
-			| VDPU_REG_FWD_PIC_PINIT_RLIST_F3(
-				dpb_map[dec_param->ref_pic_list_p0[i + 3]])
-			| VDPU_REG_FWD_PIC_PINIT_RLIST_F4(
-				dpb_map[dec_param->ref_pic_list_p0[i + 4]])
-			| VDPU_REG_FWD_PIC_PINIT_RLIST_F5(
-				dpb_map[dec_param->ref_pic_list_p0[i + 5]]);
-		vdpu_write_relaxed(vpu, reg, VDPU_REG_FWD_PIC(reg_num++));
-	}
-
-	/*
-	 * Set up addresses of DPB buffers.
-	 *
-	 * If a DPB entry is unused, address of current destination buffer
-	 * is used.
-	 */
-	for (i = 0; i < RK3228_VPU_H264_NUM_DPB; ++i) {
-		struct vb2_buffer *buf;
-
+		/*
+		* Set up addresses of DPB buffers.
+		*
+		    * If a DPB entry is unused, address
+		    * of current destination buffer is used.
+		*/
 		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE
-		    && dpb[i].buf_index < ctx->vq_dst.num_buffers)
-			buf = ctx->dst_bufs[dpb[i].buf_index];
-		else
-			buf = &ctx->run.dst->b;
+		    && dpb[i].buf_index < ctx->vq_dst.num_buffers) {
+			vb_buf = ctx->dst_bufs[dpb[i].buf_index];
+		} else
+			vb_buf = &ctx->run.dst->b;
 
-		vdpu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(buf, 0),
-					VDPU_REG_ADDR_REF(i));
-	}
-}
+		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
+		if (i < 15) {
+			reg = RKVDEC_BASE_REFER(refer_addr);
+			vdpu_write_relaxed(vpu, reg,
+					   RKVDEC_REG_H264_BASE_REFER(i));
 
-static void rk3228_vpu_h264d_set_buffers(struct rockchip_vpu_ctx *ctx)
-{
-	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
-	const struct v4l2_ctrl_h264_slice_param *slice =
-						ctx->run.h264d.slice_param;
-	struct rockchip_vpu_dev *vpu = ctx->dev;
-	dma_addr_t src_dma, dst_dma;
+			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
+			vdpu_write_relaxed(vpu, reg,
+					   RKVDEC_REG_H264_POC_REFER0(i));
+		} else {
+			reg = RKVDEC_BASE_REFER(refer_addr);
+			vdpu_write_relaxed(vpu, reg,
+					   RKVDEC_REG_H264_BASE_REFER15);
 
-	/* Source (stream) buffer. */
-	src_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b, 0);
-	vdpu_write_relaxed(vpu, src_dma, VDPU_REG_ADDR_STR);
-
-	/* Destination (decoded frame) buffer. */
-	dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0);
-	vdpu_write_relaxed(vpu, dst_dma, VDPU_REG_ADDR_DST);
-
-	/* Higher profiles require DMV buffer appended to reference frames. */
-	if (sps->profile_idc > 66) {
-		size_t sizeimage = ctx->dst_fmt.plane_fmt[0].sizeimage;
-		size_t mv_offset = round_up(sizeimage, 8);
-
-		if (slice->flags & V4L2_SLICE_FLAG_BOTTOM_FIELD)
-			mv_offset += 32 * MB_WIDTH(ctx->dst_fmt.width);
-
-		vdpu_write_relaxed(vpu, dst_dma + mv_offset,
-					VDPU_REG_ADDR_DIR_MV);
+			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
+			vdpu_write_relaxed(vpu, reg,
+					   RKVDEC_REG_H264_POC_REFER1(i - 15));
+		}
 	}
 
-	/* Auxiliary buffer prepared in rk3228_vpu_h264d_prepare_table(). */
-	vdpu_write_relaxed(vpu, ctx->hw.h264d.priv_tbl.dma,
-				VDPU_REG_ADDR_QTABLE);
+	/*
+	    * Since support frame mode only
+	* top_field_order_cnt is the same as bottom_field_order_cnt
+	*/
+	reg = RKVDEC_CUR_POC(dec_param->top_field_order_cnt);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CUR_POC0);
+
+	reg = RKVDEC_CUR_POC(dec_param->bottom_field_order_cnt);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CUR_POC1);
+
+	/* config hw pps address */
+	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, pps);
+	reg = RKVDEC_PPS_BASE(priv_start_addr + offset);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PPS_BASE);
+
+	/* config hw rps address */
+	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, rps);
+	reg = RKVDEC_RPS_BASE(priv_start_addr + offset);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_RPS_BASE);
+
+	reg = RKVDEC_AXI_DDR_RDATA(0);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_AXI_DDR_RDATA);
+
+	reg = RKVDEC_AXI_DDR_WDATA(0);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_AXI_DDR_WDATA);
+
+	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, err_info);
+	reg = RKVDEC_H264_ERRINFO_BASE(priv_start_addr + offset);
+	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_H264_ERRINFO_BASE);
 }
 
 void rk3228_vpu_h264d_run(struct rockchip_vpu_ctx *ctx)
@@ -590,22 +595,12 @@ void rk3228_vpu_h264d_run(struct rockchip_vpu_ctx *ctx)
 	rockchip_vpu_power_on(vpu);
 
 	/* Configure hardware registers. */
-	rk3228_vpu_h264d_set_params(ctx);
-	rk3228_vpu_h264d_set_ref(ctx);
-	rk3228_vpu_h264d_set_buffers(ctx);
+	rk3228_vpu_h264d_config_registers(ctx);
 
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
 	/* Start decoding! */
-	vdpu_write_relaxed(vpu, VDPU_REG_CONFIG_DEC_AXI_RD_ID(0xff)
-				| VDPU_REG_CONFIG_DEC_TIMEOUT_E
-				| VDPU_REG_CONFIG_DEC_OUT_ENDIAN
-				| VDPU_REG_CONFIG_DEC_STRENDIAN_E
-				| VDPU_REG_CONFIG_DEC_MAX_BURST(16)
-				| VDPU_REG_CONFIG_DEC_OUTSWAP32_E
-				| VDPU_REG_CONFIG_DEC_INSWAP32_E
-				| VDPU_REG_CONFIG_DEC_STRSWAP32_E
-				| VDPU_REG_CONFIG_DEC_CLK_GATE_E,
-				VDPU_REG_CONFIG);
-	vdpu_write(vpu, VDPU_REG_INTERRUPT_DEC_E, VDPU_REG_INTERRUPT);
+	vdpu_write_relaxed(vpu, RKVDEC_INTERRUPT_DEC_E
+			   | RKVDEC_CONFIG_DEC_CLK_GATE_E,
+			   RKVDEC_REG_INTERRUPT);
 }
