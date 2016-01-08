@@ -449,7 +449,8 @@ static int vidioc_enum_framesizes(struct file *file, void *prov,
 	return 0;
 }
 
-static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out)
+static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out,
+			   struct rockchip_vpu_dev *dev)
 {
 	struct rockchip_vpu_fmt *fmt;
 	int i, j = 0;
@@ -460,6 +461,8 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out)
 		if (out && formats[i].codec_mode != RK_VPU_CODEC_NONE)
 			continue;
 		else if (!out && formats[i].codec_mode == RK_VPU_CODEC_NONE)
+			continue;
+		else if (formats[i].vpu_type !=	dev->variant->vpu_type)
 			continue;
 
 		if (j == f->index) {
@@ -488,13 +491,17 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out)
 static int vidioc_enum_fmt_vid_cap_mplane(struct file *file, void *priv,
 					  struct v4l2_fmtdesc *f)
 {
-	return vidioc_enum_fmt(f, false);
+	struct rockchip_vpu_dev *dev = video_drvdata(file);
+
+	return vidioc_enum_fmt(f, false, dev);
 }
 
 static int vidioc_enum_fmt_vid_out_mplane(struct file *file, void *priv,
 					  struct v4l2_fmtdesc *f)
 {
-	return vidioc_enum_fmt(f, true);
+	struct rockchip_vpu_dev *dev = video_drvdata(file);
+
+	return vidioc_enum_fmt(f, true, dev);
 }
 
 static int vidioc_g_fmt(struct file *file, void *priv, struct v4l2_format *f)
