@@ -202,16 +202,16 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 
 	INIT_DELAYED_WORK(&vpu->watchdog_work, rockchip_vpu_watchdog);
 
-	vpu->aclk_vcodec = devm_clk_get(vpu->dev, "aclk_vcodec");
-	if (IS_ERR(vpu->aclk_vcodec)) {
-		dev_err(vpu->dev, "failed to get aclk_vcodec\n");
-		return PTR_ERR(vpu->aclk_vcodec);
+	vpu->aclk = devm_clk_get(vpu->dev, "aclk");
+	if (IS_ERR(vpu->aclk)) {
+		dev_err(vpu->dev, "failed to get aclk\n");
+		return PTR_ERR(vpu->aclk);
 	}
 
-	vpu->hclk_vcodec = devm_clk_get(vpu->dev, "hclk_vcodec");
-	if (IS_ERR(vpu->hclk_vcodec)) {
-		dev_err(vpu->dev, "failed to get hclk_vcodec\n");
-		return PTR_ERR(vpu->hclk_vcodec);
+	vpu->hclk = devm_clk_get(vpu->dev, "hclk");
+	if (IS_ERR(vpu->hclk)) {
+		dev_err(vpu->dev, "failed to get hclk\n");
+		return PTR_ERR(vpu->hclk);
 	}
 
 	/*
@@ -219,15 +219,15 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 	 *
 	 * VP8 encoding 1280x720@1.2Mbps 200 MHz: 39 fps, 400: MHz 77 fps
 	 */
-	clk_set_rate(vpu->aclk_vcodec, 400*1000*1000);
+	clk_set_rate(vpu->aclk, 400*1000*1000);
 
 	res = platform_get_resource(vpu->pdev, IORESOURCE_MEM, 0);
 	vpu->base = devm_ioremap_resource(vpu->dev, res);
 	if (IS_ERR(vpu->base))
 		return PTR_ERR(vpu->base);
 
-	clk_prepare_enable(vpu->aclk_vcodec);
-	clk_prepare_enable(vpu->hclk_vcodec);
+	clk_prepare_enable(vpu->aclk);
+	clk_prepare_enable(vpu->hclk);
 
 	vpu->enc_base = vpu->base + vpu->variant->enc_offset;
 	vpu->dec_base = vpu->base + vpu->variant->dec_offset;
@@ -241,6 +241,10 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 	ret = rockchip_vpu_iommu_init(vpu);
 	if (ret)
 		goto err_power;
+
+	/* rkvdec only support dec */
+	if (vpu->variant->vpu_type == RKVDEC)
+		goto skip_encoder;
 
 	irq_enc = platform_get_irq_byname(vpu->pdev, "vepu");
 	if (irq_enc <= 0) {
@@ -256,6 +260,7 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 		goto err_iommu;
 	}
 
+skip_encoder:
 	irq_dec = platform_get_irq_byname(vpu->pdev, "vdpu");
 	if (irq_dec <= 0) {
 		dev_err(vpu->dev, "could not get vdpu IRQ\n");
@@ -279,8 +284,8 @@ int rockchip_vpu_hw_probe(struct rockchip_vpu_dev *vpu)
 err_iommu:
 	rockchip_vpu_iommu_cleanup(vpu);
 err_power:
-	clk_disable_unprepare(vpu->hclk_vcodec);
-	clk_disable_unprepare(vpu->aclk_vcodec);
+	clk_disable_unprepare(vpu->hclk);
+	clk_disable_unprepare(vpu->aclk);
 
 	return ret;
 }
@@ -291,8 +296,8 @@ void rockchip_vpu_hw_remove(struct rockchip_vpu_dev *vpu)
 
 	pm_runtime_disable(vpu->dev);
 
-	clk_disable_unprepare(vpu->hclk_vcodec);
-	clk_disable_unprepare(vpu->aclk_vcodec);
+	clk_disable_unprepare(vpu->hclk);
+	clk_disable_unprepare(vpu->aclk);
 }
 
 static const struct rockchip_vpu_codec_ops mode_ops[] = {
@@ -328,14 +333,6 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.done = rockchip_vpu_run_done,
 		.reset = rk3228_vpu_dec_reset,
 	},
-    [RK3288_VPU_CODEC_H264D] = {
-		.init = rk3228_vpu_h264d_init,
-		.exit = rk3228_vpu_h264d_exit,
-		.irq = rk3228_vdpu_irq,
-		.run = rk3228_vpu_h264d_run,
-		.done = rockchip_vpu_run_done,
-		.reset = rk3228_vpu_dec_reset,
-	},
 	[RK3228_VPU_CODEC_H264E] = {
 		.init = rk3228_vpu_h264e_init,
 		.exit = rk3228_vpu_h264e_exit,
@@ -343,6 +340,22 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.run = rk3228_vpu_h264e_run,
 		.done = rk3228_vpu_h264e_done,
 		.reset = rk3228_vpu_enc_reset,
+	},
+	[RKVDEC_CODEC_VP9D] = {
+		.init = rkvdec_vp9d_init,
+		.exit = rkvdec_vp9d_exit,
+		.irq = rkvdec_irq,
+		.run = rkvdec_vp9d_run,
+		.done = rockchip_vpu_run_done,
+		.reset = rkvdec_reset,
+	},
+	[RKVDEC_CODEC_H264D] = {
+		.init = rkvdec_h264d_init,
+		.exit = rkvdec_h264d_exit,
+		.irq = rkvdec_irq,
+		.run = rkvdec_h264d_run,
+		.done = rockchip_vpu_run_done,
+		.reset = rkvdec_reset,
 	},
 };
 

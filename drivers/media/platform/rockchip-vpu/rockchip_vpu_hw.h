@@ -32,11 +32,13 @@ struct rockchip_vpu_buf;
  * @RK_VPU_NONE:	No vpu type. Used for RAW video formats.
  * @RK3288_VPU:		Vpu on rk3288 soc.
  * @RK3228_VPU:		Vpu on rk3228 soc.
+ * @RKVDEC:		Rkvdec.
  */
 enum rockchip_vpu_type {
 	RK_VPU_NONE	= -1,
 	RK3288_VPU,
 	RK3228_VPU,
+	RKVDEC,
 };
 
 /**
@@ -209,11 +211,6 @@ void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
 			   enum vb2_buffer_state result);
 
-/* Run ops for rk3228 H264 decoder */
-int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_h264d_exit(struct rockchip_vpu_ctx *ctx);
-void rk3228_vpu_h264d_run(struct rockchip_vpu_ctx *ctx);
-
 /* Run ops for rk3228 VP8 decoder */
 int rk3228_vpu_vp8d_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_vp8d_exit(struct rockchip_vpu_ctx *ctx);
@@ -226,5 +223,19 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 					struct rockchip_vpu_buf *dst_buf);
 void rockchip_vpu_h264e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 					struct rockchip_vpu_buf *dst_buf);
+
+/* Ops for rkvdec */
+int rkvdec_irq(int irq, struct rockchip_vpu_dev *vpu);
+void rkvdec_reset(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rkvdec H264 decoder */
+int rkvdec_h264d_init(struct rockchip_vpu_ctx *ctx);
+void rkvdec_h264d_exit(struct rockchip_vpu_ctx *ctx);
+void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx);
+
+/* Run ops for rkvdec VP9 decoder */
+int rkvdec_vp9d_init(struct rockchip_vpu_ctx *ctx);
+void rkvdec_vp9d_exit(struct rockchip_vpu_ctx *ctx);
+void rkvdec_vp9d_run(struct rockchip_vpu_ctx *ctx);
 
 #endif /* RK3288_VPU_HW_H_ */

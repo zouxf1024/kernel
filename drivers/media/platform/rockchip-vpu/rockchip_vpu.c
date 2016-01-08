@@ -340,8 +340,8 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 
 		to_vb2_v4l2_buffer(dst)->timestamp =
 						     to_vb2_v4l2_buffer(src)->timestamp;
-		vb2_buffer_done(&ctx->run.src->b, result);
-		vb2_buffer_done(&ctx->run.dst->b, result);
+		vb2_buffer_done(&ctx->run.src->b.vb2_buf, result);
+		vb2_buffer_done(&ctx->run.dst->b.vb2_buf, result);
 	}
 
 	dev->current_ctx = NULL;
@@ -767,7 +767,7 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 
 	ret = rockchip_vpu_hw_probe(vpu);
 	if (ret) {
-		dev_err(&pdev->dev, "vcodec_hw_probe failed\n");
+		dev_err(&pdev->dev, "rockchip_vpu_hw_probe failed\n");
 		goto err_hw_probe;
 	}
 
@@ -802,6 +802,10 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 		}
 	}
 
+	/* rkvdec only support dec */
+	if (vpu->variant->vpu_type == RKVDEC)
+		goto skip_encoder;
+
 	/* encoder */
 	vfd = video_device_alloc();
 	if (!vfd) {
@@ -832,6 +836,7 @@ static int rockchip_vpu_probe(struct platform_device *pdev)
 		  "Rockchip VPU encoder registered as /vpu/video%d\n",
 		  vfd->num);
 
+skip_encoder:
 	/* decoder */
 	vfd = video_device_alloc();
 	if (!vfd) {
@@ -937,6 +942,15 @@ static const struct rockchip_vpu_variant rk3228_vpu_variant = {
 	.dec_reg_num = 60 + 41,
 };
 
+static const struct rockchip_vpu_variant rkvdec_variant = {
+	.vpu_type = RKVDEC,
+	.name = "Rkvdec",
+	.enc_offset = 0x0,
+	.enc_reg_num = 164,
+	.dec_offset = 0x400,
+	.dec_reg_num = 60 + 41,
+};
+
 static struct platform_device_id vpu_driver_ids[] = {
 	{
 		.name = "rk3288-vpu",
@@ -944,6 +958,9 @@ static struct platform_device_id vpu_driver_ids[] = {
 	}, {
 		.name = "rk3228-vpu",
 		.driver_data = (unsigned long)&rk3228_vpu_variant,
+	}, {
+		.name = "rkvdec",
+		.driver_data = (unsigned long)&rkvdec_variant,
 	},
 	{ /* sentinel */ }
 };
@@ -954,6 +971,7 @@ MODULE_DEVICE_TABLE(platform, vpu_driver_ids);
 static const struct of_device_id of_rockchip_vpu_match[] = {
 	{ .compatible = "rockchip,rk3288-vpu", .data = &rk3288_vpu_variant, },
 	{ .compatible = "rockchip,rk3228-vpu", .data = &rk3228_vpu_variant, },
+	{ .compatible = "rockchip,rkvdec", .data = &rkvdec_variant, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, of_rockchip_vpu_match);

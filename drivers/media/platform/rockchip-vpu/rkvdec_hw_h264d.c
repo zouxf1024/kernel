@@ -24,10 +24,10 @@
 #include <linux/sort.h>
 
 #include "rockchip_vpu_hw.h"
-#include "rk3228_vpu_regs.h"
+#include "rkvdec_regs.h"
 
 /* Max. number of DPB pictures supported by hardware. */
-#define RK3228_VPU_H264_NUM_DPB		16
+#define RKVDEC_H264_NUM_DPB		16
 
 #define RKV_ALIGN(x, a)			(((x) + (a) - 1) & ~((a) - 1))
 
@@ -40,7 +40,7 @@
 #define RKV_ERROR_INFO_SIZE		(256*144*4)
 
 /* Data structure describing auxilliary buffer format. */
-struct rk3228_vpu_h264d_priv_tbl {
+struct rkvdec_h264d_priv_tbl {
 	u8 cabac_table[RKV_CABAC_INIT_BUFFER_SIZE];
 	u8 scaling_list[RKV_SCALING_LIST_SIZE];
 	u8 rps[RKV_RPS_SIZE];
@@ -206,13 +206,13 @@ static const u32 h264_cabac_table[] = {
 	0x1f0c2517, 0x1f261440,
 };
 
-static void rk3228_vpu_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
+static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 {
 	struct fifo_s stream;
 	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
 	const struct v4l2_ctrl_h264_pps *pps = ctx->run.h264d.pps;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
-	struct rk3228_vpu_h264d_priv_tbl *priv_tbl = &(ctx->hw.h264d.priv_tbl);
+	struct rkvdec_h264d_priv_tbl *priv_tbl = ctx->hw.h264d.priv_tbl.cpu;
 	u32 scaling_distance;
 	dma_addr_t scaling_list_address;
 	u8 *hw_pps = priv_tbl->pps;
@@ -318,7 +318,7 @@ static void rk3228_vpu_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 			1, "scaleing_list_enable_flag");
 
 	scaling_distance =
-		offsetof(struct rk3228_vpu_h264d_priv_tbl, scaling_list);
+		offsetof(struct rkvdec_h264d_priv_tbl, scaling_list);
 
 	scaling_list_address =
 		ctx->hw.h264d.priv_tbl.dma + scaling_distance;
@@ -336,7 +336,7 @@ static void rk3228_vpu_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 	fifo_align_bits(&stream, 64);
 }
 
-static void rk3228_vpu_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
+static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 {
 	struct fifo_s stream;
 	const struct v4l2_ctrl_h264_decode_param *dec_param =
@@ -346,8 +346,8 @@ static void rk3228_vpu_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
 
-	struct rk3228_vpu_h264d_priv_tbl *priv_tbl =
-		&(ctx->hw.h264d.priv_tbl);
+	struct rkvdec_h264d_priv_tbl *priv_tbl =
+		ctx->hw.h264d.priv_tbl.cpu;
 
 	u8 *hw_rps = priv_tbl->rps;
 	u32 i, j;
@@ -403,14 +403,14 @@ static void rk3228_vpu_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 	fifo_align_bits(&stream, 128);
 }
 
-int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx)
+int rkvdec_h264d_init(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 	int ret;
 
 	ret = rockchip_vpu_aux_buf_alloc(vpu, &ctx->hw.h264d.priv_tbl,
 					 sizeof(struct
-						rk3228_vpu_h264d_priv_tbl));
+						rkvdec_h264d_priv_tbl));
 	if (ret) {
 		vpu_err("allocate h264 priv_tbl failed\n");
 		return ret;
@@ -419,14 +419,14 @@ int rk3228_vpu_h264d_init(struct rockchip_vpu_ctx *ctx)
 	return 0;
 }
 
-void rk3228_vpu_h264d_exit(struct rockchip_vpu_ctx *ctx)
+void rkvdec_h264d_exit(struct rockchip_vpu_ctx *ctx)
 {
 	rockchip_vpu_aux_buf_free(ctx->dev, &ctx->hw.h264d.priv_tbl);
 }
 
-static void rk3228_vpu_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
+static void rkvdec_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
 {
-	struct rk3228_vpu_h264d_priv_tbl *tbl = ctx->hw.h264d.priv_tbl.cpu;
+	struct rkvdec_h264d_priv_tbl *tbl = ctx->hw.h264d.priv_tbl.cpu;
 	const struct v4l2_ctrl_h264_scaling_matrix *scaling =
 		ctx->run.h264d.scaling_matrix;
 
@@ -441,11 +441,11 @@ static void rk3228_vpu_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
 	memcpy(tbl->scaling_list, scaling,
 	       sizeof(struct v4l2_ctrl_h264_scaling_matrix));
 
-	rk3228_vpu_h264d_assemble_hw_pps(ctx);
-	rk3228_vpu_h264d_assemble_hw_rps(ctx);
+	rkvdec_h264d_assemble_hw_pps(ctx);
+	rkvdec_h264d_assemble_hw_rps(ctx);
 }
 
-static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
+static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_h264_decode_param *dec_param =
 		ctx->run.h264d.decode_param;
@@ -489,8 +489,8 @@ static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PICPAR);
 
 	/* config rlc base address */
-	rlc_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b, 0);
-	rlc_len = vb2_plane_size(&ctx->run.src->b, 0);
+	rlc_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b.vb2_buf, 0);
+	rlc_len = vb2_plane_size(&ctx->run.src->b.vb2_buf, 0);
 
 	reg = RKVDEC_STRM_RLC_BASE(rlc_addr);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_RLC_BASE);
@@ -499,14 +499,14 @@ static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	reg = RKVDEC_STRM_LEN(rlc_len);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_LEN);
 
-	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, cabac_table);
+	offset = offsetof(struct rkvdec_h264d_priv_tbl, cabac_table);
 
 	/* config cabac table */
 	reg = RKVDEC_CABACTBL_BASE(priv_start_addr + offset);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CABACTBL_PROB_BASE);
 
 	/* config output base address */
-	dst_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b,
+	dst_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf,
 							    0);
 
 	reg = RKVDEC_DECOUT_BASE(dst_addr);
@@ -532,7 +532,7 @@ static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 		    && dpb[i].buf_index < ctx->vq_dst.num_buffers) {
 			vb_buf = ctx->dst_bufs[dpb[i].buf_index];
 		} else
-			vb_buf = &ctx->run.dst->b;
+			vb_buf = &ctx->run.dst->b.vb2_buf;
 
 		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
 		if (i < 15) {
@@ -565,12 +565,12 @@ static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CUR_POC1);
 
 	/* config hw pps address */
-	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, pps);
+	offset = offsetof(struct rkvdec_h264d_priv_tbl, pps);
 	reg = RKVDEC_PPS_BASE(priv_start_addr + offset);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PPS_BASE);
 
 	/* config hw rps address */
-	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, rps);
+	offset = offsetof(struct rkvdec_h264d_priv_tbl, rps);
 	reg = RKVDEC_RPS_BASE(priv_start_addr + offset);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_RPS_BASE);
 
@@ -580,22 +580,22 @@ static void rk3228_vpu_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	reg = RKVDEC_AXI_DDR_WDATA(0);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_AXI_DDR_WDATA);
 
-	offset = offsetof(struct rk3228_vpu_h264d_priv_tbl, err_info);
+	offset = offsetof(struct rkvdec_h264d_priv_tbl, err_info);
 	reg = RKVDEC_H264_ERRINFO_BASE(priv_start_addr + offset);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_H264_ERRINFO_BASE);
 }
 
-void rk3228_vpu_h264d_run(struct rockchip_vpu_ctx *ctx)
+void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 
 	/* Prepare data in memory. */
-	rk3228_vpu_h264d_prepare_table(ctx);
+	rkvdec_h264d_prepare_table(ctx);
 
 	rockchip_vpu_power_on(vpu);
 
 	/* Configure hardware registers. */
-	rk3228_vpu_h264d_config_registers(ctx);
+	rkvdec_h264d_config_registers(ctx);
 
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 

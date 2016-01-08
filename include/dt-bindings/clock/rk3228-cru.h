@@ -55,6 +55,7 @@
 /* aclk gates */
 #define ACLK_DMAC		194
 #define ACLK_VCODEC		208
+#define ACLK_RKVDEC		209
 #define ACLK_PERI		210
 
 /* pclk gates */
@@ -88,6 +89,7 @@
 #define HCLK_SDIO		457
 #define HCLK_EMMC		459
 #define HCLK_VCODEC		476
+#define HCLK_RKVDEC		477
 #define HCLK_PERI		478
 
 #define CLK_NR_CLKS		(HCLK_PERI + 1)

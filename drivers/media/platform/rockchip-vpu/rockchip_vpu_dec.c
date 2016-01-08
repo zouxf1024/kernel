@@ -75,6 +75,20 @@ static struct rockchip_vpu_fmt formats[] = {
 		.codec_mode = RK3228_VPU_CODEC_VP8D,
 		.num_planes = 1,
 	},
+	{
+		.name = "Slices of H264 Encoded Stream",
+		.fourcc = V4L2_PIX_FMT_H264_SLICE,
+		.vpu_type = RKVDEC,
+		.codec_mode = RKVDEC_CODEC_H264D,
+		.num_planes = 1,
+	},
+	{
+		.name = "Frames of VP9 Encoded Stream",
+		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
+		.vpu_type = RKVDEC,
+		.codec_mode = RKVDEC_CODEC_VP9D,
+		.num_planes = 1,
+	},
 };
 
 static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
