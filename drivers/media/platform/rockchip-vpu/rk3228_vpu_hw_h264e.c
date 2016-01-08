@@ -763,15 +763,15 @@ static inline unsigned int ref_luma_size(unsigned int w, unsigned int h)
 static void write_ue(struct stream_s *fifo, u32 val,
 		     const char *name)
 {
-	u32 numBits = 0;
+	u32 num_bits = 0;
 
 	val++;
-	while (val >> ++numBits);
+	while (val >> ++num_bits);
 
-	if (numBits > 12) {
+	if (num_bits > 12) {
 		u32 tmp;
 
-		tmp = numBits - 1;
+		tmp = num_bits - 1;
 
 		if (tmp > 24) {
 			tmp -= 24;
@@ -780,15 +780,15 @@ static void write_ue(struct stream_s *fifo, u32 val,
 
 		stream_put_bits(fifo, 0, tmp, name);
 
-		if (numBits > 24) {
-			numBits -= 24;
-			stream_put_bits(fifo, val >> numBits, 24, name);
-			val = val >> numBits;
+		if (num_bits > 24) {
+			num_bits -= 24;
+			stream_put_bits(fifo, val >> num_bits, 24, name);
+			val = val >> num_bits;
 		}
 
-		stream_put_bits(fifo, val, numBits, name);
+		stream_put_bits(fifo, val, num_bits, name);
 	} else {
-		stream_put_bits(fifo, val, 2 * numBits - 1, name);
+		stream_put_bits(fifo, val, 2 * num_bits - 1, name);
 	}
 }
 
@@ -851,6 +851,10 @@ static int rk3228_vpu_h264e_assumble_sps(struct rockchip_vpu_ctx *ctx)
 	stream_put_bits(sps, 0, 1, "vui_parameters_present_flag");
 
 	stream_put_bits(sps, 1, 1, "rbsp_stop_one_bit");
+	if (sps->buffered_bits > 0)
+		stream_put_bits(sps, 0, 8 - sps->buffered_bits,
+				"bsp_alignment_zero_bits");
+
 
 	return 0;
 }
@@ -894,7 +898,16 @@ static int rk3228_vpu_h264e_assumble_pps(struct rockchip_vpu_ctx *ctx)
 
 	stream_put_bits(pps, 0, 1, "redundant_pic_cnt_present_flag");
 
+	if (ctx->run.h264e.params->transform8x8_mode) {
+		stream_put_bits(pps, 1, 1, "transform_8x8_mode_flag");
+		stream_put_bits(pps, 0, 1, "pic_scaling_matrix_present_flag");
+		write_se(pps, ctx->run.h264e.params->chroma_qp_index_offset,
+			 "chroma_qp_index_offset");
+	}
 	stream_put_bits(pps, 1, 1, "rbsp_stop_one_bit");
+	if (pps->buffered_bits > 0)
+		stream_put_bits(pps, 0, 8 - pps->buffered_bits,
+				"bsp_alignment_zero_bits");
 
 	return 0;
 }
@@ -965,7 +978,7 @@ static void rk3228_vpu_h264e_set_buffers(struct rockchip_vpu_dev *vpu,
 	size_t rounded_size;
 	dma_addr_t dst_dma;
 
-	dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b, 0) +
+	dst_dma = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0) +
 		ctx->run.h264e.hw_write_offset;
 
 	vepu_write_relaxed(vpu, dst_dma, VEPU_REG_ADDR_OUTPUT_STREAM);
@@ -1173,12 +1186,9 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB2YUV_CONVERSION_COEF3);
 	vepu_write_relaxed(vpu, 0, VEPU_REG_RGB_MASK_MSB);
 
-	diff_mv_penalty[0] =
-		h264_diff_mv_penalty4p[params->qp];
-	diff_mv_penalty[1] =
-		h264_diff_mv_penalty[params->qp];
-	diff_mv_penalty[2] =
-		h264_diff_mv_penalty[params->qp];
+	diff_mv_penalty[0] = h264_diff_mv_penalty4p[params->qp];
+	diff_mv_penalty[1] = h264_diff_mv_penalty[params->qp];
+	diff_mv_penalty[2] = h264_diff_mv_penalty[params->qp];
 	split_penalty[0] = 0;
 	split_penalty[1] = 0;
 	split_penalty[2] = 0;
@@ -1227,14 +1237,17 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 2], 1);
 		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 3], 0);
 		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TBL(i / 4));
-	}
 
-	for (i = 0; i < 128; i += 4) {
-		reg = VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i], 3);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 1], 2);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 2], 1);
-		reg |= VEPU_REG_DMV_PENALTY_TABLE_BIT(dmv_penalty[i + 3], 0);
-		vepu_write_relaxed(vpu, reg, VEPU_REG_DMV_PENALTY_TBL(i / 4));
+		reg = VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(
+			dmv_qpel_penalty[i], 3);
+		reg |= VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(
+			dmv_qpel_penalty[i + 1], 2);
+		reg |= VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(
+			dmv_qpel_penalty[i + 2], 1);
+		reg |= VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(
+			dmv_qpel_penalty[i + 3], 0);
+		vepu_write_relaxed(vpu, reg,
+				   VEPU_REG_DMV_Q_PIXEL_PENALTY_TBL(i / 4));
 	}
 }
 

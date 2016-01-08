@@ -1032,9 +1032,9 @@ static void rockchip_vpu_stop_streaming(struct vb2_queue *q)
 
 	while (!list_empty(&queue)) {
 		b = list_first_entry(&queue, struct rockchip_vpu_buf, list);
-		for (i = 0; i < b->b.num_planes; i++)
-			vb2_set_plane_payload(&b->b, i, 0);
-		vb2_buffer_done(&b->b, VB2_BUF_STATE_ERROR);
+		for (i = 0; i < b->b.vb2_buf.num_planes; i++)
+			vb2_set_plane_payload(&b->b.vb2_buf, i, 0);
+		vb2_buffer_done(&b->b.vb2_buf, VB2_BUF_STATE_ERROR);
 		list_del(&b->list);
 	}
 
@@ -1110,7 +1110,7 @@ const struct v4l2_ioctl_ops *get_dec_v4l2_ioctl_ops(void)
 
 static void rockchip_vpu_dec_prepare_run(struct rockchip_vpu_ctx *ctx)
 {
-	struct vb2_v4l2_buffer *src = to_vb2_v4l2_buffer(&ctx->run.src->b);
+	struct vb2_v4l2_buffer *src = to_vb2_v4l2_buffer(&ctx->run.src->b.vb2_buf);
 
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, src->config_store);
 
@@ -1135,7 +1135,7 @@ static void rockchip_vpu_dec_run_done(struct rockchip_vpu_ctx *ctx,
 				    enum vb2_buffer_state result)
 {
 	struct v4l2_plane_pix_format *plane_fmts = ctx->dst_fmt.plane_fmt;
-	struct vb2_buffer *dst = &ctx->run.dst->b;
+	struct vb2_buffer *dst = &ctx->run.dst->b.vb2_buf;
 	int i;
 
 	if (result != VB2_BUF_STATE_DONE) {

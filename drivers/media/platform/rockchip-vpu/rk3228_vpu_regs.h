@@ -325,7 +325,7 @@
 #define     VEPU_REG_INTERRUPT_BIT			BIT(0)
 #define VEPU_REG_DMV_PENALTY_TBL(i)		(0x1E0 + ((i) * 0x4))
 #define     VEPU_REG_DMV_PENALTY_TABLE_BIT(x, i)        (x << i * 8)
-#define VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE(i)	(0x260 + ((i) * 0x4))
+#define VEPU_REG_DMV_Q_PIXEL_PENALTY_TBL(i)	(0x260 + ((i) * 0x4))
 #define     VEPU_REG_DMV_Q_PIXEL_PENALTY_TABLE_BIT(x, i)	(x << i * 8)
 
 /* rkvcodec registers */

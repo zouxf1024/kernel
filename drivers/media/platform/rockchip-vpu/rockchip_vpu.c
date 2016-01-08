@@ -335,8 +335,8 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 		ctx->run_ops->run_done(ctx, result);
 
 	if (!rockchip_vpu_ctx_is_dummy_encode(ctx)) {
-		struct vb2_buffer *src = &ctx->run.src->b;
-		struct vb2_buffer *dst = &ctx->run.dst->b;
+		struct vb2_buffer *src = &ctx->run.src->b.vb2_buf;
+		struct vb2_buffer *dst = &ctx->run.dst->b.vb2_buf;
 
 		to_vb2_v4l2_buffer(dst)->timestamp =
 						     to_vb2_v4l2_buffer(src)->timestamp;
@@ -873,7 +873,8 @@ err_dec_alloc:
 err_enc_reg:
 	video_device_release(vpu->vfd_enc);
 err_enc_alloc:
-	rockchip_vpu_enc_free_dummy_ctx(vpu);
+	if (vpu->variant->vpu_type == RK3288_VPU)
+		rockchip_vpu_enc_free_dummy_ctx(vpu);
 err_dummy_enc:
 	v4l2_device_unregister(&vpu->v4l2_dev);
 err_v4l2_dev_reg:
@@ -905,7 +906,8 @@ static int rockchip_vpu_remove(struct platform_device *pdev)
 
 	video_unregister_device(vpu->vfd_dec);
 	video_unregister_device(vpu->vfd_enc);
-	rockchip_vpu_enc_free_dummy_ctx(vpu);
+	if (vpu->variant->vpu_type == RK3288_VPU)
+		rockchip_vpu_enc_free_dummy_ctx(vpu);
 	v4l2_device_unregister(&vpu->v4l2_dev);
 	vb2_dma_contig_cleanup_ctx(vpu->alloc_ctx_vm);
 	vb2_dma_contig_cleanup_ctx(vpu->alloc_ctx);
