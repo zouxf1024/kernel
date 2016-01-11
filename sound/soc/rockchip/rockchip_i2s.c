@@ -23,6 +23,8 @@
 
 #define DRV_NAME "rockchip-i2s"
 
+extern int snd_dmaengine_pcm_get_caps(struct device *dev, struct dma_slave_caps *caps);
+
 struct rk_i2s_dev {
 	struct device *dev;
 
@@ -477,7 +479,7 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	struct snd_soc_dai_driver *soc_dai;
 	struct resource *res;
 	void __iomem *regs;
-	struct dma_slave_caps *dma_caps;
+	struct dma_slave_caps dma_caps;
 	int ret;
 	int val;
 
