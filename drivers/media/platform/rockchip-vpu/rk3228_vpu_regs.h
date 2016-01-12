@@ -412,11 +412,10 @@
 #define     VDPU_REG_PRED_FLT_PRED_BC_TAP_0_2(x)	(((x) & 0x3ff) << 2)
 #define VDPU_REG_ADDITIONAL_CHROMA_ADDRESS	0x0f0
 #define VDPU_REG_ADDR_QTABLE			0x0f4
-#define VDPU_REG_STANDARD_DEPENDENT_TBL_ADDR	0x0f8
-#define VDPU_REG_DIRECT_MV_ADDR			0x0fc
-#define VDPU_REG_ADDR_DST			0x100
-#define VDPU_REG_ADDR_STR			0x104
-#define VDPU_REG_REFBUF_RELATED			0x108
+#define VDPU_REG_DIRECT_MV_ADDR			0x0f8
+#define VDPU_REG_ADDR_DST			0x0fc
+#define VDPU_REG_ADDR_STR			0x100
+#define VDPU_REG_REFBUF_RELATED			0x104
 #define VDPU_REG_FWD_PIC(i)			(0x128 + ((i) * 0x4))
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F5(x)		(((x) & 0x1f) << 25)
 #define     VDPU_REG_FWD_PIC_PINIT_RLIST_F4(x)		(((x) & 0x1f) << 20)
@@ -427,7 +426,7 @@
 #define VDPU_REG_REF_PIC(i)			(0x130 + ((i) * 0x4))
 #define     VDPU_REG_REF_PIC_REFER1_NBR(x)		(((x) & 0xffff) << 16)
 #define     VDPU_REG_REF_PIC_REFER0_NBR(x)		(((x) & 0xffff) << 0)
-#define VDPU_REG_ADDR_REF(i)			(0x150 + ((i) * 0x4))
+#define VDPU_REG_H264_ADDR_REF(i)			(0x150 + ((i) * 0x4))
 #define     VDPU_REG_ADDR_REF_FIELD_E			BIT(1)
 #define     VDPU_REG_ADDR_REF_TOPC_E			BIT(0)
 #define VDPU_REG_INITIAL_REF_PIC_LIST0		0x190
@@ -506,7 +505,11 @@
 #define     VDPU_REG_DEC_CTRL5_8X8TRANS_FLAG_E		BIT(2)
 #define     VDPU_REG_DEC_CTRL2_TYPE1_QUANT_E		BIT(1)
 #define     VDPU_REG_DEC_CTRL2_FIELDPIC_FLAG_E		BIT(0)
-#define VDPU_REG_PIC_MB_EXT_SIZE		0x1e0
+#define VDPU_REG_VP8_PIC_MB_SIZE		0x1e0
+#define     VDPU_REG_DEC_PIC_MB_WIDTH(x)		(((x) & 0x1ff) << 23)
+#define	    VDPU_REG_DEC_MB_WIDTH_OFF(x)		(((x) & 0xf) << 19)
+#define	    VDPU_REG_DEC_PIC_MB_HEIGHT_P(x)		(((x) & 0xff) << 11)
+#define     VDPU_REG_DEC_MB_HEIGHT_OFF(x)		(((x) & 0xf) << 7)
 #define     VDPU_REG_DEC_CTRL1_PIC_MB_W_EXT(x)		(((x) & 0x7) << 3)
 #define     VDPU_REG_DEC_CTRL1_PIC_MB_H_EXT(x)		(((x) & 0x7) << 0)
 #define VDPU_REG_VP8_DCT_START_BIT		0x1e4
@@ -553,6 +556,7 @@
 #define     VDPU_REG_REF_PIC_QUANT_DELTA_1(x)		(((x) & 0x1f) << 22)
 #define     VDPU_REG_REF_PIC_QUANT_0(x)			(((x) & 0x7ff) << 11)
 #define     VDPU_REG_REF_PIC_QUANT_1(x)			(((x) & 0x7ff) << 0)
+#define VDPU_REG_VP8_ADDR_REF0			0x20c
 #define VDPU_REG_FILTER_MB_ADJ			0x210
 #define     VDPU_REG_REF_PIC_FILT_TYPE_E		BIT(31)
 #define     VDPU_REG_REF_PIC_FILT_SHARPNESS(x)		(((x) & 0x7) << 28)
@@ -565,6 +569,12 @@
 #define     VDPU_REG_REF_PIC_ADJ_1(x)			(((x) & 0x7f) << 14)
 #define     VDPU_REG_REF_PIC_ADJ_2(x)			(((x) & 0x7f) << 7)
 #define     VDPU_REG_REF_PIC_ADJ_3(x)			(((x) & 0x7f) << 0)
+#define VDPU_REG_VP8_ADDR_REF2_5(i)		(0x218 + ((i) * 0x4))
+#define     VDPU_REG_VP8_GREF_SIGN_BIAS			BIT(0)
+#define     VDPU_REG_VP8_AREF_SIGN_BIAS			BIT(0)
+#define VDPU_REG_VP8_DCT_BASE(i)		(0x230 + ((i) * 0x4))
+#define VDPU_REG_VP8_ADDR_CTRL_PART		0x244
+#define VDPU_REG_VP8_ADDR_REF1			0x250
 #define VDPU_REG_VP8_SEGMENT_VAL		0x254
 #define     VDPU_REG_FWD_PIC1_SEGMENT_BASE(x)		((x) << 0)
 #define     VDPU_REG_FWD_PIC1_SEGMENT_UPD_E		BIT(1)

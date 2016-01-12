@@ -59,13 +59,13 @@ struct vp8d_reg {
 /* dct partiton base address regs */
 static const struct vp8d_reg vp8d_dct_base[8] = {
 	{ VDPU_REG_ADDR_STR, 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(8), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(9), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(10), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(11), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(12), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(14), 0, 0xffffffff },
-	{ VDPU_REG_ADDR_REF(15), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(0), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(1), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(2), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(3), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(4), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(5), 0, 0xffffffff },
+	{ VDPU_REG_VP8_DCT_BASE(6), 0, 0xffffffff },
 };
 
 /* loop filter level regs */
@@ -214,25 +214,25 @@ static const struct vp8d_reg vp8d_stream_len = {
 };
 
 static const struct vp8d_reg vp8d_mb_width = {
-	.base = VDPU_REG_H264_PIC_MB_SIZE,
-	.shift = 0,
+	.base = VDPU_REG_VP8_PIC_MB_SIZE,
+	.shift = 23,
 	.mask = 0x1ff
 };
 
 static const struct vp8d_reg vp8d_mb_height = {
-	.base = VDPU_REG_H264_PIC_MB_SIZE,
-	.shift = 9,
+	.base = VDPU_REG_VP8_PIC_MB_SIZE,
+	.shift = 11,
 	.mask = 0xff
 };
 
 static const struct vp8d_reg vp8d_mb_width_ext = {
-	.base = VDPU_REG_PIC_MB_EXT_SIZE,
+	.base = VDPU_REG_VP8_PIC_MB_SIZE,
 	.shift = 3,
 	.mask = 0x7
 };
 
 static const struct vp8d_reg vp8d_mb_height_ext = {
-	.base = VDPU_REG_PIC_MB_EXT_SIZE,
+	.base = VDPU_REG_VP8_PIC_MB_SIZE,
 	.shift = 0,
 	.mask = 0x7
 };
@@ -258,6 +258,12 @@ static const struct vp8d_reg vp8d_filter_disable = {
 static const struct vp8d_reg vp8d_skip_mode = {
 	.base = VDPU_REG_DEC_CTRL0,
 	.shift = 9,
+	.mask = 1
+};
+
+static const struct vp8d_reg vp8d_start_dec = {
+	.base = VDPU_REG_EN_FLAGS,
+	.shift = 0,
 	.mask = 1
 };
 
@@ -566,7 +572,7 @@ static void rk3228_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 
 	/* mb data aligned base addr */
 	vdpu_write_relaxed(vpu, (mb_offset_bytes & (~DEC_8190_ALIGN_MASK))
-				+ src_dma, VDPU_REG_ADDR_REF(13));
+				+ src_dma, VDPU_REG_VP8_ADDR_CTRL_PART);
 
 	/* mb data start bits */
 	vp8d_reg_write(vpu, &vp8d_mb_start_bit, mb_start_bits);
@@ -594,12 +600,10 @@ static void rk3228_vp8d_cfg_parts(struct rockchip_vpu_ctx *ctx)
 
 	/* dct partition length */
 	vp8d_reg_write(vpu, &vp8d_stream_len, dct_part_total_len);
-
 	/* dct partitions base address */
 	for (i = 0; i < hdr->num_dct_parts; i++) {
 		u32 byte_offset = dct_part_offset + dct_size_part_size + count;
 		u32 base_addr = byte_offset + src_dma;
-
 		vp8d_reg_write(vpu, &vp8d_dct_base[i],
 				base_addr & (~DEC_8190_ALIGN_MASK));
 
@@ -649,10 +653,10 @@ static void rk3228_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 	if (!hdr->key_frame)
 		vdpu_write_relaxed(vpu,
 			vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0),
-			VDPU_REG_ADDR_REF(0));
+			VDPU_REG_VP8_ADDR_REF0);
 	else
 		vdpu_write_relaxed(vpu, vb2_dma_contig_plane_dma_addr(buf, 0),
-			VDPU_REG_ADDR_REF(0));
+			VDPU_REG_VP8_ADDR_REF0);
 
 	/* set golden reference frame buffer address */
 	if (hdr->golden_frame >= ctx->vq_dst.num_buffers)
@@ -662,8 +666,8 @@ static void rk3228_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 
 	reg = vb2_dma_contig_plane_dma_addr(buf, 0);
 	if (hdr->sign_bias_golden)
-		reg |= VDPU_REG_ADDR_REF_TOPC_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_ADDR_REF(4));
+		reg |= VDPU_REG_VP8_GREF_SIGN_BIAS;
+	vdpu_write_relaxed(vpu, reg, VDPU_REG_VP8_ADDR_REF2_5(2));
 
 	/* set alternate reference frame buffer address */
 	if (hdr->alt_frame >= ctx->vq_dst.num_buffers)
@@ -673,8 +677,8 @@ static void rk3228_vp8d_cfg_ref(struct rockchip_vpu_ctx *ctx)
 
 	reg = vb2_dma_contig_plane_dma_addr(buf, 0);
 	if (hdr->sign_bias_alternate)
-		reg |= VDPU_REG_ADDR_REF_TOPC_E;
-	vdpu_write_relaxed(vpu, reg, VDPU_REG_ADDR_REF(5));
+		reg |= VDPU_REG_VP8_AREF_SIGN_BIAS;
+	vdpu_write_relaxed(vpu, reg, VDPU_REG_VP8_ADDR_REF2_5(3));
 }
 
 static void rk3228_vp8d_cfg_buffers(struct rockchip_vpu_ctx *ctx)
@@ -762,6 +766,7 @@ void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx)
 	size_t width = ctx->dst_fmt.width;
 	u32 mb_width, mb_height;
 	u32 reg;
+	int i;
 
 	rk3228_vp8d_dump_hdr(ctx);
 
@@ -774,6 +779,8 @@ void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx)
 
 	rockchip_vpu_power_on(vpu);
 
+	for (i = 0; i < vpu->variant->dec_reg_num; i++)
+		vdpu_write_relaxed(vpu, 0, i * 4);
 	reg = VDPU_REG_CONFIG_DEC_TIMEOUT_E
 		| VDPU_REG_CONFIG_DEC_CLK_GATE_E;
 	if (hdr->key_frame)
@@ -827,5 +834,5 @@ void rk3228_vpu_vp8d_run(struct rockchip_vpu_ctx *ctx)
 
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
-	vdpu_write(vpu, VDPU_REG_INTERRUPT_DEC_E, VDPU_REG_INTERRUPT);
+	vp8d_reg_write(vpu, &vp8d_start_dec, 1);
 }
