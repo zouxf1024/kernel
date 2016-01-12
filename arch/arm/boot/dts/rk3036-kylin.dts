@@ -382,6 +382,18 @@
 	};
 };
 
+&lcdc {
+	status = "okay";
+};
+
+&lcdc_mmu {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
 &pinctrl {
 	pcfg_output_high: pcfg-output-high {
 		output-high;

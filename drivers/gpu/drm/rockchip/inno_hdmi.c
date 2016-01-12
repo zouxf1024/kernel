@@ -215,9 +215,12 @@ static void inno_hdmi_set_pwr_mode(struct inno_hdmi *hdmi, int mode)
 
 		inno_hdmi_sys_power(hdmi, true);
 
+		printk("--> YAKIR: %s;%d  PowerON\n", __func__, __LINE__);
 		break;
 
 	case LOWER_PWR:
+		printk("--> YAKIR: %s;%d  PowerOff\n", __func__, __LINE__);
+		break;
 		inno_hdmi_sys_power(hdmi, false);
 
 		hdmi_writeb(hdmi, HDMI_PHY_DRIVER, 0x00);
@@ -678,7 +681,7 @@ static int inno_hdmi_register(struct drm_device *drm, struct inno_hdmi *hdmi)
 
 	drm_encoder_helper_add(encoder, &inno_hdmi_encoder_helper_funcs);
 	drm_encoder_init(drm, encoder, &inno_hdmi_encoder_funcs,
-			 DRM_MODE_ENCODER_TMDS);
+			 DRM_MODE_ENCODER_TMDS, NULL);
 
 	hdmi->connector.polled = DRM_CONNECTOR_POLL_HPD;
 

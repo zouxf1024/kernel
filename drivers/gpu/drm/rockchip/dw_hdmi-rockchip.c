@@ -173,7 +173,7 @@ dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
 	return (valid) ? MODE_OK : MODE_BAD;
 }
 
-static const struct drm_encoder_funcs dw_hdmi_rockchip_encoder_funcs = {
+static struct drm_encoder_funcs dw_hdmi_rockchip_encoder_funcs = {
 	.destroy = drm_encoder_cleanup,
 };
 
@@ -215,7 +215,7 @@ static void dw_hdmi_rockchip_encoder_enable(struct drm_encoder *encoder)
 		(mux) ? "LIT" : "BIG");
 }
 
-static const struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
+static struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
 	.mode_fixup = dw_hdmi_rockchip_encoder_mode_fixup,
 	.mode_set   = dw_hdmi_rockchip_encoder_mode_set,
 	.enable     = dw_hdmi_rockchip_encoder_enable,
@@ -291,7 +291,7 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 
 	drm_encoder_helper_add(encoder, &dw_hdmi_rockchip_encoder_helper_funcs);
 	drm_encoder_init(drm, encoder, &dw_hdmi_rockchip_encoder_funcs,
-			 DRM_MODE_ENCODER_TMDS, NULL);
+			 DRM_MODE_ENCODER_TMDS);
 
 	return dw_hdmi_bind(dev, master, data, encoder, iores, irq, plat_data);
 }
