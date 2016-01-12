@@ -253,7 +253,8 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out,
 			continue;
 		else if (!out && (formats[i].codec_mode != RK_VPU_CODEC_NONE))
 			continue;
-		else if (formats[i].vpu_type != dev->variant->vpu_type)
+		else if (formats[i].vpu_type != dev->variant->vpu_type &&
+			 formats[i].vpu_type != RK_VPU_NONE)
 			continue;
 
 		if (j == f->index) {
