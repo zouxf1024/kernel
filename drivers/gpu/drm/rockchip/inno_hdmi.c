@@ -604,7 +604,7 @@ static int inno_hdmi_connector_get_modes(struct drm_connector *connector)
 {
 	struct inno_hdmi *hdmi = to_inno_hdmi(connector);
 	struct edid *edid;
-	int ret;
+	int ret = 0;
 
 	if (!hdmi->ddc)
 		return 0;
