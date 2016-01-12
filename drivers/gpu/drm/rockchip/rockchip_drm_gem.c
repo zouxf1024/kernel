@@ -29,7 +29,8 @@ static int rockchip_gem_alloc_buf(struct rockchip_gem_object *rk_obj,
 	struct drm_device *drm = obj->dev;
 
 	init_dma_attrs(&rk_obj->dma_attrs);
-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &rk_obj->dma_attrs);
+	//dma_set_attr(DMA_ATTR_WRITE_COMBINE, &rk_obj->dma_attrs);
+	dma_set_attr(DMA_ATTR_FORCE_CONTIGUOUS, &rk_obj->dma_attrs);
 
 	if (!alloc_kmap)
 		dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &rk_obj->dma_attrs);
@@ -100,6 +101,7 @@ int rockchip_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 		return ret;
 
 	obj = vma->vm_private_data;
+	vma->vm_pgoff = 0;
 
 	return rockchip_drm_gem_object_mmap(obj, vma);
 }
