@@ -937,18 +937,18 @@ static const struct rockchip_vpu_variant rk3228_vpu_variant = {
 	.vpu_type = RK3228_VPU,
 	.name = "Rk3228 vpu",
 	.enc_offset = 0x0,
-	.enc_reg_num = 164,
+	.enc_reg_num = 184,
 	.dec_offset = 0x400,
-	.dec_reg_num = 60 + 41,
+	.dec_reg_num = 159,
 };
 
 static const struct rockchip_vpu_variant rkvdec_variant = {
 	.vpu_type = RKVDEC,
 	.name = "Rkvdec",
 	.enc_offset = 0x0,
-	.enc_reg_num = 164,
-	.dec_offset = 0x400,
-	.dec_reg_num = 60 + 41,
+	.enc_reg_num = 0,
+	.dec_offset = 0x0,
+	.dec_reg_num = 77,
 };
 
 static struct platform_device_id vpu_driver_ids[] = {
