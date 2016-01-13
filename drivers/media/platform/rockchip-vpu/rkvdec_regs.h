@@ -137,9 +137,9 @@
 #define RKVDEC_VP9_HOR_VIRSTRIDE(i)                 ((i) * 0x04 + 0x094)
 #define     RKVDEC_HOR_Y_VIRSTRIDE(x)               ((x) & 0x1ff)
 #define     RKVDEC_HOR_UV_VIRSTRIDE(x)              (((x) & 0x1ff) << 16)
-#define RKVDEC_REG_H264_POC_REFER0(i)               ((i * 0x04) + 0x064)
-#define RKVDEC_REG_H264_POC_REFER1(i)               ((i * 0x04) + 0x0C4)
-#define RKVDEC_REG_H264_POC_REFER2(i)               ((i * 0x04) + 0x120)
+#define RKVDEC_REG_H264_POC_REFER0(i)               (((i) * 0x04) + 0x064)
+#define RKVDEC_REG_H264_POC_REFER1(i)               (((i) * 0x04) + 0x0C4)
+#define RKVDEC_REG_H264_POC_REFER2(i)               (((i) * 0x04) + 0x120)
 #define     RKVDEC_POC_REFER(x)                     ((x) & 0xffffffff)
 #define RKVDEC_REG_CUR_POC0                         0x0A0
 #define RKVDEC_REG_CUR_POC1                         0x128

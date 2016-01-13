@@ -32,12 +32,11 @@
 #define RKV_ALIGN(x, a)			(((x) + (a) - 1) & ~((a) - 1))
 
 /* Size with u32 units. */
-#define RKV_CABAC_INIT_BUFFER_SIZE	(460 * 8)
-#define RKV_POC_BUFFER_SIZE		(34)
-#define RKV_RPS_SIZE			(128)
-#define RKV_SPSPPS_SIZE			(256 * 32)
-#define RKV_SCALING_LIST_SIZE		(6 * 16 + 2 * 64)
-#define RKV_ERROR_INFO_SIZE		(256*144*4)
+#define RKV_CABAC_INIT_BUFFER_SIZE	(3680 + 128)
+#define RKV_RPS_SIZE			(128 + 128)
+#define RKV_SPSPPS_SIZE			(256 * 32 + 128)
+#define RKV_SCALING_LIST_SIZE		(6 * 16 + 2 * 64 + 128)
+#define RKV_ERROR_INFO_SIZE		(256 * 144 * 4)
 
 /* Data structure describing auxilliary buffer format. */
 struct rkvdec_h264d_priv_tbl {
@@ -246,10 +245,10 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 			1, "delta_pic_order_always_zero_flag");
 	fifo_write_bits(&stream, sps->pic_width_in_mbs_minus1 + 1, 9,
 			"pic_width_in_mbs");
-	fifo_write_bits(&stream, sps->pic_height_in_map_units_minus1, 9,
+	fifo_write_bits(&stream, sps->pic_height_in_map_units_minus1 + 1, 9,
 			"pic_height_in_mbs");
 	fifo_write_bits(&stream,
-			((sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) >> 1),
+			((sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) >> 4),
 			1, "frame_mbs_only_flag");
 	fifo_write_bits(&stream,
 			(sps->flags
@@ -492,9 +491,7 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	rlc_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.src->b.vb2_buf, 0);
 	rlc_len = vb2_plane_size(&ctx->run.src->b.vb2_buf, 0);
 
-	reg = RKVDEC_STRM_RLC_BASE(rlc_addr);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_RLC_BASE);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_RLCWRITE_BASE);
+	vdpu_write_relaxed(vpu, rlc_addr, RKVDEC_REG_STRM_RLC_BASE);
 
 	reg = RKVDEC_STRM_LEN(rlc_len);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_STRM_LEN);
@@ -502,15 +499,14 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	offset = offsetof(struct rkvdec_h264d_priv_tbl, cabac_table);
 
 	/* config cabac table */
-	reg = RKVDEC_CABACTBL_BASE(priv_start_addr + offset);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_CABACTBL_PROB_BASE);
+	vdpu_write_relaxed(vpu, priv_start_addr + offset,
+			   RKVDEC_REG_CABACTBL_PROB_BASE);
 
 	/* config output base address */
 	dst_addr = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf,
 							    0);
 
-	reg = RKVDEC_DECOUT_BASE(dst_addr);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_DECOUT_BASE);
+	vdpu_write_relaxed(vpu, dst_addr, RKVDEC_REG_DECOUT_BASE);
 
 	reg = RKVDEC_Y_VIRSTRIDE(y_virstride / 16);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_Y_VIRSTRIDE);
@@ -536,16 +532,14 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 
 		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
 		if (i < 15) {
-			reg = RKVDEC_BASE_REFER(refer_addr);
-			vdpu_write_relaxed(vpu, reg,
+			vdpu_write_relaxed(vpu, refer_addr,
 					   RKVDEC_REG_H264_BASE_REFER(i));
 
 			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
 			vdpu_write_relaxed(vpu, reg,
 					   RKVDEC_REG_H264_POC_REFER0(i));
 		} else {
-			reg = RKVDEC_BASE_REFER(refer_addr);
-			vdpu_write_relaxed(vpu, reg,
+			vdpu_write_relaxed(vpu, refer_addr,
 					   RKVDEC_REG_H264_BASE_REFER15);
 
 			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
@@ -566,13 +560,11 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 
 	/* config hw pps address */
 	offset = offsetof(struct rkvdec_h264d_priv_tbl, pps);
-	reg = RKVDEC_PPS_BASE(priv_start_addr + offset);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_PPS_BASE);
+	vdpu_write_relaxed(vpu, priv_start_addr + offset, RKVDEC_REG_PPS_BASE);
 
 	/* config hw rps address */
 	offset = offsetof(struct rkvdec_h264d_priv_tbl, rps);
-	reg = RKVDEC_RPS_BASE(priv_start_addr + offset);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_RPS_BASE);
+	vdpu_write_relaxed(vpu, priv_start_addr + offset, RKVDEC_REG_RPS_BASE);
 
 	reg = RKVDEC_AXI_DDR_RDATA(0);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_AXI_DDR_RDATA);
@@ -581,8 +573,8 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_AXI_DDR_WDATA);
 
 	offset = offsetof(struct rkvdec_h264d_priv_tbl, err_info);
-	reg = RKVDEC_H264_ERRINFO_BASE(priv_start_addr + offset);
-	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_H264_ERRINFO_BASE);
+	vdpu_write_relaxed(vpu, priv_start_addr + offset,
+			   RKVDEC_REG_H264_ERRINFO_BASE);
 }
 
 void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx)
@@ -597,10 +589,15 @@ void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx)
 	/* Configure hardware registers. */
 	rkvdec_h264d_config_registers(ctx);
 
+	printk("%s %d\n", __func__, __LINE__);
+
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
+
+	printk("%s %d\n", __func__, __LINE__);
 
 	/* Start decoding! */
 	vdpu_write_relaxed(vpu, RKVDEC_INTERRUPT_DEC_E
 			   | RKVDEC_CONFIG_DEC_CLK_GATE_E,
 			   RKVDEC_REG_INTERRUPT);
+	printk("%s %d\n", __func__, __LINE__);
 }
