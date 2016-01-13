@@ -20,6 +20,7 @@
 
 #include "rockchip_vpu_common.h"
 
+#include <linux/fs.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/sched.h>
@@ -39,6 +40,33 @@ int debug;
 module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug,
 		 "Debug level - higher value produces more verbose messages");
+
+#define DUMP_FILE "/tmp/vpu.out"
+
+int rockchip_vpu_write(const char *file, void *buf, size_t size)
+{
+	const char __user *p = (__force const char __user *)buf;
+	struct file *filp = filp_open(file ? file : DUMP_FILE,
+			O_CREAT | O_RDWR | O_APPEND, 0644);
+	mm_segment_t fs;
+	int ret;
+
+	if (IS_ERR(filp)) {
+		printk("open(%s) failed\n", file ? file : DUMP_FILE);
+		return -ENODEV;
+	}
+
+	fs = get_fs();
+	set_fs(KERNEL_DS);
+
+	filp->f_pos = 0;
+	ret = filp->f_op->write(filp, p, size, &filp->f_pos);
+
+	filp_close(filp, NULL);
+	set_fs(fs);
+
+	return ret;
+}
 
 /*
  * DMA coherent helpers.

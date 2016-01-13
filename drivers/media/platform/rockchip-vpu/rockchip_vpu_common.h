@@ -632,4 +632,6 @@ void fifo_write_bytes(struct fifo_s *pkt, void *psrc, u32 size);
 void fifo_packet_init(struct fifo_s *pkt, void *p_start, s32 size);
 /* int fifo_packet_alloc (struct fifo_s *pkt, s32 header, s32 size); */
 
+int rockchip_vpu_write(const char *file, void *buf, size_t size);
+
 #endif /* ROCKCHIP_VPU_COMMON_H_ */
