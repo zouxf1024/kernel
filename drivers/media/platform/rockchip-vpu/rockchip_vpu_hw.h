@@ -41,6 +41,9 @@ enum rockchip_vpu_type {
 	RKVDEC,
 };
 
+#define ROCKCHIP_VPU_MATCHES(type1, type2) \
+	(type1 == RK_VPU_NONE || type2 == RK_VPU_NONE || type1 == type2)
+
 /**
  * enum rockchip_vpu_enc_fmt - source format ID for hardware registers.
  */

@@ -101,8 +101,10 @@ static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
 	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (formats[i].fourcc != fourcc)
 			continue;
-		if (bitstream && formats[i].codec_mode != RK_VPU_CODEC_NONE
-				&& formats[i].vpu_type == dev->variant->vpu_type)
+		if (!ROCKCHIP_VPU_MATCHES(formats[i].vpu_type,
+					dev->variant->vpu_type))
+			continue;
+		if (bitstream && formats[i].codec_mode != RK_VPU_CODEC_NONE)
 			return &formats[i];
 		if (!bitstream && formats[i].codec_mode == RK_VPU_CODEC_NONE)
 			return &formats[i];
@@ -253,8 +255,8 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out,
 			continue;
 		else if (!out && (formats[i].codec_mode != RK_VPU_CODEC_NONE))
 			continue;
-		else if (formats[i].vpu_type != dev->variant->vpu_type &&
-			 formats[i].vpu_type != RK_VPU_NONE)
+		if (!ROCKCHIP_VPU_MATCHES(formats[i].vpu_type,
+					dev->variant->vpu_type))
 			continue;
 
 		if (j == f->index) {
