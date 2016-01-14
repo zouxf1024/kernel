@@ -79,7 +79,7 @@
 #define     RKVDEC_Y_VIRSTRIDE(x)                   ((x) & 0xfffff)
 #define RKVDEC_REG_YUV_VIRSTRIDE                    0x024
 #define     RKVDEC_YUV_VIRSTRIDE(x)                 ((x) & 0x1fffff)
-#define RKVDEC_REG_H264_BASE_REFER(i)               ((i * 0x04) + 0x028)
+#define RKVDEC_REG_H264_BASE_REFER(i)               (((i) * 0x04) + 0x028)
 #define RKVDEC_REG_H264_BASE_REFER15                0x0C0
 #define     RKVDEC_FIELD_REF                        BIT(0)
 #define     RKVDEC_TOPFIELD_USED_REF                BIT(1)
