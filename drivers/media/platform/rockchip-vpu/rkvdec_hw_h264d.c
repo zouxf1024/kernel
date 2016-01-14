@@ -203,7 +203,7 @@ static const u32 h264_cabac_table[] = {
 	0x032cf231, 0x222c062d, 0x52133621, 0x17ff4bfd, 0x2b012201, 0x37fe3600,
 	0x40013d00, 0x5cf74400, 0x61f36af2, 0x5af45af1, 0x49f658ee, 0x56f24ff7,
 	0x46f649f6, 0x42fb45f6, 0x3afb40f7, 0xf6153b02, 0xf81cf518, 0x031dff1c,
-	0x1423091d, 0x430e241d,
+	0x1423091d, 0x430e241d
 };
 
 static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
@@ -241,28 +241,27 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 	fifo_write_bits(&stream, sps->log2_max_pic_order_cnt_lsb_minus4, 4,
 			"log2_max_pic_order_cnt_lsb_minus4");
 	fifo_write_bits(&stream,
-			((sps->flags
-			 & V4L2_H264_SPS_FLAG_DELTA_PIC_ORDER_ALWAYS_ZERO)
-			 >> 2),
+			(sps->flags
+			 & V4L2_H264_SPS_FLAG_DELTA_PIC_ORDER_ALWAYS_ZERO) >> 2,
 			1, "delta_pic_order_always_zero_flag");
 	fifo_write_bits(&stream, sps->pic_width_in_mbs_minus1 + 1, 9,
 			"pic_width_in_mbs");
 	fifo_write_bits(&stream, sps->pic_height_in_map_units_minus1 + 1, 9,
 			"pic_height_in_mbs");
 	fifo_write_bits(&stream,
-			((sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) >> 4),
+			(sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) >> 4,
 			1, "frame_mbs_only_flag");
 	fifo_write_bits(&stream,
 			(sps->flags
-			 & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD >> 5),
+			 & V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD) >> 5,
 			1, "mb_adaptive_frame_field_flag");
 	fifo_write_bits(&stream,
 			(sps->flags
-			 & V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE >> 6), 1,
+			 & V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE) >> 6, 1,
 			"direct_8x8_inference_flag");
 
 	fifo_write_bits(&stream, 0, 1, "mvc_extension_enable");
-	fifo_write_bits(&stream, 1, 2, "num_views");
+	fifo_write_bits(&stream, 0, 2, "num_views");
 	fifo_write_bits(&stream, 0, 10, "view_id[2]");
 	fifo_write_bits(&stream, 0, 10, "view_id[2]");
 	fifo_write_bits(&stream, 0, 1, "num_anchor_refs_l0");
@@ -283,16 +282,15 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 			(pps->flags & V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE),
 			1, "entropy_coding_mode_flag");
 	fifo_write_bits(&stream,
-			((pps->flags
-			 & V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT)
-			 >> 1), 1,
-			"bottom_field_pic_order_in_frame_present_flag");
+			(pps->flags
+			 & V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT) >> 1,
+			1, "bottom_field_pic_order_in_frame_present_flag");
 	fifo_write_bits(&stream, pps->num_ref_idx_l0_default_active_minus1, 5,
 			"num_ref_idx_l0_default_active_minus1");
 	fifo_write_bits(&stream, pps->num_ref_idx_l1_default_active_minus1, 5,
 			"num_ref_idx_l1_default_active_minus1");
 	fifo_write_bits(&stream,
-			((pps->flags & V4L2_H264_PPS_FLAG_WEIGHTED_PRED) >> 2),
+			(pps->flags & V4L2_H264_PPS_FLAG_WEIGHTED_PRED) >> 2,
 			1, "weighted_pred_flag");
 	fifo_write_bits(&stream, pps->weighted_bipred_idc, 2,
 			"weighted_bipred_idc");
@@ -303,26 +301,25 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 	fifo_write_bits(&stream, pps->chroma_qp_index_offset, 5,
 			"chroma_qp_index_offset");
 	fifo_write_bits(&stream,
-			((pps->flags
-			 & V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)
-			 >> 3), 1, "deblocking_filter_control_present_flag");
+			(pps->flags &
+			 V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)
+			 >> 3, 1, "deblocking_filter_control_present_flag");
 	fifo_write_bits(&stream,
-			((pps->flags
-			  & V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED)
-			 >> 4), 1, "constrained_intra_pred_flag");
+			(pps->flags & V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED)
+			 >> 4, 1, "constrained_intra_pred_flag");
+	fifo_write_bits(
+		&stream,
+		(pps->flags & V4L2_H264_PPS_FLAG_REDUNDANT_PIC_CNT_PRESENT)
+		 >> 5, 1, "redundant_pic_cnt_present");
 	fifo_write_bits(&stream,
-			((pps->flags
-			 & V4L2_H264_PPS_FLAG_REDUNDANT_PIC_CNT_PRESENT) >> 5),
-			1, "redundant_pic_cnt_present_flag");
-	fifo_write_bits(&stream,
-			((pps->flags & V4L2_H264_PPS_FLAG_TRANSFORM_8X8_MODE)
-			 >> 6), 1, "transform_8x8_mode_flag");
+			(pps->flags & V4L2_H264_PPS_FLAG_TRANSFORM_8X8_MODE)
+			 >> 6, 1, "transform_8x8_mode_flag");
 	fifo_write_bits(&stream, pps->second_chroma_qp_index_offset, 5,
 			"second_chroma_qp_index_offset");
 	fifo_write_bits(&stream,
-			((pps->flags
-			 & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT) >> 7),
-			1, "scaleing_list_enable_flag");
+			(pps->flags
+			 & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT) >> 7,
+			1, "scaling_list_enable_flag");
 
 	scaling_distance =
 		offsetof(struct rkvdec_h264d_priv_tbl, scaling_list);
@@ -334,9 +331,8 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 
 	for (i = 0; i < 16; i++)
 		fifo_write_bits(&stream,
-				(dpb->flags
-				 & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM
-				 ? 1 : 0), 1, "is_long_term");
+				(dpb->flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
+				 ? 1 : 0, 1, "is_long_term");
 
 	for (i = 0; i < 16; i++)
 		fifo_write_bits(&stream, 0, 1, "voidx");
@@ -413,7 +409,7 @@ static void rkvdec_h264d_assemble_scaling_list(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_h264_scaling_matrix *scaling =
 		ctx->run.h264d.scaling_matrix;
-	struct v4l2_ctrl_h264_pps *pps = ctx->run.h264d.pps;
+	const struct v4l2_ctrl_h264_pps *pps = ctx->run.h264d.pps;
 	struct fifo_s stream;
 	struct rkvdec_h264d_priv_tbl *priv_tbl = ctx->hw.h264d.priv_tbl.cpu;
 	u8 *hw_scaling = priv_tbl->scaling_list;
@@ -425,11 +421,13 @@ static void rkvdec_h264d_assemble_scaling_list(struct rockchip_vpu_ctx *ctx)
 	if ((pps->flags & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT) >> 7) {
 		for (i = 0; i < 6; i++)
 			fifo_write_bytes(&stream,
-					 scaling->scaling_list_4x4[i], 16);
+					 (void *)scaling->scaling_list_4x4[i],
+					 16);
 
 		for (i = 0; i < 2; i++)
 			fifo_write_bytes(&stream,
-					 scaling->scaling_list_8x8[i], 64);
+					 (void *)scaling->scaling_list_8x8[i],
+					 64);
 	}
 }
 
@@ -490,8 +488,7 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	dma_addr_t dst_addr;
 	u32 reg, i;
 
-	reg = RKVDEC_IN_ENDIAN
-		| RKVDEC_MODE(1);
+	reg = RKVDEC_MODE(1);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_SYSCTRL);
 
 	hor_virstride = (sps->bit_depth_luma_minus8 + 8)
@@ -547,13 +544,13 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 		/*
 		* Set up addresses of DPB buffers.
 		*
-			* If a DPB entry is unused, address
-			* of current destination buffer is used.
+		* If a DPB entry is unused, address
+		* of current destination buffer is used.
 		*/
 		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE
-			&& dpb[i].buf_index < ctx->vq_dst.num_buffers) {
+		    && dpb[i].buf_index < ctx->vq_dst.num_buffers)
 			vb_buf = ctx->dst_bufs[dpb[i].buf_index];
-		} else
+		else
 			vb_buf = &ctx->run.dst->b.vb2_buf;
 
 		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
@@ -575,7 +572,7 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	}
 
 	/*
-		* Since support frame mode only
+	* Since support frame mode only
 	* top_field_order_cnt is the same as bottom_field_order_cnt
 	*/
 	reg = RKVDEC_CUR_POC(dec_param->top_field_order_cnt);
@@ -615,15 +612,10 @@ void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx)
 	/* Configure hardware registers. */
 	rkvdec_h264d_config_registers(ctx);
 
-	printk("%s %d\n", __func__, __LINE__);
-
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
-	printk("%s %d\n", __func__, __LINE__);
-
 	/* Start decoding! */
-	vdpu_write_relaxed(vpu, RKVDEC_INTERRUPT_DEC_E
+	vdpu_write(vpu, RKVDEC_INTERRUPT_DEC_E
 			   | RKVDEC_CONFIG_DEC_CLK_GATE_E,
 			   RKVDEC_REG_INTERRUPT);
-	printk("%s %d\n", __func__, __LINE__);
 }

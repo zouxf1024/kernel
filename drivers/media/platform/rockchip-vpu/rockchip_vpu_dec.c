@@ -101,10 +101,8 @@ static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
 	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (formats[i].fourcc != fourcc)
 			continue;
-		if (!ROCKCHIP_VPU_MATCHES(formats[i].vpu_type,
-					dev->variant->vpu_type))
-			continue;
-		if (bitstream && formats[i].codec_mode != RK_VPU_CODEC_NONE)
+		if (bitstream && formats[i].codec_mode != RK_VPU_CODEC_NONE
+				&& formats[i].vpu_type == dev->variant->vpu_type)
 			return &formats[i];
 		if (!bitstream && formats[i].codec_mode == RK_VPU_CODEC_NONE)
 			return &formats[i];
@@ -255,8 +253,8 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool out,
 			continue;
 		else if (!out && (formats[i].codec_mode != RK_VPU_CODEC_NONE))
 			continue;
-		if (!ROCKCHIP_VPU_MATCHES(formats[i].vpu_type,
-					dev->variant->vpu_type))
+		else if (formats[i].vpu_type != dev->variant->vpu_type &&
+			 formats[i].vpu_type != RK_VPU_NONE)
 			continue;
 
 		if (j == f->index) {
@@ -897,10 +895,17 @@ static int rockchip_vpu_queue_setup(struct vb2_queue *vq,
 		psize[0] = round_up(ctx->dst_fmt.plane_fmt[0].sizeimage, 8);
 		allocators[0] = ctx->dev->alloc_ctx;
 
-		if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_H264_SLICE)
+		if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_H264_SLICE) {
 			/* Add space for appended motion vectors. */
-			psize[0] += 64 * MB_WIDTH(ctx->dst_fmt.width)
-					* MB_HEIGHT(ctx->dst_fmt.height);
+			if (ctx->vpu_src_fmt->vpu_type == RKVDEC)
+				psize[0] += 128 *
+					MB_WIDTH(ctx->dst_fmt.width) *
+					MB_HEIGHT(ctx->dst_fmt.height);
+			else
+				psize[0] += 64 *
+					MB_WIDTH(ctx->dst_fmt.width) *
+					MB_HEIGHT(ctx->dst_fmt.height);
+		}
 
 		vpu_debug(0, "capture psize[%d]: %d\n", 0, psize[0]);
 		break;
@@ -1110,21 +1115,6 @@ static void rockchip_vpu_buf_queue(struct vb2_buffer *vb)
 	vpu_debug_leave();
 }
 
-static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
-{
-	struct vb2_queue *vq = vb->vb2_queue;
-	struct rockchip_vpu_ctx *ctx = fh_to_ctx(vq->drv_priv);
-	void *buf = vb2_plane_vaddr(vb, 0);
-	size_t size = ctx->dst_fmt.width * ctx->dst_fmt.height * 3 / 2;
-
-#define OUT_FILE "/tmp/out.nv12"
-
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-			&& vb->state == VB2_BUF_STATE_DONE)
-		printk("dump yuv(%s):%d(%d)\n", OUT_FILE,
-				rockchip_vpu_write(OUT_FILE, buf, size), size);
-}
-
 static struct vb2_ops rockchip_vpu_dec_qops = {
 	.queue_setup = rockchip_vpu_queue_setup,
 	.wait_prepare = vb2_ops_wait_prepare,
@@ -1135,7 +1125,6 @@ static struct vb2_ops rockchip_vpu_dec_qops = {
 	.start_streaming = rockchip_vpu_start_streaming,
 	.stop_streaming = rockchip_vpu_stop_streaming,
 	.buf_queue = rockchip_vpu_buf_queue,
-	.buf_finish = rockchip_vpu_buf_finish,
 };
 
 struct vb2_ops *get_dec_queue_ops(void)
