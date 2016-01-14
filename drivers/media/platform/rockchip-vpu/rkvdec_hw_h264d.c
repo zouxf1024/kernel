@@ -353,9 +353,9 @@ static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 		ctx->run.h264d.slice_param;
 	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
-
 	struct rkvdec_h264d_priv_tbl *priv_tbl =
 		ctx->hw.h264d.priv_tbl.cpu;
+	u32 max_frame_num = 1 << (sps->log2_max_frame_num_minus4 + 4);
 
 	u8 *hw_rps = priv_tbl->rps;
 	u32 i, j;
@@ -369,9 +369,7 @@ static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 
 		if (dpb[i].flags) {
 			frame_num_wrap = (dpb[i].frame_num > slice->frame_num
-					  ? ((dpb[i].frame_num - 1)
-					     << (sps->log2_max_frame_num_minus4
-						 + 4))
+					  ? (dpb[i].frame_num - max_frame_num)
 					  : dpb[i].frame_num);
 		}
 
