@@ -26,11 +26,6 @@
 #include "rockchip_vpu_hw.h"
 #include "rkvdec_regs.h"
 
-/* Max. number of DPB pictures supported by hardware. */
-#define RKVDEC_H264_NUM_DPB		16
-
-#define RKV_ALIGN(x, a)			(((x) + (a) - 1) & ~((a) - 1))
-
 /* Size with u32 units. */
 #define RKV_CABAC_INIT_BUFFER_SIZE	(3680 + 128)
 #define RKV_RPS_SIZE			(128 + 128)
@@ -331,7 +326,7 @@ static void rkvdec_h264d_assemble_hw_pps(struct rockchip_vpu_ctx *ctx)
 
 	for (i = 0; i < 16; i++)
 		fifo_write_bits(&stream,
-				(dpb->flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
+				(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
 				 ? 1 : 0, 1, "is_long_term");
 
 	for (i = 0; i < 16; i++)
@@ -345,13 +340,10 @@ static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 	struct fifo_s stream;
 	const struct v4l2_ctrl_h264_decode_param *dec_param =
 		ctx->run.h264d.decode_param;
-	const struct v4l2_ctrl_h264_slice_param *slice =
-		ctx->run.h264d.slice_param;
-	const struct v4l2_ctrl_h264_sps *sps = ctx->run.h264d.sps;
 	const struct v4l2_h264_dpb_entry *dpb = ctx->run.h264d.dpb;
 	struct rkvdec_h264d_priv_tbl *priv_tbl =
 		ctx->hw.h264d.priv_tbl.cpu;
-	u32 max_frame_num = 1 << (sps->log2_max_frame_num_minus4 + 4);
+	const u8 *dpb_map = ctx->run.h264d.dpb_map;
 
 	u8 *hw_rps = priv_tbl->rps;
 	u32 i, j;
@@ -361,15 +353,12 @@ static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 	fifo_packet_init(&stream, hw_rps, RKV_RPS_SIZE);
 
 	for (i = 0; i < 16; i++) {
-		u32 frame_num_wrap = 0;
-
-		if (dpb[i].flags) {
-			frame_num_wrap = (dpb[i].frame_num > slice->frame_num
-					  ? (dpb[i].frame_num - max_frame_num)
-					  : dpb[i].frame_num);
-		}
-
-		fifo_write_bits(&stream, frame_num_wrap, 16, "frame_num_wrap");
+		if (dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_LONG_TERM)
+			fifo_write_bits(&stream, dpb[i].pic_num, 16,
+					"frame_num_wrap");
+		else
+			fifo_write_bits(&stream, dpb[i].frame_num, 16,
+					"frame_num_wrap");
 	}
 
 	for (i = 0; i < 16; i++)
@@ -380,23 +369,21 @@ static void rkvdec_h264d_assemble_hw_rps(struct rockchip_vpu_ctx *ctx)
 
 	for (j = 0; j < 3; j++) {
 		for (i = 0; i < 32; i++) {
+			u8 dpb_valid = dpb[i].flags != 0 ? 1 : 0;
+			u8 idx = 0;
 			switch (j) {
 			case 0:
-				fifo_write_bits(&stream,
-						dec_param->ref_pic_list_p0[i],
-						5, "dpb_idx");
+				idx = dpb_map[dec_param->ref_pic_list_p0[i]];
 				break;
 			case 1:
-				fifo_write_bits(&stream,
-						dec_param->ref_pic_list_b0[i],
-						5, "dpb_idx");
+				idx = dpb_map[dec_param->ref_pic_list_b0[i]];
 				break;
 			case 2:
-				fifo_write_bits(&stream,
-						dec_param->ref_pic_list_b1[i],
-						5, "dpb_idx");
+				idx = dpb_map[dec_param->ref_pic_list_b1[i]];
 				break;
 			}
+			fifo_write_bits(&stream, idx | dpb_valid << 4,
+					5, "dpb_idx");
 			fifo_write_bits(&stream, 0, 1, "bottom_flag");
 			fifo_write_bits(&stream, 0, 1, "voidx");
 		}
@@ -418,7 +405,7 @@ static void rkvdec_h264d_assemble_scaling_list(struct rockchip_vpu_ctx *ctx)
 	memset(hw_scaling, 0, RKV_SCALING_LIST_SIZE);
 
 	fifo_packet_init(&stream, hw_scaling, RKV_SCALING_LIST_SIZE);
-	if ((pps->flags & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT) >> 7) {
+	if (pps->flags & V4L2_H264_PPS_FLAG_PIC_SCALING_MATRIX_PRESENT) {
 		for (i = 0; i < 6; i++)
 			fifo_write_bytes(&stream,
 					 (void *)scaling->scaling_list_4x4[i],
@@ -469,6 +456,30 @@ static void rkvdec_h264d_prepare_table(struct rockchip_vpu_ctx *ctx)
 	rkvdec_h264d_assemble_hw_rps(ctx);
 }
 
+/* 
+dpb poc related registers table
+poc_reg_tbl[i][0] represent register for staff dpb[i] top field poc, 
+poc_reg_tbl[i][1] represent register for staff dpb[i] bottom field poc
+*/ 
+static u32 poc_reg_tbl[16][2] = {
+	{ RKVDEC_REG_H264_POC_REFER0(0), RKVDEC_REG_H264_POC_REFER0(1) },
+	{ RKVDEC_REG_H264_POC_REFER0(2), RKVDEC_REG_H264_POC_REFER0(3) },
+	{ RKVDEC_REG_H264_POC_REFER0(4), RKVDEC_REG_H264_POC_REFER0(5) },
+	{ RKVDEC_REG_H264_POC_REFER0(6), RKVDEC_REG_H264_POC_REFER0(7) },
+	{ RKVDEC_REG_H264_POC_REFER0(8), RKVDEC_REG_H264_POC_REFER0(9) },
+	{ RKVDEC_REG_H264_POC_REFER0(10), RKVDEC_REG_H264_POC_REFER0(11) },
+	{ RKVDEC_REG_H264_POC_REFER0(12), RKVDEC_REG_H264_POC_REFER0(13) },
+	{ RKVDEC_REG_H264_POC_REFER0(14), RKVDEC_REG_H264_POC_REFER1(0) },
+	{ RKVDEC_REG_H264_POC_REFER1(1), RKVDEC_REG_H264_POC_REFER1(2) },
+	{ RKVDEC_REG_H264_POC_REFER1(3), RKVDEC_REG_H264_POC_REFER1(4) },
+	{ RKVDEC_REG_H264_POC_REFER1(5), RKVDEC_REG_H264_POC_REFER1(6) },
+	{ RKVDEC_REG_H264_POC_REFER1(7), RKVDEC_REG_H264_POC_REFER1(8) },
+	{ RKVDEC_REG_H264_POC_REFER1(9), RKVDEC_REG_H264_POC_REFER1(10) },
+	{ RKVDEC_REG_H264_POC_REFER1(11), RKVDEC_REG_H264_POC_REFER1(12) },
+	{ RKVDEC_REG_H264_POC_REFER1(13), RKVDEC_REG_H264_POC_REFER1(14) },
+	{ RKVDEC_REG_H264_POC_REFER2(0), RKVDEC_REG_H264_POC_REFER2(1) },
+};
+
 static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 {
 	const struct v4l2_ctrl_h264_decode_param *dec_param =
@@ -494,7 +505,7 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 	hor_virstride = (sps->bit_depth_luma_minus8 + 8)
 			* ctx->dst_fmt.width / 8;
 	ver_virstride = ctx->dst_fmt.height;
-	ver_virstride = RKV_ALIGN(ver_virstride, 16);
+	ver_virstride = round_up(ver_virstride, 16);
 	y_virstride = hor_virstride * ver_virstride;
 
 	if (sps->chroma_format_idc == 0)
@@ -554,21 +565,16 @@ static void rkvdec_h264d_config_registers(struct rockchip_vpu_ctx *ctx)
 			vb_buf = &ctx->run.dst->b.vb2_buf;
 
 		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
-		if (i < 15) {
+		vdpu_write_relaxed(vpu, dpb[i].top_field_order_cnt,
+				   poc_reg_tbl[i][0]);
+		vdpu_write_relaxed(vpu, dpb[i].bottom_field_order_cnt,
+				   poc_reg_tbl[i][1]);
+		if (i < 15)
 			vdpu_write_relaxed(vpu, refer_addr,
 					   RKVDEC_REG_H264_BASE_REFER(i));
-
-			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
-			vdpu_write_relaxed(vpu, reg,
-					   RKVDEC_REG_H264_POC_REFER0(i));
-		} else {
+		else
 			vdpu_write_relaxed(vpu, refer_addr,
 					   RKVDEC_REG_H264_BASE_REFER15);
-
-			reg = RKVDEC_POC_REFER(dpb[i].top_field_order_cnt);
-			vdpu_write_relaxed(vpu, reg,
-					   RKVDEC_REG_H264_POC_REFER1(i - 15));
-		}
 	}
 
 	/*

@@ -44,6 +44,6 @@ void rkvdec_reset(struct rockchip_vpu_ctx *ctx)
 {
 	struct rockchip_vpu_dev *vpu = ctx->dev;
 
-	vepu_write(vpu, RKVDEC_IRQ_DIS, RKVDEC_REG_INTERRUPT);
-	vepu_write(vpu, 0, RKVDEC_REG_SYSCTRL);
+	vdpu_write(vpu, RKVDEC_IRQ_DIS, RKVDEC_REG_INTERRUPT);
+	vdpu_write(vpu, 0, RKVDEC_REG_SYSCTRL);
 }
