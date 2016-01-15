@@ -500,7 +500,7 @@ static irqreturn_t rk_iommu_irq(int irq, void *dev_id)
 	for (i = 0; i < iommu->num_mmu; i++) {
 		int_status = rk_iommu_read(iommu->bases[i], RK_MMU_INT_STATUS);
 		if (int_status == 0)
-			return IRQ_NONE;
+			continue;
 
 		iova = rk_iommu_read(iommu->bases[i], RK_MMU_PAGE_FAULT_ADDR);
 
