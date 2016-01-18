@@ -42,6 +42,8 @@
 #define SCLK_TIMER3		88
 #define SCLK_TIMER4		89
 #define SCLK_TIMER5		90
+#define SCLK_OTGPHY0		91
+#define SCLK_OTGPHY1		92
 #define SCLK_I2S_OUT		113
 #define SCLK_SDMMC_DRV		114
 #define SCLK_SDIO_DRV		115
@@ -73,6 +75,13 @@
 #define PCLK_PERI		363
 
 /* hclk gates */
+
+#define HCLK_USBHOST0		447
+#define HCLK_USBHOST0_ARB	448
+#define HCLK_USBHOST1		449
+#define HCLK_USBHOST1_ARB	450
+#define HCLK_USBHOST2		451
+#define HCLK_USBHOST2_ARB	452
 #define HCLK_NANDC		453
 #define HCLK_SDMMC		456
 #define HCLK_SDIO		457
