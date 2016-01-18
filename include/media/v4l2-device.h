@@ -46,6 +46,8 @@ struct v4l2_device {
 #endif
 	/* used to keep track of the registered subdevs */
 	struct list_head subdevs;
+	/* used to keep track of the registered video_devices */
+	struct list_head vdevs;
 	/* lock this struct; can be used by the driver as well if this
 	   struct is embedded into a larger struct. */
 	spinlock_t lock;
@@ -62,6 +64,8 @@ struct v4l2_device {
 	struct kref ref;
 	/* Release function that is called when the ref count goes to 0. */
 	void (*release)(struct v4l2_device *v4l2_dev);
+	/* Queue a request */
+	int (*req_queue)(struct v4l2_device *v4l2_dev, u16 request);
 };
 
 static inline void v4l2_device_get(struct v4l2_device *v4l2_dev)
@@ -125,6 +129,9 @@ static inline void v4l2_subdev_notify(struct v4l2_subdev *sd,
 	if (sd && sd->v4l2_dev && sd->v4l2_dev->notify)
 		sd->v4l2_dev->notify(sd, notification, arg);
 }
+
+/* For each registered video_device struct call vb2_qbuf_request(). */
+int v4l2_device_req_queue(struct v4l2_device *v4l2_dev, u16 request);
 
 /* Iterate over all subdevs. */
 #define v4l2_device_for_each_subdev(sd, v4l2_dev)			\

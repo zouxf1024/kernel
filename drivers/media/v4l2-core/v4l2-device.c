@@ -29,6 +29,7 @@
 #include <linux/videodev2.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-ctrls.h>
+#include <media/videobuf2-v4l2.h>
 
 int v4l2_device_register(struct device *dev, struct v4l2_device *v4l2_dev)
 {
@@ -36,6 +37,7 @@ int v4l2_device_register(struct device *dev, struct v4l2_device *v4l2_dev)
 		return -EINVAL;
 
 	INIT_LIST_HEAD(&v4l2_dev->subdevs);
+	INIT_LIST_HEAD(&v4l2_dev->vdevs);
 	spin_lock_init(&v4l2_dev->lock);
 	v4l2_prio_init(&v4l2_dev->prio);
 	kref_init(&v4l2_dev->ref);
@@ -118,11 +120,20 @@ void v4l2_device_unregister(struct v4l2_device *v4l2_dev)
 		if (sd->flags & V4L2_SUBDEV_FL_IS_I2C) {
 			struct i2c_client *client = v4l2_get_subdevdata(sd);
 
-			/* We need to unregister the i2c client explicitly.
-			   We cannot rely on i2c_del_adapter to always
-			   unregister clients for us, since if the i2c bus
-			   is a platform bus, then it is never deleted. */
-			if (client)
+			/*
+			 * We need to unregister the i2c client
+			 * explicitly. We cannot rely on
+			 * i2c_del_adapter to always unregister
+			 * clients for us, since if the i2c bus is a
+			 * platform bus, then it is never deleted.
+			 *
+			 * Device tree or ACPI based devices must not
+			 * be unregistered as they have not been
+			 * registered by us, and would not be
+			 * re-created by just probing the V4L2 driver.
+			 */
+			if (client &&
+			    !client->dev.of_node && !client->dev.fwnode)
 				i2c_unregister_device(client);
 			continue;
 		}
@@ -131,7 +142,7 @@ void v4l2_device_unregister(struct v4l2_device *v4l2_dev)
 		if (sd->flags & V4L2_SUBDEV_FL_IS_SPI) {
 			struct spi_device *spi = v4l2_get_subdevdata(sd);
 
-			if (spi)
+			if (spi && !spi->dev.of_node && !spi->dev.fwnode)
 				spi_unregister_device(spi);
 			continue;
 		}
@@ -294,3 +305,27 @@ void v4l2_device_unregister_subdev(struct v4l2_subdev *sd)
 		module_put(sd->owner);
 }
 EXPORT_SYMBOL_GPL(v4l2_device_unregister_subdev);
+
+int v4l2_device_req_queue(struct v4l2_device *v4l2_dev, u16 request)
+{
+	struct video_device *vdev;
+	struct video_device *tmp;
+	int err;
+
+	if (request == 0)
+		return -EINVAL;
+
+	list_for_each_entry_safe(vdev, tmp, &v4l2_dev->vdevs, list) {
+		if (vdev->queue == NULL || !vdev->queue->v4l2_allow_requests)
+			continue;
+		if (vdev->lock && mutex_lock_interruptible(vdev->lock))
+			return -ERESTARTSYS;
+		err = vb2_qbuf_request(vdev->queue, request, NULL);
+		if (vdev->lock)
+			mutex_unlock(vdev->lock);
+		if (err)
+			return err;
+	}
+	return 0;
+}
+EXPORT_SYMBOL_GPL(v4l2_device_req_queue);

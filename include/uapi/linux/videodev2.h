@@ -844,6 +844,7 @@ struct v4l2_plane {
  * @length:	size in bytes of the buffer (NOT its payload) for single-plane
  *		buffers (when type != *_MPLANE); number of elements in the
  *		planes array for multi-plane buffers
+ * @request: this buffer should use this request
  *
  * Contains data exchanged by application and driver using one of the Streaming
  * I/O methods.
@@ -867,7 +868,8 @@ struct v4l2_buffer {
 		__s32		fd;
 	} m;
 	__u32			length;
-	__u32			reserved2;
+	__u16			request;
+	__u16			reserved2;
 	__u32			reserved;
 };
 
@@ -1476,7 +1478,13 @@ struct v4l2_ext_control {
 } __attribute__ ((packed));
 
 struct v4l2_ext_controls {
-	__u32 ctrl_class;
+	union {
+#ifndef __KERNEL__
+		__u32 ctrl_class;
+#endif
+		__u32 which;
+		__u32 request;
+	};
 	__u32 count;
 	__u32 error_idx;
 	__u32 reserved[2];
@@ -1484,9 +1492,14 @@ struct v4l2_ext_controls {
 };
 
 #define V4L2_CTRL_ID_MASK      	  (0x0fffffff)
+#ifndef __KERNEL__
 #define V4L2_CTRL_ID2CLASS(id)    ((id) & 0x0fff0000UL)
+#endif
+#define V4L2_CTRL_ID2WHICH(id)    ((id) & 0x0fff0000UL)
 #define V4L2_CTRL_DRIVER_PRIV(id) (((id) & 0xffff) >= 0x1000)
 #define V4L2_CTRL_MAX_DIMS	  (4)
+#define V4L2_CTRL_WHICH_CUR_VAL   0
+#define V4L2_CTRL_WHICH_DEF_VAL   0x0f000000
 
 enum v4l2_ctrl_type {
 	V4L2_CTRL_TYPE_INTEGER	     = 1,
@@ -1533,7 +1546,9 @@ struct v4l2_query_ext_ctrl {
 	__u32                elems;
 	__u32                nr_of_dims;
 	__u32                dims[V4L2_CTRL_MAX_DIMS];
-	__u32		     reserved[32];
+	__u32                max_reqs;
+	__u32                request;
+	__u32		     reserved[30];
 };
 
 /*  Used in the VIDIOC_QUERYMENU ioctl for querying menu items */
@@ -1558,6 +1573,8 @@ struct v4l2_querymenu {
 #define V4L2_CTRL_FLAG_VOLATILE		0x0080
 #define V4L2_CTRL_FLAG_HAS_PAYLOAD	0x0100
 #define V4L2_CTRL_FLAG_EXECUTE_ON_WRITE	0x0200
+#define V4L2_CTRL_FLAG_REQ_APPLIED	0x0400
+#define V4L2_CTRL_FLAG_REQ_KEEP		0x0800
 
 /*  Query flags, to be ORed with the control ID */
 #define V4L2_CTRL_FLAG_NEXT_CTRL	0x80000000
@@ -2174,6 +2191,25 @@ struct v4l2_create_buffers {
 	__u32			reserved[8];
 };
 
+#define V4L2_REQ_CMD_BEGIN	(0)
+#define V4L2_REQ_CMD_END	(1)
+#define V4L2_REQ_CMD_DELETE	(2)
+#define V4L2_REQ_CMD_APPLY	(3)
+#define V4L2_REQ_CMD_QUEUE	(4)
+
+/* Flag for V4L2_REQ_CMD_BEGIN */
+#define V4L2_REQ_CMD_BEGIN_FL_KEEP	(1 << 0)
+
+struct v4l2_request_cmd {
+	__u32 cmd;
+	__u16 request;
+	__u16 flags;
+	union {
+		struct {
+			__u32 data[8];
+		} raw;
+	};
+};
 /*
  *	I O C T L   C O D E S   F O R   V I D E O   D E V I C E S
  *
@@ -2285,6 +2321,8 @@ struct v4l2_create_buffers {
 #define VIDIOC_DBG_G_CHIP_INFO  _IOWR('V', 102, struct v4l2_dbg_chip_info)
 
 #define VIDIOC_QUERY_EXT_CTRL	_IOWR('V', 103, struct v4l2_query_ext_ctrl)
+
+#define VIDIOC_REQUEST_CMD      _IOWR('V', 104, struct v4l2_request_cmd)
 
 /* Reminder: when adding new ioctls please add support for them to
    drivers/media/v4l2-core/v4l2-compat-ioctl32.c as well! */
