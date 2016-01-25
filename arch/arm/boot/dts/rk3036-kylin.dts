@@ -373,7 +373,7 @@
 
 &emac {
 	assigned-clocks = <&cru SCLK_MACPLL>;
-	assigned-clock-parents = <&cru PLL_APLL>;
+	assigned-clock-parents = <&cru PLL_DPLL>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&emac_xfer>, <&emac_mdio>, <&rmii_rst>;
 	phy = <&phy0>;
