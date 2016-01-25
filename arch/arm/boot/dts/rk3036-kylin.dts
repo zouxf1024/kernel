@@ -120,13 +120,6 @@
 	status = "okay";
 };
 
-&cpu0 {
-	operating-points = <
-		/* KHz    uV */
-		 600000 1000000
-	>;
-};
-
 &emmc {
 	assigned-clocks = <&cru SCLK_EMMC_PRE>;
 	assigned-clock-parents = <&cru PLL_GPLL>;
