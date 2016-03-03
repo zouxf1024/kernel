@@ -88,6 +88,10 @@
 	status = "okay";
 };
 
+&i2c1 {
+	status = "okay";
+};
+
 &i2s0 {
 	status = "okay";
 
