@@ -184,6 +184,27 @@ struct rockchip_vpu_h264e_hw_ctx {
 	u8 ref_rec_ptr:1;
 };
 
+struct rockchip_vpu_vp9d_last_info {
+	s32 abs_delta_last;
+	s8 last_ref_deltas[4];
+	s8 last_mode_deltas[2];
+	u8 segmentation_enable_flag_last;
+	u8 last_show_frame;
+	u8 last_intra_only;
+	u32 last_width;
+	u32 last_height;
+	s16 feature_data[8][4];
+	u8 feature_mask[8];
+	dma_addr_t mv_base_addr;
+};
+
+struct rockchip_vpu_vp9d_hw_ctx {
+	struct rockchip_vpu_aux_buf priv_tbl;
+	struct rockchip_vpu_aux_buf priv_dst;
+	struct rockchip_vpu_vp9d_last_info last_info;
+	dma_addr_t mv_base_addr;
+};
+
 /**
  * struct rockchip_vpu_hw_ctx - Context private data of hardware code.
  * @codec_ops:		Set of operations associated with current codec mode.
@@ -281,5 +302,7 @@ void rkvdec_h264d_run(struct rockchip_vpu_ctx *ctx);
 int rkvdec_vp9d_init(struct rockchip_vpu_ctx *ctx);
 void rkvdec_vp9d_exit(struct rockchip_vpu_ctx *ctx);
 void rkvdec_vp9d_run(struct rockchip_vpu_ctx *ctx);
+void rkvdec_vp9d_done(struct rockchip_vpu_ctx *ctx,
+		      enum vb2_buffer_state result);
 
 #endif /* RK3288_VPU_HW_H_ */

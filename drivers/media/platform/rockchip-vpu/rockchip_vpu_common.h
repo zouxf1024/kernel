@@ -244,6 +244,7 @@ struct rockchip_vpu_run_ops {
  */
 struct rk3288_vpu_vp8e_run {
 	const struct rockchip_vp8e_reg_params *reg_params;
+	const struct rockchip_vp8e_reg_params_new *reg_params_new;
 };
 
 /**
@@ -274,6 +275,16 @@ struct rockchip_vpu_h264d_run {
 	const struct v4l2_ctrl_h264_decode_param *decode_param;
 	struct v4l2_h264_dpb_entry dpb[16];
 	u8 dpb_map[16];
+};
+
+/**
+ * struct rockchip_vpu_vp9d_run - per-run data specific to vp9
+ * decoding.
+ * @dec_param: Pointer to a buffer containing per-run frame data
+ *      		which is needed by setting vpu register.
+ */
+struct rockchip_vpu_vp9d_run {
+	const struct v4l2_ctrl_vp9_decode_param *dec_param;
 };
 
 struct rockchip_vpu_h264e_params {
@@ -363,6 +374,7 @@ struct rockchip_vpu_run {
 		struct rk3288_vpu_vp8d_run vp8d;
 		struct rockchip_vpu_h264d_run h264d;
 		struct rockchip_vpu_h264e_run h264e;
+		struct rockchip_vpu_vp9d_run vp9d;
 		/* Other modes will need different data. */
 	};
 };
@@ -504,13 +516,20 @@ struct rockchip_vpu_control {
  */
 extern int debug;
 
+#if 0
 #define vpu_debug(level, fmt, args...)				\
 	do {							\
 		if (debug & BIT(level))				\
 			pr_debug("%s:%d: " fmt,	                \
 				 __func__, __LINE__, ##args);	\
 	} while (0)
-
+#else
+#define vpu_debug(level, fmt, args...)				\
+	do {							\
+		printk("%s:%d: " fmt,				\
+		       __func__, __LINE__, ##args);		\
+	} while (0);
+#endif
 #define vpu_debug_enter()	vpu_debug(5, "enter\n")
 #define vpu_debug_leave()	vpu_debug(5, "leave\n")
 

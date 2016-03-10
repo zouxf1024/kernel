@@ -333,6 +333,14 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.done = rockchip_vpu_run_done,
 		.reset = rk3228_vpu_dec_reset,
 	},
+	[RK3228_VPU_CODEC_VP8E] = {
+		.init = rk3228_vpu_vp8e_init,
+		.exit = rk3228_vpu_vp8e_exit,
+		.irq = rk3228_vepu_irq,
+		.run = rk3228_vpu_vp8e_run,
+		.done = rk3228_vpu_vp8e_done,
+		.reset = rk3228_vpu_enc_reset,
+	},
 	[RK3228_VPU_CODEC_H264E] = {
 		.init = rk3228_vpu_h264e_init,
 		.exit = rk3228_vpu_h264e_exit,
@@ -346,7 +354,7 @@ static const struct rockchip_vpu_codec_ops mode_ops[] = {
 		.exit = rkvdec_vp9d_exit,
 		.irq = rkvdec_irq,
 		.run = rkvdec_vp9d_run,
-		.done = rockchip_vpu_run_done,
+		.done = rkvdec_vp9d_done,
 		.reset = rkvdec_reset,
 	},
 	[RKVDEC_CODEC_H264D] = {
@@ -368,10 +376,12 @@ int rockchip_vpu_init(struct rockchip_vpu_ctx *ctx)
 {
 	enum rockchip_vpu_codec_mode codec_mode;
 
-	if (rockchip_vpu_ctx_is_encoder(ctx))
+	if (rockchip_vpu_ctx_is_encoder(ctx)) {
+		vpu_err("%p\n", ctx->vpu_dst_fmt);
 		codec_mode = ctx->vpu_dst_fmt->codec_mode; /* Encoder */
-	else
+	} else {
 		codec_mode = ctx->vpu_src_fmt->codec_mode; /* Decoder */
+	}
 
 	ctx->hw.codec_ops = &mode_ops[codec_mode];
 
@@ -414,15 +424,13 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 	if (WARN_ON(dst_buf->vp8e.dct_offset + dct_size > dst_size))
 		return;
 
-	vpu_debug(1, "%s: hdr_size = %u, ext_hdr_size = %u, dct_size = %u\n",
-			__func__, hdr_size, ext_hdr_size, dct_size);
-
 	memmove(dst + hdr_size + ext_hdr_size,
 		dst + dst_buf->vp8e.dct_offset, dct_size);
 	memcpy(dst, dst_buf->vp8e.header, hdr_size);
 
 	/* Patch frame tag at first 32-bit word of the frame. */
-	if (to_vb2_v4l2_buffer(&dst_buf->b.vb2_buf)->flags & V4L2_BUF_FLAG_KEYFRAME) {
+	if (to_vb2_v4l2_buffer(&dst_buf->b.vb2_buf)->flags &
+			       V4L2_BUF_FLAG_KEYFRAME) {
 		tag_size = VP8_KEY_FRAME_HDR_SIZE;
 		tag[0] &= ~VP8_FRAME_TAG_KEY_FRAME_BIT;
 	} else {
@@ -430,9 +438,14 @@ void rockchip_vpu_vp8e_assemble_bitstream(struct rockchip_vpu_ctx *ctx,
 		tag[0] |= VP8_FRAME_TAG_KEY_FRAME_BIT;
 	}
 
+	vpu_debug(1, "hdr_size = %u, ext_hdr_size = %u, dct_size = %u tag[0] = %x\n",
+		  hdr_size, ext_hdr_size, dct_size, tag[0]);
+
 	tag[0] &= ~VP8_FRAME_TAG_LENGTH_MASK;
-	tag[0] |= (hdr_size + ext_hdr_size - tag_size)
-						<< VP8_FRAME_TAG_LENGTH_SHIFT;
+	tag[0] |= (hdr_size + ext_hdr_size - tag_size) <<
+		VP8_FRAME_TAG_LENGTH_SHIFT;
+
+	vpu_debug(1, "tag[0] = %x\n", tag[0]);
 
 	vb2_set_plane_payload(&dst_buf->b.vb2_buf, 0,
 				hdr_size + ext_hdr_size + dct_size);

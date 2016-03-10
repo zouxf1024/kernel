@@ -119,7 +119,14 @@ enum {
 	ROCKCHIP_VPU_DEC_CTRL_H264_SLICE_PARAM,
 	ROCKCHIP_VPU_DEC_CTRL_H264_DECODE_PARAM,
 	ROCKCHIP_VPU_DEC_CTRL_VP8_FRAME_HDR,
+	ROCKCHIP_VPU_DEC_CTRL_VP9_DECODE_PARAM,
+	ROCKCHIP_VPU_DEC_CTRL_VP9_COUNTS_RET,
 };
+
+#define V4L2_CID_PRIVATE_ROCKCHIP_VP9D_COUNTS_RET	\
+				(V4L2_CID_CUSTOM_BASE + 6)
+#define V4L2_CID_PRIVATE_ROCKCHIP_VP9D_DECODE_PARAM	\
+				(V4L2_CID_CUSTOM_BASE + 7)
 
 static struct rockchip_vpu_control controls[] = {
 	/* H264 slice-based interface. */
@@ -171,6 +178,23 @@ static struct rockchip_vpu_control controls[] = {
 		.max_stores = VIDEO_MAX_FRAME,
 		.elem_size = sizeof(struct v4l2_ctrl_vp8_frame_hdr),
 		.can_store = true,
+	},
+	[ROCKCHIP_VPU_DEC_CTRL_VP9_DECODE_PARAM] = {
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_VP9D_DECODE_PARAM,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "VP9 Decode Parameters",
+		.max_stores = VIDEO_MAX_FRAME,
+		.elem_size = sizeof(struct v4l2_ctrl_vp9_decode_param),
+		.can_store = true,
+	},
+	[ROCKCHIP_VPU_DEC_CTRL_VP9_COUNTS_RET] = {
+		.id = V4L2_CID_PRIVATE_ROCKCHIP_VP9D_COUNTS_RET,
+		.type = V4L2_CTRL_TYPE_PRIVATE,
+		.name = "VP9 Decoder Output Counts",
+		.max_stores = VIDEO_MAX_FRAME,
+		.elem_size = sizeof(struct v4l2_ctrl_vp9_decode_counts_inter),
+		.is_volatile = true,
+		.is_read_only = true,
 	},
 };
 
@@ -714,7 +738,14 @@ static void rockchip_vpu_dec_set_dpb(struct rockchip_vpu_ctx *ctx,
 	DECLARE_BITMAP(used, ARRAY_SIZE(ctx->run.h264d.dpb)) = { 0, };
 	DECLARE_BITMAP(new, ARRAY_SIZE(dec_param->dpb)) = { 0, };
 	int i, j;
-
+#if 0
+	for (j = 0; j < ARRAY_SIZE(ctx->run.h264d.dpb); ++j) {
+		cur_dpb_entry = &ctx->run.h264d.dpb[j];
+		memcpy(cur_dpb_entry, &dec_param->dpb[j], sizeof(*cur_dpb_entry));
+		dpb_map[j] = j;
+	}
+	return;
+#endif
 	BUILD_BUG_ON(ARRAY_SIZE(ctx->run.h264d.dpb) !=
 						ARRAY_SIZE(dec_param->dpb));
 
@@ -813,6 +844,7 @@ static int rockchip_vpu_dec_s_ctrl(struct v4l2_ctrl *ctrl)
 	case V4L2_CID_MPEG_VIDEO_H264_SCALING_MATRIX:
 	case V4L2_CID_MPEG_VIDEO_H264_SLICE_PARAM:
 	case V4L2_CID_MPEG_VIDEO_VP8_FRAME_HDR:
+	case V4L2_CID_PRIVATE_ROCKCHIP_VP9D_DECODE_PARAM:
 		/* These controls are used directly. */
 		break;
 
@@ -833,8 +865,38 @@ static int rockchip_vpu_dec_s_ctrl(struct v4l2_ctrl *ctrl)
 	return ret;
 }
 
+static int rockchip_vpu_dec_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
+{
+	struct rockchip_vpu_ctx *ctx = ctrl_to_ctx(ctrl);
+	struct rockchip_vpu_dev *dev = ctx->dev;
+	int ret = 0;
+	void *count;
+
+	vpu_debug_enter();
+
+	vpu_debug(4, "ctrl id %d\n", ctrl->id);
+
+	switch (ctrl->id) {
+	case V4L2_CID_PRIVATE_ROCKCHIP_VP9D_COUNTS_RET:
+		count = ctx->hw.vp9d.priv_dst.cpu;
+		memcpy(ctrl->p_new.p, count,
+			ROCKCHIP_RET_PARAMS_SIZE);
+		break;
+
+	default:
+		v4l2_err(&dev->v4l2_dev, "Invalid control, id=%d, val=%d\n",
+			 ctrl->id, ctrl->val);
+		ret = -EINVAL;
+	}
+
+	vpu_debug_leave();
+
+	return ret;
+}
+
 static const struct v4l2_ctrl_ops rockchip_vpu_dec_ctrl_ops = {
 	.s_ctrl = rockchip_vpu_dec_s_ctrl,
+	.g_volatile_ctrl = rockchip_vpu_dec_g_volatile_ctrl,
 };
 
 static const struct v4l2_ioctl_ops rockchip_vpu_dec_ioctl_ops = {
@@ -893,7 +955,7 @@ static int rockchip_vpu_queue_setup(struct vb2_queue *vq,
 			*buf_count = VIDEO_MAX_FRAME;
 
 		psize[0] = round_up(ctx->dst_fmt.plane_fmt[0].sizeimage, 8);
-		allocators[0] = ctx->dev->alloc_ctx;
+		allocators[0] = ctx->dev->alloc_ctx_vm;
 
 		if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_H264_SLICE) {
 			/* Add space for appended motion vectors. */
@@ -1115,6 +1177,30 @@ static void rockchip_vpu_buf_queue(struct vb2_buffer *vb)
 	vpu_debug_leave();
 }
 
+static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
+{
+	struct vb2_queue *vq = vb->vb2_queue;
+
+	vpu_debug_enter();
+#if 0
+	int i;
+	u8 *p = vb2_plane_vaddr(vb, 0);
+
+	for (i = 0; i < 32; i++) {
+		printk("%02x ", p[i]);
+		if ((i + 1) % 16 == 0) {
+			printk("\n");
+		}
+	}
+#endif
+	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+		rockchip_vpu_write(NULL, vb2_plane_vaddr(vb, 0),
+				   vb2_get_plane_payload(vb, 0));
+	}
+
+	vpu_debug_leave();
+}
+
 static struct vb2_ops rockchip_vpu_dec_qops = {
 	.queue_setup = rockchip_vpu_queue_setup,
 	.wait_prepare = vb2_ops_wait_prepare,
@@ -1125,6 +1211,7 @@ static struct vb2_ops rockchip_vpu_dec_qops = {
 	.start_streaming = rockchip_vpu_start_streaming,
 	.stop_streaming = rockchip_vpu_stop_streaming,
 	.buf_queue = rockchip_vpu_buf_queue,
+	.buf_finish = rockchip_vpu_buf_finish,
 };
 
 struct vb2_ops *get_dec_queue_ops(void)
