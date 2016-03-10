@@ -102,6 +102,39 @@ struct rockchip_vp8e_reg_params {
 };
 
 /**
+ * struct rockchip_vp8e_reg_params - low level encoding parameters
+ * TODO: Create abstract structures for more generic controls or just
+ *       remove unused fields.
+ */
+struct rockchip_vp8e_reg_params_new {
+	u32 is_intra;
+	u32 frm_hdr_size;
+
+	u32 qp;
+
+	s32 mv_prob[2][19];
+	s32 intra_prob;
+
+	u32 bool_enc_value;
+	u32 bool_enc_value_bits;
+	u32 bool_enc_range;
+
+	u32 filterDisable;
+	u32 filter_sharpness;
+	u32 filter_level;
+
+	s32 intra_frm_delta;
+	s32 last_frm_delta;
+	s32 golden_frm_delta;
+	s32 altref_frm_delta;
+
+	s32 bpred_mode_delta;
+	s32 zero_mode_delta;
+	s32 newmv_mode_delta;
+	s32 splitmv_mode_delta;
+};
+
+/**
  * struct rockchip_vpu_aux_buf - auxiliary DMA buffer for hardware data
  * @cpu:	CPU pointer to the buffer.
  * @dma:	DMA address of the buffer.
@@ -164,6 +197,7 @@ struct rockchip_vpu_hw_ctx {
 		struct rockchip_vpu_vp8d_hw_ctx vp8d;
 		struct rockchip_vpu_h264d_hw_ctx h264d;
 		struct rockchip_vpu_h264e_hw_ctx h264e;
+		struct rockchip_vpu_vp9d_hw_ctx vp9d;
 		/* Other modes will need different data. */
 	};
 };
@@ -212,6 +246,13 @@ int rk3228_vpu_h264e_init(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_exit(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_run(struct rockchip_vpu_ctx *ctx);
 void rk3228_vpu_h264e_done(struct rockchip_vpu_ctx *ctx,
+			   enum vb2_buffer_state result);
+
+/* Run ops for rk3228 VP8 encoder */
+int rk3228_vpu_vp8e_init(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_exit(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx);
+void rk3228_vpu_vp8e_done(struct rockchip_vpu_ctx *ctx,
 			   enum vb2_buffer_state result);
 
 /* Run ops for rk3228 VP8 decoder */

@@ -127,6 +127,8 @@ static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
 
 	vpu_debug_enter();
 
+	printk("%s %d, fourcc %x, bitstream %d\n", __func__, __LINE__, fourcc, (int)bitstream);
+
 	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (formats[i].fourcc != fourcc)
 			continue;
@@ -169,7 +171,7 @@ static struct rockchip_vpu_control controls[] = {
 		.id = V4L2_CID_PRIVATE_ROCKCHIP_REG_PARAMS,
 		.type = V4L2_CTRL_TYPE_PRIVATE,
 		.name = "Rockchip Private Reg Params",
-		.elem_size = sizeof(struct rockchip_vp8e_reg_params),
+		.elem_size = sizeof(struct rockchip_vp8e_reg_params_new),
 		.max_stores = VIDEO_MAX_FRAME,
 		.can_store = true,
 	},
@@ -789,8 +791,8 @@ static int vidioc_qbuf(struct file *file, void *priv, struct v4l2_buffer *buf)
 	vpu_debug_enter();
 
 	for (i = 0; i < buf->length; i++) {
-		vpu_debug(4, "plane[%d]->length %d bytesused %d\n",
-			  i, buf->m.planes[i].length,
+		vpu_debug(4, "type %d, plane[%d]->length %d bytesused %d\n",
+			  buf->type, i, buf->m.planes[i].length,
 			  buf->m.planes[i].bytesused);
 	}
 
@@ -1250,12 +1252,6 @@ static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
 		struct rockchip_vpu_buf *buf;
 
 		buf = vb_to_buf(vb);
-		/*u8 *output_strm = vb2_plane_vaddr(vb, 0);
-
-		output_strm[0] = 0;
-		output_strm[1] = 0;
-		output_strm[2] = 0;
-		output_strm[3] = 1;*/
 		rockchip_vpu_h264e_assemble_bitstream(ctx, buf);
 	}
 
@@ -1409,10 +1405,13 @@ static void rockchip_vpu_enc_prepare_run(struct rockchip_vpu_ctx *ctx)
 	v4l2_ctrl_apply_store(&ctx->ctrl_handler, config_store);
 
 	if (ctx->vpu_dst_fmt->fourcc == V4L2_PIX_FMT_VP8) {
+		vpu_debug(0, "get vp8 paramters\n");
 		memcpy(ctx->run.dst->vp8e.header,
 			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HEADER),
 			ROCKCHIP_HEADER_SIZE);
-		ctx->run.vp8e.reg_params = get_ctrl_ptr(ctx,
+		/*ctx->run.vp8e.reg_params = get_ctrl_ptr(ctx,
+			ROCKCHIP_VPU_ENC_CTRL_REG_PARAMS);*/
+		ctx->run.vp8e.reg_params_new = get_ctrl_ptr(ctx,
 			ROCKCHIP_VPU_ENC_CTRL_REG_PARAMS);
 		memcpy(ctx->run.priv_src.cpu,
 			get_ctrl_ptr(ctx, ROCKCHIP_VPU_ENC_CTRL_HW_PARAMS),
