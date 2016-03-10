@@ -114,7 +114,7 @@ static inline u32 enc_in_img_ctrl(struct rockchip_vpu_ctx *ctx)
 
 	return VEPU_REG_IN_IMG_CTRL_ROW_LEN(bytes_per_line)
 			| VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(overfill_r)
-			| VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(overfill_b)
+			| VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b)
 			| VEPU_REG_IN_IMG_CTRL_FMT(ctx->vpu_src_fmt->enc_fmt);
 }
 

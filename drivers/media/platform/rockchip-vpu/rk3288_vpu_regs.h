@@ -49,7 +49,7 @@
 #define VEPU_REG_IN_IMG_CTRL			0x03c
 #define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)	((x) << 12)
 #define     VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x)	((x) << 10)
-#define     VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(x)	((x) << 6)
+#define     VEPU_REG_IN_IMG_CTRL_OVRFLB(x)	((x) << 6)
 #define     VEPU_REG_IN_IMG_CTRL_FMT(x)		((x) << 2)
 #define VEPU_REG_ENC_CTRL0			0x040
 #define VEPU_REG_ENC_CTRL1			0x044
