@@ -18,127 +18,64 @@
 #define RK3228_VPU_REGS_H_
 
 /* Encoder registers. */
-#define VEPU_REG_VP8_QP_1ST			0x000
-#define     VEPU_REG_VP8_QP_PART1_QUT_DC_LUMA2(x)	(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_QP_PART1_QUT_DC_LUMA1(x)	(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_2ND			0x004
-#define     VEPU_REG_VP8_PART1_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART1_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_3RD			0x008
-#define     VEPU_REG_VP8_PART1_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART1_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_4TH			0x00c
-#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART1_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_5TH			0x010
-#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART1_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_6TH			0x014
-#define     VEPU_REG_VP8_PART1_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART1_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART1_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_7TH			0x018
-#define     VEPU_REG_VP8_PART1_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART1_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART1_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_8TH			0x01c
-#define     VEPU_REG_VP8_PART1_FILTER_SEL		(((x) & 0x1f) << 25)
-#define     VEPU_REG_VP8_PART1_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART1_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART1_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_9TH			0x020
-#define     VEPU_REG_VP8_PART1_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART1_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART1_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_10TH			0x024
-#define     VEPU_REG_VP8_PART2_QUT_DC_LUMA2(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART2_QUT_DC_LUMA1(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_11TH			0x028
-#define     VEPU_REG_VP8_PART2_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART2_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_12TH			0x02c
-#define     VEPU_REG_VP8_PART2_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART2_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_13TH			0x030
-#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART2_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_14TH			0x034
-#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART2_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_15TH			0x038
-#define     VEPU_REG_VP8_PART2_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART2_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART2_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_16TH			0x03c
-#define     VEPU_REG_VP8_PART2_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART2_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART2_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_17TH			0x040
-#define     VEPU_REG_VP8_PART2_FILTER_SEL		(((x) & 0x1f) << 25)
-#define     VEPU_REG_VP8_PART2_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART2_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART2_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_18TH			0x044
-#define     VEPU_REG_VP8_PART2_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART2_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART2_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_19TH			0x048
-#define     VEPU_REG_VP8_PART3_QUT_DC_LUMA2(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART3_QUT_DC_LUMA1(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_20TH			0x04c
-#define     VEPU_REG_VP8_PART3_QUT_AC_LUMA1(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART3_QUT_DC_CHROMA(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_21TH			0x050
-#define     VEPU_REG_VP8_PART3_QUT_AC_CHROMA(x)		(((x) & 0x3fff) << 16)
-#define     VEPU_REG_VP8_PART3_QUT_AC_LUMA2(x)		(((x) & 0x3fff) << 0)
-#define VEPU_REG_VP8_QP_22TH			0x054
-#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART3_QUT_ZB_DC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_23TH			0x058
-#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART3_QUT_ZB_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
-#define VEPU_REG_VP8_QP_24TH			0x05c
-#define     VEPU_REG_VP8_PART3_QUT_RND_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART3_QUT_RND_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART3_QUT_RND_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_25TH			0x060
-#define     VEPU_REG_VP8_PART3_QUT_RND_AC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART3_QUT_RND_AC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART3_QUT_RND_AC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_26TH			0x064
-#define     VEPU_REG_VP8_PART3_FILTER_SEL		(((x) & 0x1f) << 25)
-#define     VEPU_REG_VP8_PART3_DEQUT_DC_CHROMA(x)	(((x) & 0xff) << 16)
-#define     VEPU_REG_VP8_PART3_DEQUT_DC_LUMA2(x)	(((x) & 0xff) << 8)
-#define     VEPU_REG_VP8_PART3_DEQUT_DC_LUMA1(x)	(((x) & 0xff) << 0)
-#define VEPU_REG_VP8_QP_27TH			0x068
-#define     VEPU_REG_VP8_PART3_DEQUT_AC_CHROMA(x)	(((x) & 0x1ff) << 18)
-#define     VEPU_REG_VP8_PART3_DEQUT_AC_LUMA2(x)	(((x) & 0x1ff) << 9)
-#define     VEPU_REG_VP8_PART3_DEQUT_AC_LUMA1(x)	(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QUT_1ST(i)			(0x000 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_DC_Y2(x)			(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_QUT_DC_Y1(x)			(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QUT_2ND(i)			(0x004 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_AC_Y1(x)			(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_QUT_DC_CHR(x)			(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QUT_3RD(i)			(0x008 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_AC_CHR(x)			(((x) & 0x3fff) << 16)
+#define     VEPU_REG_VP8_QUT_AC_Y2(x)			(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_QUT_4TH(i)			(0x00c + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_ZB_DC_CHR(x)		(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_QUT_ZB_DC_Y2(x)		(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_QUT_ZB_DC_Y1(x)		(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QUT_5TH(i)			(0x010 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_ZB_AC_CHR(x)		(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_QUT_ZB_AC_Y2(x)		(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_QUT_ZB_AC_Y1(x)		(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_QUT_6TH(i)			(0x014 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_RND_DC_CHR(x)		(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_QUT_RND_DC_Y2(x)		(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_QUT_RND_DC_Y1(x)		(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QUT_7TH(i)			(0x018 + ((i) * 0x24))
+#define     VEPU_REG_VP8_QUT_RND_AC_CHR(x)		(((x) & 0xff) << 16)
+#define     VEPU_REG_VP8_QUT_RND_AC_Y2(x)		(((x) & 0xff) << 8)
+#define     VEPU_REG_VP8_QUT_RND_AC_Y1(x)		(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QUT_8TH(i)			(0x01c + ((i) * 0x24))
+#define     VEPU_REG_VP8_SEG_FILTER_LEVEL(x)		(((x) & 0x3f) << 25)
+#define     VEPU_REG_VP8_DEQUT_DC_CHR(x)		(((x) & 0xff) << 17)
+#define     VEPU_REG_VP8_DEQUT_DC_Y2(x)			(((x) & 0x1ff) << 8)
+#define     VEPU_REG_VP8_DEQUT_DC_Y1(x)			(((x) & 0xff) << 0)
+#define VEPU_REG_VP8_QUT_9TH(i)			(0x020 + ((i) * 0x24))
+#define     VEPU_REG_VP8_DEQUT_AC_CHR(x)		(((x) & 0x1ff) << 18)
+#define     VEPU_REG_VP8_DEQUT_AC_Y2(x)			(((x) & 0x1ff) << 9)
+#define     VEPU_REG_VP8_DEQUT_AC_Y1(x)			(((x) & 0x1ff) << 0)
 #define VEPU_REG_ADDR_VP8_SEG_MAP		0x06c
 #define VEPU_REG_VP8_INTRA_4X4_PENALTY(i)	(0x070 + ((i) * 0x4))
+#define     VEPU_REG_VP8_INTRA_4X4_PENALTY_0(x)		(((x) & 0xfff) << 0)
+#define     VEPU_REG_VP8_INTRA_4x4_PENALTY_1(x)		(((x) & 0xfff) << 16)
 #define VEPU_REG_VP8_INTRA_16X16_PENALTY(i)	(0x084 + ((i) * 0x4))
+#define     VEPU_REG_VP8_INTRA_16X16_PENALTY_0(x)	(((x) & 0xfff) << 0)
+#define     VEPU_REG_VP8_INTRA_16X16_PENALTY_1(x)	(((x) & 0xfff) << 16)
 #define VEPU_REG_VP8_CONTROL			0x0a0
-#define     VEPU_REG_VP8_LOOP_FILTER_B_PRED(x)		(((x) & 0x1f) << 24)
-#define     VEPU_REG_VP8_LOOP_FILTER_INTRA(x)		(((x) & 0x7f) << 16)
-#define     VEPU_REG_VP8_INTER_TYPE(x)			(((x) & 0xfff) << 0)
+#define     VEPU_REG_VP8_LF_MODE_DELTA_BPRED(x)		(((x) & 0x1f) << 24)
+#define     VEPU_REG_VP8_LF_REF_DELTA_INTRA_MB(x)	(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_INTER_TYPE_BIT_COST(x)		(((x) & 0xfff) << 0)
 #define VEPU_REG_VP8_REF_FRAME_VAL		0x0a4
 #define     VEPU_REG_VP8_COEF_DMV_PENALTY(x)		(((x) & 0xfff) << 16)
 #define     VEPU_REG_VP8_REF_FRAME(x)			(((x) & 0xfff) << 0)
-#define VEPU_REG_VP8_LOOP_FILTER_CTRL1		0x0a8
-#define     VEPU_REG_VP8_LOOP_FILTER_ALT_REF(x)		(((x) & 0x7f) << 16)
-#define     VEPU_REG_VP8_LOOP_FILTER_LAST_REF(x)	(((x) & 0x7f) << 8)
-#define     VEPU_REG_VP8_LOOP_FILTER_ORIG_REF(x)	(((x) & 0x7f) << 0)
-#define VEPU_REG_VP8_LOOP_FILTER_CTRL2		0x0ac
-#define     VEPU_REG_VP8_LOOP_FILTER_DIVIDE_MV(x)	(((x) & 0x7f) << 16)
-#define     VEPU_REG_VP8_LOOP_FILTER_ZERO_MV(x)		(((x) & 0x7f) << 8)
-#define     VEPU_REG_VP8_LOOP_FILTER_NEW_MV(x)		(((x) & 0x7f) << 0)
+#define VEPU_REG_VP8_LOOP_FILTER_REF_DELTA	0x0a8
+#define     VEPU_REG_VP8_LF_REF_DELTA_ALT_REF(x)	(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_LF_REF_DELTA_LAST_REF(x)	(((x) & 0x7f) << 8)
+#define     VEPU_REG_VP8_LF_REF_DELTA_GOLDEN(x)		(((x) & 0x7f) << 0)
+#define VEPU_REG_VP8_LOOP_FILTER_MODE_DELTA	0x0ac
+#define     VEPU_REG_VP8_LF_MODE_DELTA_SPLITMV(x)	(((x) & 0x7f) << 16)
+#define     VEPU_REG_VP8_LF_MODE_DELTA_ZEROMV(x)	(((x) & 0x7f) << 8)
+#define     VEPU_REG_VP8_LF_MODE_DELTA_NEWMV(x)		(((x) & 0x7f) << 0)
 #define VEPU_REG_INTRA_SLICE_BITMAP(i)		(0x0b0 + ((i) * 0x4))
+#define VEPU_REG_ADDR_VP8_DCT_PART(i)		(0x0b0 + ((i) * 0x4))
 #define VEPU_REG_INTRA_AREA_CTRL		0x0b8
 #define     VEPU_REG_INTRA_AREA_TOP(x)			(((x) & 0xff) << 24)
 #define     VEPU_REG_INTRA_AREA_BOTTOM(x)		(((x) & 0xff) << 16)
@@ -157,8 +94,8 @@
 #define     VEPU_REG_AXI_CTRL_READ_ID(x)		(((x) & 0xff) << 24)
 #define     VEPU_REG_AXI_CTRL_WRITE_ID(x)		(((x) & 0xff) << 16)
 #define     VEPU_REG_AXI_CTRL_BURST_LEN(x)		(((x) & 0x3f) << 8)
-#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE(x)	(((x) & 0x01) << 2)
-#define     VEPU_REG_AXI_CTRL_BIRST_DISCARD(x)	(((x) & 0x01) << 1)
+#define     VEPU_REG_AXI_CTRL_INCREMENT_MODE(x)		(((x) & 0x01) << 2)
+#define     VEPU_REG_AXI_CTRL_BIRST_DISCARD(x)		(((x) & 0x01) << 1)
 #define     VEPU_REG_AXI_CTRL_BIRST_DISABLE		BIT(0)
 #define VEPU_QP_ADJUST_MAD_DELTA_ROI		0x0dc
 #define     VEPU_REG_ROI_QP_DELTA_1			(((x) & 0xf) << 12)
@@ -178,18 +115,18 @@
 #define     VEPU_REG_H264_STREAM_MODE			BIT(15)
 #define     VEPU_REG_H264_SLICE_SIZE(x)			(((x) & 0x7f) << 8)
 #define VEPU_REG_ENC_OVER_FILL_STRM_OFFSET	0x0f0
-#define     VEPU_REG_RLC_CTRL_STR_OFFS_SHIFT		16
-#define     VEPU_REG_RLC_CTRL_STR_OFFS_MASK		0x3f
 #define     VEPU_REG_STREAM_START_OFFSET(x)		(((x) & 0x3f) << 16)
-#define     VEPU_REG_MACROBLOCK_PENALTY(x)		(((x) & 0xff) << 8)
+#define     VEPU_REG_SKIP_MACROBLOCK_PENALTY(x)		(((x) & 0xff) << 8)
 #define     VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x)		(((x) & 0x3) << 4)
-#define     VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(x)		(((x) & 0xf) << 0)
+#define     VEPU_REG_IN_IMG_CTRL_OVRFLB(x)		(((x) & 0xf) << 0)
 #define VEPU_REG_INPUT_LUMA_INFO		0x0f4
 #define     VEPU_REG_IN_IMG_CHROMA_OFFSET(x)		(((x) & 0x7) << 20)
 #define     VEPU_REG_IN_IMG_LUMA_OFFSET(x)		(((x) & 0x7) << 16)
 #define     VEPU_REG_IN_IMG_CTRL_ROW_LEN(x)		(((x) & 0x3fff) << 0)
 #define VEPU_REG_RLC_SUM			0x0f8
 #define     VEPU_REG_RLC_SUM_OUT(x)			(((x) & 0x007fffff) * 4)
+#define VEPU_REG_SPLIT_PENALTY_4X4		0x0f8
+#define	    VEPU_REG_VP8_SPLIT_PENALTY_4X4		(((x) & 0x1ff) << 19)
 #define VEPU_REG_ADDR_REC_LUMA			0x0fc
 #define VEPU_REG_ADDR_REC_CHROMA		0x100
 #define VEPU_REG_CHECKPOINT(i)			(0x104 + ((i) * 0x4))
@@ -198,9 +135,43 @@
 #define     VEPU_REG_CHECKPOINT_RESULT(x)		((((x) >> (16 - 16 \
 							 * (i & 1))) & 0xffff) \
 							 * 32)
+#define VEPU_REG_VP8_SEG0_QUANT_AC_Y1		0x104
+#define     VEPU_REG_VP8_SEG0_RND_AC_Y1(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_AC_Y1(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_AC_Y1(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_DC_Y2		0x108
+#define     VEPU_REG_VP8_SEG0_RND_DC_Y2(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_DC_Y2(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_DC_Y2(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_AC_Y2		0x10c
+#define     VEPU_REG_VP8_SEG0_RND_AC_Y2(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_AC_Y2(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_AC_Y2(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_DC_CHR		0x110
+#define     VEPU_REG_VP8_SEG0_RND_DC_CHR(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_DC_CHR(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_DC_CHR(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_AC_CHR		0x114
+#define     VEPU_REG_VP8_SEG0_RND_AC_CHR(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_AC_CHR(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_AC_CHR(x)		(((x) & 0x3fff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_DQUT		0x118
+#define     VEPU_REG_VP8_MV_REF_IDX1(x)			(((x) & 0x03) << 26)
+#define     VEPU_REG_VP8_SEG0_DQUT_DC_Y2(x)		(((x) & 0x1ff) << 17)
+#define     VEPU_REG_VP8_SEG0_DQUT_AC_Y1(x)		(((x) & 0x1ff) << 8)
+#define     VEPU_REG_VP8_SEG0_DQUT_DC_Y1(x)		(((x) & 0xff) << 0)
 #define VEPU_REG_CHKPT_WORD_ERR(i)		(0x118 + ((i) * 0x4))
 #define     VEPU_REG_CHKPT_WORD_ERR_CHK0(x)		(((x) & 0xffff))
 #define     VEPU_REG_CHKPT_WORD_ERR_CHK1(x)		(((x) & 0xffff) << 16)
+#define VEPU_REG_VP8_SEG0_QUANT_DQUT_1		0x11c
+#define     VEPU_REG_VP8_SEGMENT_MAP_UPDATE		BIT(30)
+#define     VEPU_REG_VP8_SEGMENT_EN			BIT(29)
+#define     VEPU_REG_VP8_MV_REF_IDX2_EN			BIT(28)
+#define     VEPU_REG_VP8_MV_REF_IDX2(x)			(((x) & 0x03) << 26)
+#define     VEPU_REG_VP8_SEG0_DQUT_AC_CHR(x)		(((x) & 0x1ff) << 17)
+#define     VEPU_REG_VP8_SEG0_DQUT_DC_CHR(x)		(((x) & 0xff) << 9)
+#define     VEPU_REG_VP8_SEG0_DQUT_AC_Y2(x)		(((x) & 0x1ff) << 0)
+#define VEPU_REG_VP8_BOOL_ENC_VALUE		0x120
 #define VEPU_REG_CHKPT_DELTA_QP			0x124
 #define     VEPU_REG_CHKPT_DELTA_QP_CHK0(x)		(((x) & 0x0f) << 0)
 #define     VEPU_REG_CHKPT_DELTA_QP_CHK1(x)		(((x) & 0x0f) << 4)
@@ -209,6 +180,13 @@
 #define     VEPU_REG_CHKPT_DELTA_QP_CHK4(x)		(((x) & 0x0f) << 16)
 #define     VEPU_REG_CHKPT_DELTA_QP_CHK5(x)		(((x) & 0x0f) << 20)
 #define     VEPU_REG_CHKPT_DELTA_QP_CHK6(x)		(((x) & 0x0f) << 24)
+#define VEPU_REG_VP8_ENC_CTRL2			0x124
+#define     VEPU_REG_VP8_ZERO_MV_PENALTY_FOR_REF2(x)	(((x) & 0xff) << 24)
+#define     VEPU_REG_VP8_FILTER_SHARPNESS(x)		(((x) & 0x07) << 21)
+#define     VEPU_REG_VP8_FILTER_LEVEL(x)		(((x) & 0x3f) << 15)
+#define     VEPU_REG_VP8_DCT_PARTITION_CNT(x)		(((x) & 0x03) << 13)
+#define     VEPU_REG_VP8_BOOL_ENC_VALUE_BITS(x)		(((x) & 0x1f) << 8)
+#define     VEPU_REG_VP8_BOOL_ENC_RANGE(x)		(((x) & 0xff) << 0)
 #define VEPU_REG_ENC_CTRL1			0x128
 #define     VEPU_REG_MAD_THRESHOLD(x)			(((x) & 0x3f) << 24)
 #define     VEPU_REG_COMPLETED_SLICES(x)		(((x) & 0xff) << 16)
@@ -261,7 +239,7 @@
 #define     VEPU_REG_RGB_MASK_R_MSB(x)			(((x) & 0x1f) << 0)
 #define VEPU_REG_MV_PENALTY			0x18c
 #define     VEPU_REG_1MV_PENALTY(x)			(((x) & 0x3ff) << 21)
-#define     VEPU_REG_1MV_4MV_PENALTY(x)			(((x) & 0x3ff) << 11)
+#define     VEPU_REG_QMV_PENALTY(x)			(((x) & 0x3ff) << 11)
 #define     VEPU_REG_4MV_PENALTY(x)			(((x) & 0x3ff) << 1)
 #define     VEPU_REG_SPLIT_MV_MODE_EN			BIT(0)
 #define VEPU_REG_QP_VAL				0x190
@@ -269,6 +247,10 @@
 #define     VEPU_REG_H264_QP_MAX(x)			(((x) & 0x3f) << 20)
 #define     VEPU_REG_H264_QP_MIN(x)			(((x) & 0x3f) << 14)
 #define     VEPU_REG_H264_CHKPT_DISTANCE(x)		(((x) & 0xfff) << 0)
+#define VEPU_REG_VP8_SEG0_QUANT_DC_Y1		0x190
+#define     VEPU_REG_VP8_SEG0_RND_DC_Y1(x)		(((x) & 0xff) << 23)
+#define     VEPU_REG_VP8_SEG0_ZBIN_DC_Y1(x)		(((x) & 0x1ff) << 14)
+#define     VEPU_REG_VP8_SEG0_QUT_DC_Y1(x)		(((x) & 0x3fff) << 0)
 #define VEPU_REG_MVC_RELATE			0x198
 #define     VEPU_REG_ZERO_MV_FAVOR_D2(x)		(((x) & 0xf) << 20)
 #define     VEPU_REG_PENALTY_4X4MV(x)			(((x) & 0x1ff) << 11)
