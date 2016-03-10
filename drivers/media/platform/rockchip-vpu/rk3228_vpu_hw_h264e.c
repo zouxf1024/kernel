@@ -1032,16 +1032,16 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 					struct rockchip_vpu_ctx *ctx)
 {
 	const struct rockchip_vpu_h264e_params *params = ctx->run.h264e.params;
+	struct v4l2_pix_format_mplane *pix_fmt = &ctx->src_fmt;
 	s32 scaler, i;
 	u32 reg;
 	u32 prev_mode_favor = h264_prev_mode_favor[params->qp];
 
 	u32 mbs_in_row = MB_WIDTH(ctx->dst_fmt.width);
 	u32 mbs_in_col = MB_HEIGHT(ctx->dst_fmt.height);
-
+	struct v4l2_rect *crop = &ctx->src_crop;
+	u32 overfill_r, overfill_b;
 	u32 first_free_bit = 0;
-	u32 x_fill = 0;
-	u32 y_fill = 0;
 	u32 constrained_intra_prediction = 0;
 	u32 skip_penalty;
 
@@ -1060,11 +1060,13 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 		ctx->run.h264e.hw_write_offset &= ~0x7;
 	}
 
-	if (ctx->dst_fmt.width & 0x0f)
-		x_fill = (16 - (ctx->dst_fmt.width & 0x0f)) / 4;
-
-	if (ctx->dst_fmt.height & 0x0f)
-		y_fill = 16 - (ctx->dst_fmt.height & 0x0f);
+	/*
+	 * The hardware needs only the value for luma plane, because
+	 * values of other planes are calculated internally based on
+	 * format setting.
+	 */
+	overfill_r = (pix_fmt->width - crop->width) / 4;
+	overfill_b = pix_fmt->height - crop->height;
 
 	vepu_write_relaxed(vpu, 0, VEPU_REG_INTRA_AREA_CTRL);
 
@@ -1087,6 +1089,7 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	scaler = max(1U, 200 / (mbs_in_row + mbs_in_col));
 	skip_penalty = min(255U, h264_skip_sad_penalty[params->qp] * scaler);
 
+	reg = 0;
 	if (mbs_in_row * mbs_in_col > 3600)
 		reg = VEPU_REG_DISABLE_QUARTER_PIXEL_MV;
 	reg |= VEPU_REG_CABAC_INIT_IDC(params->cabac_init_idc);
@@ -1101,9 +1104,9 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_CTRL0);
 
 	reg = VEPU_REG_STREAM_START_OFFSET(first_free_bit) |
-			VEPU_REG_MACROBLOCK_PENALTY(skip_penalty) |
-			VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(x_fill) |
-			VEPU_REG_IN_IMG_CTRL_OVRFLB_D4(y_fill);
+			VEPU_REG_SKIP_MACROBLOCK_PENALTY(skip_penalty) |
+			VEPU_REG_IN_IMG_CTRL_OVRFLR_D4(overfill_r) |
+			VEPU_REG_IN_IMG_CTRL_OVRFLB(overfill_b);
 	vepu_write_relaxed(vpu, reg, VEPU_REG_ENC_OVER_FILL_STRM_OFFSET);
 
 	reg = VEPU_REG_IN_IMG_CHROMA_OFFSET(0)
@@ -1195,7 +1198,7 @@ static void rk3228_vpu_h264e_set_params(struct rockchip_vpu_dev *vpu,
 	split_penalty[3] = 0;
 
 	reg = VEPU_REG_1MV_PENALTY(diff_mv_penalty[1])
-		| VEPU_REG_1MV_4MV_PENALTY(diff_mv_penalty[2])
+		| VEPU_REG_QMV_PENALTY(diff_mv_penalty[2])
 		| VEPU_REG_4MV_PENALTY(diff_mv_penalty[0]);
 
 	reg |= VEPU_REG_SPLIT_MV_MODE_EN;
