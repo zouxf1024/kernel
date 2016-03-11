@@ -50,7 +50,7 @@ struct rkvdec_vp9d_priv_tbl {
 #define COMP_INTER_CONTEXTS		5
 #define REF_CONTEXTS			5
 #define INTER_MODE_CONTEXTS		7
-#define SWITCHABLE_FILTERS		3 // number of switchable filters
+#define SWITCHABLE_FILTERS		3 /* number of switchable filters */
 /*#define SWITCHABLE_FILTER_CONTEXTS	(SWITCHABLE_FILTERS + 1)*/
 #define INTER_MODES			4
 #define MV_JOINTS			4
@@ -276,30 +276,40 @@ static void rkvdec_vp9d_output_prob(struct rockchip_vpu_ctx *ctx)
 	/* sb info  5 x 128 bit */
 	for (i = 0; i < PARTITION_CONTEXTS; i++)
 		for (j = 0; j < PARTITION_TYPES - 1; j++)
-			fifo_write_bits(&prob, partition_probs[i][j], 8, "partition probs");
+			fifo_write_bits(&prob, partition_probs[i][j], 8,
+					"partition probs");
 
 	for (i = 0; i < PREDICTION_PROBS; i++)
-		fifo_write_bits(&prob, dec_param->sgmnt_hdr.pred_probs[i], 8, "segment id pred probs");
+		fifo_write_bits(&prob, dec_param->sgmnt_hdr.pred_probs[i], 8,
+				"segment id pred probs");
 
 	for (i = 0; i < SEG_TREE_PROBS; i++)
-		fifo_write_bits(&prob, dec_param->sgmnt_hdr.tree_probs[i], 8, "segment id probs");
+		fifo_write_bits(&prob, dec_param->sgmnt_hdr.tree_probs[i], 8,
+				"segment id probs");
 
 	for (i = 0; i < SKIP_CONTEXTS; i++)
-		fifo_write_bits(&prob, dec_param->entropy_hdr.skip[i], 8, "skip flag probs");
+		fifo_write_bits(&prob, dec_param->entropy_hdr.skip[i], 8,
+				"skip flag probs");
 
 	for (i = 0; i < TX_SIZE_CONTEXTS; i++)
 		for (j = 0; j < TX_SIZES - 1; j++)
-			fifo_write_bits(&prob, dec_param->entropy_hdr.tx32p[i][j], 8, "tx_size probs");
+			fifo_write_bits(&prob,
+					dec_param->entropy_hdr.tx32p[i][j],
+					8, "tx_size probs");
 
 	for (i = 0; i < TX_SIZE_CONTEXTS; i++)
 		for (j = 0; j < TX_SIZES - 2; j++)
-			fifo_write_bits(&prob, dec_param->entropy_hdr.tx16p[i][j], 8, "tx_size probs");
+			fifo_write_bits(&prob,
+					dec_param->entropy_hdr.tx16p[i][j],
+					8, "tx_size probs");
 
 	for (i = 0; i < TX_SIZE_CONTEXTS; i++)
-		fifo_write_bits(&prob, dec_param->entropy_hdr.tx8p[i], 8, "tx_size probs");
+		fifo_write_bits(&prob, dec_param->entropy_hdr.tx8p[i],
+				8, "tx_size probs");
 
 	for (i = 0; i < INTRA_INTER_CONTEXTS; i++)
-		fifo_write_bits(&prob, dec_param->entropy_hdr.intra[i], 8, "intra probs");
+		fifo_write_bits(&prob, dec_param->entropy_hdr.intra[i], 8,
+				"intra probs");
 
 	fifo_align_bits(&prob, 128);
 	if (intra_only) {
@@ -667,7 +677,7 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 		reg |= RKVDEC_SEGID_REFERINFO(last_info->feature_data[i][2]);
 		if (last_info->feature_mask[i] & 0x8)
 			reg |= RKVDEC_SEGID_FRAME_SKIP_EN;
-		if (i == 0 && last_info->abs_delta_last)
+		if (i == 0 && last_info->abs_delta)
 			reg |= RKVDEC_SEGID_ABS_DELTA;
 		vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_SEGID_GRP(i));
 	}
@@ -678,29 +688,29 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 
 	if (dec_param->key_frame ||
 	    dec_param->flags & V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY) {
-		last_info->segmentation_enable_flag_last = 0;
-		last_info->last_intra_only = 1;
+		last_info->segmentation_enable = false;
+		last_info->intra_only = true;
 	} else {
 		reg = 0;
-		for (i = 0; i < 4; i++)         
-			reg |= (last_info->last_ref_deltas[i] & 0x7f) << (7 * i);
+		for (i = 0; i < 4; i++)
+			reg |= (last_info->ref_deltas[i] & 0x7f) << (7 * i);
 		vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_REF_DELTAS_LASTFRAME);
 
 		reg = 0;
 		for (i = 0; i < 2; i++)
-			reg |= (last_info->last_mode_deltas[i] & 0x7f) << (7 * i);
+			reg |= (last_info->mode_deltas[i] & 0x7f) << (7 * i);
 		vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_INFO_LASTFRAME);
 	}
 
 	reg = 0;
-	if (last_info->segmentation_enable_flag_last)
+	if (last_info->segmentation_enable)
 		reg |= RKVDEC_SEG_EN_LASTFRAME;
-	if (last_info->last_show_frame)
+	if (last_info->show_frame)
 		reg |= RKVDEC_LAST_SHOW_FRAME;
-	if (last_info->last_intra_only)
+	if (last_info->intra_only)
 		reg |= RKVDEC_LAST_INTRA_ONLY;
-	if (ctx->dst_fmt.width == last_info->last_width &&
-	    ctx->dst_fmt.height == last_info->last_height)
+	if (ctx->dst_fmt.width == last_info->width &&
+	    ctx->dst_fmt.height == last_info->height)
 		reg |= RKVDEC_LAST_WIDHHEIGHT_EQCUR;
 	vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_INFO_LASTFRAME);
 
@@ -732,9 +742,11 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 		    !dec_param->key_frame &&
 		    !(dec_param->flags &
 		      V4L2_VP9_FRAME_HDR_FLAG_ERROR_RESILIENT_MODE)) {
-			struct rkvdec_vp9d_priv_tbl *tbl = ctx->hw.vp9d.priv_tbl.cpu;
+			struct rkvdec_vp9d_priv_tbl *tbl =
+				ctx->hw.vp9d.priv_tbl.cpu;
 
-			memcpy(tbl->segmap_last, tbl->segmap, sizeof(tbl->segmap));
+			memcpy(tbl->segmap_last, tbl->segmap,
+				sizeof(tbl->segmap));
 		}
 	}
 
@@ -804,6 +816,15 @@ void rkvdec_vp9d_done(struct rockchip_vpu_ctx *ctx,
 		ctx->run.vp9d.dec_param;
 	u32 i;
 
+	last_info->abs_delta = dec_param->sgmnt_hdr.flags &
+		V4L2_VP9_SEGMENTATION_FLAG_ABS_DELTA;
+
+	for (i = 0 ; i < 4; i ++)
+		last_info->ref_deltas[i] = dec_param->ref_deltas[i];
+
+	for (i = 0 ; i < 2; i ++)
+		last_info->mode_deltas[i] = dec_param->mode_deltas[i];
+
 	for (i = 0; i < 8; i++) {
 		last_info->feature_data[i][0] =
 			dec_param->sgmnt_hdr.feature_data[i][0];
@@ -816,6 +837,16 @@ void rkvdec_vp9d_done(struct rockchip_vpu_ctx *ctx,
 		last_info->feature_mask[i] =
 			dec_param->sgmnt_hdr.feature_mask[i];
 	}
+
+	last_info->segmentation_enable = dec_param->sgmnt_hdr.flags &
+		V4L2_VP9_SEGMENTATION_FLAG_ENABLED;
+	last_info->show_frame = dec_param->flags &
+		V4L2_VP9_FRAME_HDR_FLAG_SHOW_FRAME;
+	last_info->width = ctx->dst_fmt.width;
+	last_info->height = ctx->dst_fmt.height;
+	last_info->intra_only = (dec_param->key_frame ||
+				 dec_param->flags &
+				 V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY);
 
 	rockchip_vpu_run_done(ctx, result);
 }

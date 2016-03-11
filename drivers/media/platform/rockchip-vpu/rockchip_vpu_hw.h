@@ -185,14 +185,14 @@ struct rockchip_vpu_h264e_hw_ctx {
 };
 
 struct rockchip_vpu_vp9d_last_info {
-	s32 abs_delta_last;
-	s8 last_ref_deltas[4];
-	s8 last_mode_deltas[2];
-	u8 segmentation_enable_flag_last;
-	u8 last_show_frame;
-	u8 last_intra_only;
-	u32 last_width;
-	u32 last_height;
+	bool abs_delta;
+	s8 ref_deltas[4];
+	s8 mode_deltas[2];
+	bool segmentation_enable;
+	bool show_frame;
+	bool intra_only;
+	u32 width;
+	u32 height;
 	s16 feature_data[8][4];
 	u8 feature_mask[8];
 	dma_addr_t mv_base_addr;
