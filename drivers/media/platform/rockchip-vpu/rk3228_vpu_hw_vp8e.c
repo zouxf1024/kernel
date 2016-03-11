@@ -786,13 +786,8 @@ void rk3228_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx)
 	 */
 	rockchip_vpu_power_on(vpu);
 
-	reg = VEPU_REG_MB_HEIGHT(MB_HEIGHT(ctx->dst_fmt.height))
-		| VEPU_REG_MB_WIDTH(MB_WIDTH(ctx->dst_fmt.width))
-		| VEPU_REG_PIC_TYPE(params->is_intra)
-		| VEPU_REG_ENCODE_FORMAT(1);
-	vepu_write(vpu, reg, VEPU_REG_ENCODE_START);
-
-	wmb();
+	reg = VEPU_REG_ENCODE_FORMAT(1);
+	vepu_write_relaxed(vpu, reg, VEPU_REG_ENCODE_START);
 
 	rk3228_vpu_vp8e_set_params(vpu, ctx);
 	rk3228_vpu_vp8e_set_buffers(vpu, ctx);
@@ -811,14 +806,6 @@ void rk3228_vpu_vp8e_run(struct rockchip_vpu_ctx *ctx)
 	schedule_delayed_work(&vpu->watchdog_work, msecs_to_jiffies(2000));
 
 	/* Start the hardware. */
-
-	{
-		int i;
-		for (i = 0; i < 184; i++) {
-			vepu_read(vpu, i * 4);
-		}
-	}
-
 	reg = VEPU_REG_MB_HEIGHT(MB_HEIGHT(ctx->dst_fmt.height))
 		| VEPU_REG_MB_WIDTH(MB_WIDTH(ctx->dst_fmt.width))
 		| VEPU_REG_PIC_TYPE(params->is_intra)
