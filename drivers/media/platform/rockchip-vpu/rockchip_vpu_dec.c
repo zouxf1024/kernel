@@ -89,6 +89,13 @@ static struct rockchip_vpu_fmt formats[] = {
 		.codec_mode = RKVDEC_CODEC_VP9D,
 		.num_planes = 1,
 	},
+	{
+		.name = "Frames of VP9 Encoded Stream",
+		.fourcc = V4L2_PIX_FMT_VP9,
+		.vpu_type = RKVDEC,
+		.codec_mode = RKVDEC_CODEC_VP9D,
+		.num_planes = 1,
+	},
 };
 
 static struct rockchip_vpu_fmt *find_format(u32 fourcc, bool bitstream,
@@ -123,9 +130,9 @@ enum {
 	ROCKCHIP_VPU_DEC_CTRL_VP9_COUNTS_RET,
 };
 
-#define V4L2_CID_PRIVATE_ROCKCHIP_VP9D_COUNTS_RET	\
-				(V4L2_CID_CUSTOM_BASE + 6)
 #define V4L2_CID_PRIVATE_ROCKCHIP_VP9D_DECODE_PARAM	\
+				(V4L2_CID_CUSTOM_BASE + 6)
+#define V4L2_CID_PRIVATE_ROCKCHIP_VP9D_COUNTS_RET	\
 				(V4L2_CID_CUSTOM_BASE + 7)
 
 static struct rockchip_vpu_control controls[] = {
@@ -629,6 +636,8 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *buf)
 
 	vpu_debug_enter();
 
+	vpu_debug(0, "buf->type %d\n", buf->type);
+
 	switch (buf->type) {
 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE:
 		ret = vb2_dqbuf(&ctx->vq_src, buf, file->f_flags & O_NONBLOCK);
@@ -643,6 +652,8 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *buf)
 	}
 
 	vpu_debug_leave();
+
+	vpu_debug(0, "ret %d\n", ret);
 
 	return ret;
 }
@@ -941,7 +952,7 @@ static int rockchip_vpu_queue_setup(struct vb2_queue *vq,
 			*buf_count = VIDEO_MAX_FRAME;
 
 		psize[0] = ctx->src_fmt.plane_fmt[0].sizeimage;
-		allocators[0] = ctx->dev->alloc_ctx;
+		allocators[0] = ctx->dev->alloc_ctx_vm;
 		vpu_debug(0, "output psize[%d]: %d\n", 0, psize[0]);
 		break;
 
@@ -957,7 +968,8 @@ static int rockchip_vpu_queue_setup(struct vb2_queue *vq,
 		psize[0] = round_up(ctx->dst_fmt.plane_fmt[0].sizeimage, 8);
 		allocators[0] = ctx->dev->alloc_ctx_vm;
 
-		if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_H264_SLICE) {
+		if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_H264_SLICE ||
+		    ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_VP9) {
 			/* Add space for appended motion vectors. */
 			if (ctx->vpu_src_fmt->vpu_type == RKVDEC)
 				psize[0] += 128 *
@@ -1182,22 +1194,16 @@ static void rockchip_vpu_buf_finish(struct vb2_buffer *vb)
 	struct vb2_queue *vq = vb->vb2_queue;
 
 	vpu_debug_enter();
-#if 0
-	int i;
-	u8 *p = vb2_plane_vaddr(vb, 0);
-
-	for (i = 0; i < 32; i++) {
-		printk("%02x ", p[i]);
-		if ((i + 1) % 16 == 0) {
-			printk("\n");
-		}
-	}
-#endif
-	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+#if 1
+	if (vq->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
+	    !IS_ERR_OR_NULL(vb2_plane_vaddr(vb, 0)) &&
+	    vb2_get_plane_payload(vb, 0) > 0) {
+		vpu_debug(0, "%p %lu\n", vb2_plane_vaddr(vb, 0),
+			  vb2_get_plane_payload(vb, 0));
 		rockchip_vpu_write(NULL, vb2_plane_vaddr(vb, 0),
 				   vb2_get_plane_payload(vb, 0));
 	}
-
+#endif
 	vpu_debug_leave();
 }
 
@@ -1244,6 +1250,9 @@ static void rockchip_vpu_dec_prepare_run(struct rockchip_vpu_ctx *ctx)
 	} else if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_VP8_FRAME) {
 		ctx->run.vp8d.frame_hdr = get_ctrl_ptr(ctx,
 				ROCKCHIP_VPU_DEC_CTRL_VP8_FRAME_HDR);
+	} else if (ctx->vpu_src_fmt->fourcc == V4L2_PIX_FMT_VP9) {
+		ctx->run.vp9d.dec_param = get_ctrl_ptr(ctx,
+				ROCKCHIP_VPU_DEC_CTRL_VP9_DECODE_PARAM);
 	}
 }
 

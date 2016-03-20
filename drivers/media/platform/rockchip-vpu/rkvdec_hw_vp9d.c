@@ -573,6 +573,8 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 	u32 align_h_y;
 	u32 align_h_uv;
 	s32 i;
+	bool intra_only = dec_param->key_frame ||
+		dec_param->flags & V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY;
 
 	reg = RKVDEC_MODE(2);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_REG_SYSCTRL);
@@ -686,8 +688,7 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 		| RKVDEC_VP9_FRAME_REF_MODE(dec_param->refmode);
 	vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_CPRHEADER_CONFIG);
 
-	if (dec_param->key_frame ||
-	    dec_param->flags & V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY) {
+	if (intra_only) {
 		last_info->segmentation_enable = false;
 		last_info->intra_only = true;
 	} else {
@@ -717,8 +718,7 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 	reg = stream_len - dec_param->first_partition_size;
 	vdpu_write_relaxed(vpu, reg, RKVDEC_VP9_LASTTILE_SIZE);
 
-	if (!(dec_param->key_frame ||
-	      dec_param->flags & V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY)) {
+	if (!intra_only) {
 		/* last frame */
 		reg = RKVDEC_VP9_REF_HOR_SCALE(dec_param->mvscale[0][0])
 			| RKVDEC_VP9_REF_VER_SCALE(dec_param->mvscale[0][1]);
@@ -737,9 +737,7 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 	       V4L2_VP9_SEGMENTATION_FLAG_ENABLED) &&
 	      !(dec_param->sgmnt_hdr.flags &
 		V4L2_VP9_SEGMENTATION_FLAG_UPDATE_MAP))) {
-		if (!(dec_param->flags &
-		      V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY) &&
-		    !dec_param->key_frame &&
+		if (!intra_only &&
 		    !(dec_param->flags &
 		      V4L2_VP9_FRAME_HDR_FLAG_ERROR_RESILIENT_MODE)) {
 			struct rkvdec_vp9d_priv_tbl *tbl =
@@ -750,12 +748,9 @@ static void rkvdec_vp9d_config_registers(struct rockchip_vpu_ctx *ctx)
 		}
 	}
 
-	if (!(dec_param->flags & V4L2_VP9_FRAME_HDR_FLAG_INTRA_MB_ONLY) &&
-	    !dec_param->key_frame &&
-	    !(dec_param->flags &
-	      V4L2_VP9_FRAME_HDR_FLAG_ERROR_RESILIENT_MODE)) {
+	if (!intra_only && !(dec_param->flags &
+			     V4L2_VP9_FRAME_HDR_FLAG_ERROR_RESILIENT_MODE))
 		last_info->mv_base_addr = ctx->hw.vp9d.mv_base_addr;
-	}
 
 	hw_base = vb2_dma_contig_plane_dma_addr(&ctx->run.dst->b.vb2_buf, 0);
 	vdpu_write_relaxed(vpu, hw_base, RKVDEC_REG_DECOUT_BASE);
