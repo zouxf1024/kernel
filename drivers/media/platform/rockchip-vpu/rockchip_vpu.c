@@ -25,6 +25,7 @@
 #include <linux/platform_device.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/uio.h>
 #include <linux/videodev2.h>
 #include <media/v4l2-event.h>
 #include <linux/workqueue.h>
@@ -43,6 +44,24 @@ MODULE_PARM_DESC(debug,
 
 #define DUMP_FILE "/tmp/vpu.out"
 
+/*static ssize_t new_sync_write(struct file *filp, const char __user *buf, size_t len, loff_t *ppos)
+{
+        struct iovec iov = { .iov_base = (void __user *)buf, .iov_len = len };
+        struct kiocb kiocb;
+        struct iov_iter iter;
+        ssize_t ret;
+
+        init_sync_kiocb(&kiocb, filp);
+        kiocb.ki_pos = *ppos;
+        iov_iter_init(&iter, WRITE, &iov, 1, len);
+
+        ret = filp->f_op->write_iter(&kiocb, &iter);
+        BUG_ON(ret == -EIOCBQUEUED);
+        if (ret > 0)
+                *ppos = kiocb.ki_pos;
+        return ret;
+}*/
+
 int rockchip_vpu_write(const char *file, void *buf, size_t size)
 {
 	const char __user *p = (__force const char __user *)buf;
@@ -51,7 +70,7 @@ int rockchip_vpu_write(const char *file, void *buf, size_t size)
 	mm_segment_t fs;
 	int ret;
 
-	if (IS_ERR(filp)) {
+	if (IS_ERR_OR_NULL(filp)) {
 		printk("open(%s) failed\n", file ? file : DUMP_FILE);
 		return -ENODEV;
 	}
@@ -59,8 +78,12 @@ int rockchip_vpu_write(const char *file, void *buf, size_t size)
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 
+	vpu_debug(0, "%s size %d, %02x %02x %02x %02x\n",
+		  file ? file : DUMP_FILE, size, p[0], p[1], p[2], p[3]);
+
 	filp->f_pos = 0;
-	ret = filp->f_op->write(filp, p, size, &filp->f_pos);
+	/*ret = new_sync_write(filp, p, size, &filp->f_pos);*/
+	__vfs_write(filp, p, size, &filp->f_pos);
 
 	filp_close(filp, NULL);
 	set_fs(fs);
@@ -109,13 +132,17 @@ void fifo_write_bits(struct fifo_s *pkt, u64 invalue, u8 lbits, const char *name
 	if (!lbits)
 		return;
 
+	/*printk("%s %llu %d\n", name, invalue, (int)lbits);*/
+
 	hbits = 64 - lbits;
 	invalue = (invalue << hbits) >> hbits;
 
-	pkt->bvalue |= invalue << pkt->bitpos;  // high bits value
+	/* high bits value */
+	pkt->bvalue |= invalue << pkt->bitpos;
 	if ((pkt->bitpos + lbits) >= 64) {
 		pkt->pbuf[pkt->index] = pkt->bvalue;
-		pkt->bvalue = invalue >> (64 - pkt->bitpos);  // low bits value
+		/* low bits value */
+		pkt->bvalue = invalue >> (64 - pkt->bitpos);
 		pkt->index++;
 	}
 	pkt->pbuf[pkt->index] = pkt->bvalue;
@@ -367,7 +394,7 @@ void rockchip_vpu_run_done(struct rockchip_vpu_ctx *ctx,
 		struct vb2_buffer *dst = &ctx->run.dst->b.vb2_buf;
 
 		to_vb2_v4l2_buffer(dst)->timestamp =
-						     to_vb2_v4l2_buffer(src)->timestamp;
+				to_vb2_v4l2_buffer(src)->timestamp;
 		vb2_buffer_done(&ctx->run.src->b.vb2_buf, result);
 		vb2_buffer_done(&ctx->run.dst->b.vb2_buf, result);
 	}
@@ -531,8 +558,6 @@ static int rockchip_vpu_open(struct file *filp)
 	 * as vdev and ctx->fh), which have proper locking done in respective
 	 * helper functions used here.
 	 */
-
-	vpu_debug_enter();
 
 	/* Allocate memory for context */
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
