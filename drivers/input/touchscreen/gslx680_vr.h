@@ -63,7 +63,7 @@ extern void gsl_DataInit(int *ret);
    }
    */
 
-unsigned int gsl_config_data_id[] =
+static unsigned int gsl_config_data_id[] =
 {
 	0x852b6a,
 	0x200,

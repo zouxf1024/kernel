@@ -26,7 +26,7 @@
 #include <linux/input/mt.h>
 //#include "rockchip_gslX680_rk3168.h"
 #include "tp_suspend.h"
-#include "gslx680.h"
+#include "gslx680_vr.h"
 #include <linux/of_gpio.h>
 #include <linux/wakelock.h>
 
