@@ -338,6 +338,26 @@
 		BT,wake_host_irq = <&gpio0 4 GPIO_ACTIVE_HIGH>; /* GPIO0_A4 */
 		status = "okay";
 	};
+
+    leds {
+       compatible = "gpio-leds";
+       power {
+           label = "firefly:blue:power";
+           linux,default-trigger = "ir-power-click";
+           default-state = "on";
+           gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
+           pinctrl-names = "default";
+           pinctrl-0 = <&led_power>;
+       };
+       user {
+           label = "firefly:yellow:user";
+           linux,default-trigger = "ir-user-click";
+           default-state = "off";
+           gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+           pinctrl-names = "default";
+           pinctrl-0 = <&led_user>;
+       };
+   };
 };
 
 &cpu_l0 {
@@ -787,6 +807,16 @@
 		uart0_gpios: uart0-gpios {
 			rockchip,pins =
 				<2 19 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	leds {
+		led_power: led-power {
+			rockchip,pins = <2 27 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_user: led-user {
+			rockchip,pins = <0 13 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
