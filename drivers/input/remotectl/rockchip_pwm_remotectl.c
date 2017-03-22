@@ -12,8 +12,7 @@
 #include <linux/wakelock.h>
 #include <linux/slab.h>
 #include "rockchip_pwm_remotectl.h"
-
-
+#include <linux/leds.h>
 
 /*sys/module/rk_pwm_remotectl/parameters,
 modify code_print to change the value*/
@@ -36,7 +35,14 @@ module_param_named(dbg_level, rk_remote_pwm_dbg_level, int, 0644);
 		} \
 	} while (0)
 
+#define BLINK_DELAY 50
+DEFINE_LED_TRIGGER(ledtrig_ir_click);
+static unsigned long ir_blink_delay = BLINK_DELAY;
 
+void ledtrig_ir_activity(void)
+{
+    led_trigger_blink_oneshot(ledtrig_ir_click, &ir_blink_delay, &ir_blink_delay,1);
+}
 struct rkxx_remote_key_table {
 	int scancode;
 	int keycode;
@@ -220,6 +226,12 @@ static void rk_pwm_remotectl_do_something(unsigned long  data)
 	}
 	break;
 	case RMC_GETDATA: {
+		if(ddata->keycode != KEY_POWER)
+		{
+			ledtrig_ir_activity();
+			led_trigger_blink_oneshot(ledtrig_ir_click, &ir_blink_delay, &ir_blink_delay,1);
+		}
+
 		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
 		    (ddata->period < RK_PWM_TIME_BIT1_MAX))
 			ddata->scandata |= (0x01<<ddata->count);
@@ -231,6 +243,9 @@ static void rk_pwm_remotectl_do_something(unsigned long  data)
 		    ((~ddata->scandata >> 8) & 0x0ff)) {
 			if (remotectl_keycode_lookup(ddata)) {
 				ddata->press = 1;
+				if(ddata->keycode == KEY_POWER){
+                    led_trigger_event(ledtrig_ir_click,LED_OFF);
+                }
 				input_event(ddata->input, EV_KEY,
 					    ddata->keycode, 1);
 				input_sync(ddata->input);
@@ -488,11 +503,14 @@ static int rk_pwm_probe(struct platform_device *pdev)
 	rk_pwm_remotectl_hw_init(ddata);
 	pwm_freq = clk_get_rate(clk) / 64;
 	ddata->pwm_freq_nstime = 1000000000 / pwm_freq;
+	led_trigger_register_simple("ir-power-click", &ledtrig_ir_click);
+
 	return ret;
 }
 
 static int rk_pwm_remove(struct platform_device *pdev)
 {
+	led_trigger_unregister_simple(ledtrig_ir_click);
 	return 0;
 }
 
