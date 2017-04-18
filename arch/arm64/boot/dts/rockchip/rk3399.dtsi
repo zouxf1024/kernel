@@ -217,6 +217,11 @@
 		};
 	};
 
+        soc-info {
+                        nvmem-cells = <&system_serial>;
+                        nvmem-cell-names = "system_serial";
+        };
+
 	timer {
 		compatible = "arm,armv8-timer";
 		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_LOW 0>,
@@ -1392,6 +1397,9 @@
 		wafer_info: wafer-info {
 			reg = <0x1c 0x1>;
 		};
+                system_serial: system_serial {
+                        reg = <0x07 0x10>;
+                };
 	};
 
 	pmucru: pmu-clock-controller@ff750000 {

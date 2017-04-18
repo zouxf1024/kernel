@@ -33,7 +33,18 @@
 #include <linux/sched.h>
 #include <linux/smp.h>
 #include <linux/delay.h>
+#ifdef CONFIG_ARCH_ROCKCHIP
+#include <linux/nvmem-consumer.h>
+#include <linux/of.h>
+#include <linux/slab.h>
+#include <linux/crc32.h>
 
+unsigned int system_serial_low;
+EXPORT_SYMBOL(system_serial_low);
+
+unsigned int system_serial_high;
+EXPORT_SYMBOL(system_serial_high);
+#endif
 /*
  * In case the boot CPU is hotpluggable, we record its initial state and
  * current state separately. Certain system registers may contain different
@@ -157,6 +168,11 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU revision\t: %d\n\n", MIDR_REVISION(midr));
 	}
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+       seq_printf(m, "Serial\t\t: %08x%08x\n",
+                  system_serial_high, system_serial_low);
+#endif
+
 	return 0;
 }
 
@@ -260,3 +276,47 @@ void __init cpuinfo_store_boot_cpu(void)
 	boot_cpu_data = *info;
 	init_cpu_features(&boot_cpu_data);
 }
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+static int __init set_system_serial(void)
+{
+       struct nvmem_cell *cell;
+       struct device_node *np;
+       unsigned char *efuse_buf, buf[16];
+       size_t len;
+       int i;
+
+       np = of_find_node_by_name(NULL, "soc-info");
+       if (!np) {
+               pr_info("%s: unable to find soc-info node\n", __func__);
+               return 0;
+       }
+
+       cell = of_nvmem_cell_get(np, "system_serial");
+       if (IS_ERR(cell)) {
+               pr_err("soc-info failed to system_serial cell\n");
+               return PTR_ERR(cell);
+       }
+       efuse_buf = (unsigned char *)nvmem_cell_read(cell, &len);
+       nvmem_cell_put(cell);
+
+       if (len != 16) {
+               kfree(efuse_buf);
+               return -EINVAL;
+       }
+
+       for (i = 0; i < 8; i++) {
+               buf[i] = efuse_buf[1 + (i << 1)];
+               buf[i + 8] = efuse_buf[i << 1];
+       }
+
+       kfree(efuse_buf);
+
+       system_serial_low = crc32(0, buf, 8);
+       system_serial_high = crc32(system_serial_low, buf + 8, 8);
+
+       return 0;
+}
+//device_initcall(set_system_serial);
+late_initcall(set_system_serial);
+#endif
