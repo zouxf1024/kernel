@@ -23,12 +23,16 @@ struct gpio_desc;
 struct gpio_keys_button {
 	unsigned int code;
 	int gpio;
+	int gpio_b;
 	int active_low;
 	const char *desc;
 	unsigned int type;
 	int wakeup;
 	int debounce_interval;
 	bool can_disable;
+	bool knob_key;
+	unsigned int cw_code;
+	unsigned int ccw_code;
 	int value;
 	unsigned int irq;
 	struct gpio_desc *gpiod;

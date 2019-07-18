@@ -392,6 +392,55 @@ ifdef CONFIG_FB
 LOGO := $(notdir $(wildcard $(srctree)/logo.bmp))
 LOGO_KERNEL := $(notdir $(wildcard $(srctree)/logo_kernel.bmp))
 endif
+
+#gpio6a0=0
+#gpio6a1=0
+#gpio6a2=0
+#lvds 
+
+#gpio6a0=0
+#gpio6a1=1
+#gpio6a2=0
+#edp
+
+#gpio6a0=0
+#gpio6a1=0
+#gpio6a2=1
+#dual lvds
+
+#samyung_dtb := samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb
+samyung_dtb := samyung_ff_lvds.dtb samyung_ff_edp.dtb samyung_ff_duallvds.dtb
+
+samyung: $(samyung_dtb) kernel.img $(LOGO) $(LOGO_KERNEL)
+	$(Q) if [ -f $(srctree)/$(LOGO) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO) $(objtree)/; fi
+	$(Q) if [ -f $(srctree)/$(LOGO_KERNEL) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO_KERNEL) $(objtree)/; fi
+	$(Q) ln -sf samyung_ff_lvds.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb
+	$(Q) ln -sf samyung_ff_edp.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb
+	$(Q) ln -sf samyung_ff_duallvds.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb
+
+	$(Q)scripts/resource_tool \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_lvds.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb \
+	$(LOGO) $(LOGO_KERNEL)
+	@echo '  Image:  resource.img (with $*.dtb $(LOGO) $(LOGO_KERNEL)) is ready'
+	$(Q) if [ -x $(srctree)/scripts/mkbootimg ]; then \
+		$(srctree)/scripts/mkbootimg \
+			--kernel $(objtree)/arch/arm/boot/Image \
+			--second resource.img \
+			-o boot.img && \
+		echo '  Image:  boot.img (with Image resource.img) is ready'; \
+		$(srctree)/scripts/mkbootimg \
+			--kernel $(objtree)/arch/arm/boot/zImage \
+			--second resource.img \
+			-o zboot.img && \
+		echo '  Image:  zboot.img (with zImage resource.img) is ready'; \
+	fi
+
 %.img: %.dtb kernel.img $(LOGO) $(LOGO_KERNEL)
 	$(Q) if [ -f $(srctree)/$(LOGO) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO) $(objtree)/; fi
 	$(Q) if [ -f $(srctree)/$(LOGO_KERNEL) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO_KERNEL) $(objtree)/; fi

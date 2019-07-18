@@ -358,12 +358,53 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	input_sync(input);
 }
 
+static void gpio_keys_gpio_knob_report_event(struct gpio_button_data *bdata)
+{
+	const struct gpio_keys_button *button = bdata->button;
+	struct input_dev *input = bdata->input;
+	unsigned int type = button->type ?: EV_KEY;
+	int state = gpio_get_value_cansleep(button->gpio);
+	int state_b = gpio_get_value_cansleep(button->gpio_b);
+	unsigned int code;
+
+	if (state < 0) {
+		dev_err(input->dev.parent, "failed to get gpio state\n");
+		return;
+	}
+
+	state = (state ? 1 : 0) ^ button->active_low;
+	state_b = (state_b ? 1 : 0) ^ button->active_low;
+
+	if (state_b == state)
+		code = button->ccw_code;
+	else
+		code = button->cw_code;
+
+	input_event(input, type, code, true);
+	input_sync(input);
+
+	input_event(input, type, code, false);
+	input_sync(input);
+}
+
+
 static void gpio_keys_gpio_work_func(struct work_struct *work)
 {
 	struct gpio_button_data *bdata =
 		container_of(work, struct gpio_button_data, work.work);
 
 	gpio_keys_gpio_report_event(bdata);
+
+	if (bdata->button->wakeup)
+		pm_relax(bdata->input->dev.parent);
+}
+
+static void gpio_keys_gpio_knob_work_func(struct work_struct *work)
+{
+	struct gpio_button_data *bdata =
+		container_of(work, struct gpio_button_data, work.work);
+
+	gpio_keys_gpio_knob_report_event(bdata);
 
 	if (bdata->button->wakeup)
 		pm_relax(bdata->input->dev.parent);
@@ -494,7 +535,20 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 			bdata->irq = irq;
 		}
 
-		INIT_DELAYED_WORK(&bdata->work, gpio_keys_gpio_work_func);
+		if (button->knob_key) {
+			error = devm_gpio_request_one(&pdev->dev, button->gpio_b,
+							  GPIOF_IN, desc);
+			if (error < 0) {
+				dev_err(dev, "Failed to request GPIO %d, error %d\n",
+					button->gpio_b, error);
+				return error;
+			}
+		}
+
+		if (button->knob_key)
+			INIT_DELAYED_WORK(&bdata->work, gpio_keys_gpio_knob_work_func);
+		else
+			INIT_DELAYED_WORK(&bdata->work, gpio_keys_gpio_work_func);
 
 		isr = gpio_keys_gpio_isr;
 		irqflags = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING;
@@ -520,6 +574,11 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 	}
 
 	input_set_capability(input, button->type ?: EV_KEY, button->code);
+
+	if (button->knob_key) {
+		input_set_capability(input, button->type ?: EV_KEY, button->ccw_code);
+		input_set_capability(input, button->type ?: EV_KEY, button->cw_code);
+	}
 
 	/*
 	 * Install custom action to cancel release timer and
@@ -655,6 +714,27 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 			return ERR_PTR(-EINVAL);
 		}
 
+		if (of_get_property(pp, "knob-key", NULL))
+			button->knob_key = true;
+
+		if (button->knob_key) {
+			button->gpio_b = of_get_gpio_flags(pp, 1, &flags);
+			if (button->gpio_b < 0)
+				return ERR_PTR(-EINVAL);
+
+			if (of_property_read_u32(pp, "linux,code_cw", &button->cw_code)) {
+				dev_err(dev, "Button without keycode: 0x%x\n",
+					button->gpio);
+				return ERR_PTR(-EINVAL);
+			}
+
+			if (of_property_read_u32(pp, "linux,code_ccw", &button->ccw_code)) {
+				dev_err(dev, "Button without keycode: 0x%x\n",
+					button->gpio);
+				return ERR_PTR(-EINVAL);
+			}
+		}
+
 		if (of_property_read_u32(pp, "linux,code", &button->code)) {
 			dev_err(dev, "Button without keycode: 0x%x\n",
 				button->gpio);
@@ -674,7 +754,7 @@ gpio_keys_get_devtree_pdata(struct device *dev)
 
 		if (of_property_read_u32(pp, "debounce-interval",
 					 &button->debounce_interval))
-			button->debounce_interval = 5;
+			button->debounce_interval = 1;
 	}
 
 	if (pdata->nbuttons == 0)
