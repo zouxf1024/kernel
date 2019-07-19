@@ -1,0 +1,3 @@
+/dts-v1/;
+#include "samyung_ff.dtsi"
+#include "samyung_ff_edp.dtsi"
