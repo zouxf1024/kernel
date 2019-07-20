@@ -1,0 +1,13 @@
+config EMMY_MLAN_SDIO
+	bool
+
+config EMMY_SD8XXX
+	bool
+
+config EMMY_MLAN
+	tristate "Ublox EMMY-MLAN"
+	select EMMY_MLAN_SDIO
+	select EMMY_SD8XXX
+	depends on !(MWIFIEX || MWIFIEX_SDIO)
+	---help---
+	  EVK-EMMY-W1 WIFI driver

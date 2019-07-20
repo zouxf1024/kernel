@@ -1,0 +1,10 @@
+config EMMY_BT8XXX_SDIO
+	bool
+
+config EMMY_BT8XXX
+	tristate "Ubox bluetooth sdio driver"
+	select EMMY_BT8XXX_SDIO
+	depends on !(BT_MRVL || BT_MRVL_SDIO)
+	---help---
+	  EVK-EMMY-W1 BT driver
+

@@ -62,7 +62,7 @@
 		 * - SDIO_RESET_L_WL_REG_ON
 		 * - PDN (power down when low)
 		 */
-		reset-gpios = <&gpio4 28 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&gpio4 29 GPIO_ACTIVE_LOW>;
 	};
 
 	vcc_sys_5v: vcc-sys-5v{

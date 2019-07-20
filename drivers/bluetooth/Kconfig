@@ -315,6 +315,8 @@ config BT_ATH3K
 	  Say Y here to compile support for "Atheros firmware download driver"
 	  into the kernel or say M to compile it as module (ath3k).
 
+source drivers/bluetooth/ublox/Kconfig
+
 config BT_WILINK
 	tristate "Texas Instruments WiLink7 driver"
 	depends on TI_ST
