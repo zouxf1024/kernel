@@ -38,7 +38,7 @@ endif
 # n: NO DEBUG
 # 1: Only PRINTM(MMSG,...), PRINTM(MFATAL,...), ...
 # 2: All PRINTM()
-CONFIG_DEBUG=2
+CONFIG_DEBUG=1
 
 # Proc debug file
 CONFIG_PROC_DEBUG=y
