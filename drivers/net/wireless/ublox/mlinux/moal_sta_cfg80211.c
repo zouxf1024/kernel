@@ -3391,7 +3391,7 @@ done:
 		priv->phandle->scan_priv = NULL;
 		spin_unlock_irqrestore(&priv->phandle->scan_req_lock, flags);
 	} else
-		PRINTM(MMSG, "wlan: %s START SCAN\n", dev->name);
+		PRINTM(MEVENT, "wlan: %s START SCAN\n", dev->name);
 	LEAVE();
 	return ret;
 }
