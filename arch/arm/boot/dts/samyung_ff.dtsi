@@ -52,13 +52,10 @@
 	};
 
 	gpio-keys {
+		status = "disabled";
 		compatible = "gpio-keys";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		//autorepeat;
-
-		//pinctrl-names = "default";
-		//pinctrl-0 = <&pwrbtn>;
 
 		button@0 {
 			gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>, <&gpio0 18 GPIO_ACTIVE_HIGH>;
@@ -70,6 +67,19 @@
 			linux,input-type = <1>;
 			debounce-interval = <0>;
 		};
+	};
+
+	rotary {
+		status = "okay";
+		compatible = "rotary-encoder";
+		pinctrl-names = "default";
+		pinctrl-0 = <&rotary_gpio>;
+		gpios = <&gpio0		18	GPIO_ACTIVE_HIGH>,
+				<&gpio0		7	GPIO_ACTIVE_HIGH>;
+		linux,axis = <REL_WHEEL>; /* REL_WHEEL*/
+		rotary-encoder,relative-axis;
+		rotary-encoder,steps = <24>;
+		rotary-encoder,steps-per-period = <2>;  /*halr period mode*/
 	};
 
 	matrix-keys {
@@ -116,12 +126,12 @@
 };
 
 &dfi {
-	status = "okay";
+	status = "disabled";
 };
 
 &dmc {
 	center-supply = <&vdd_log>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gpu {
@@ -282,28 +292,6 @@
 
 &i2c4 {
 	status = "okay";
-
-	gslx680: gslx680@41 {
-		compatible = "gslX680";
-		reg = <0x41>;
-		screen_max_x = <800>;
-		screen_max_y = <1280>;
-		touch-gpio = <&gpio5 19 IRQ_TYPE_LEVEL_LOW>;
-		reset-gpio = <&gpio7 9 GPIO_ACTIVE_HIGH>;
-		gsl,fw = <1>;
-		flip-x = <1>;
-		flip-y = <0>;
-		swap-xy = <0>;
-	};
-
-	sensor@4c {
-		compatible = "gs_mc3230";
-		reg = <0x4c>;
-		type = <SENSOR_TYPE_ACCEL>;
-		irq_enable = <0>;
-		poll_delay_ms = <30>;
-		layout = <1>;
-	};
 };
 
 &rga {
@@ -312,11 +300,23 @@
 
 &sound {
 	status = "okay";
+
+	/delete-node/ simple-audio-card,dai-link@1;
+
+	simple-audio-card,dai-link@0 {
+		format = "i2s";
+		cpu {
+			sound-dai = <&i2s>;
+		};
+
+		codec {
+			sound-dai = <&hdmi>;
+		};
+	};
 };
 
 &es8323 {
-	aux-det-gpio = <&gpio2 15 GPIO_ACTIVE_HIGH>;
-	spk-ctl-gpio = <&gpio7 6 GPIO_ACTIVE_LOW>;
+	status = "disabled";
 };
 
 &spi0 {
@@ -369,6 +369,13 @@
 	lcd {
 		lcd_en: lcd-en  {
 			rockchip,pins = <1 25 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	encoder {
+		rotary_gpio: rotary-gpio {
+			rockchip,pins = <0 7 RK_FUNC_GPIO &pcfg_pull_none>,
+							<0 18 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
