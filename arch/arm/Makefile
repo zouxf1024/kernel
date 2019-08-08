@@ -396,7 +396,7 @@ endif
 #gpio6a0=0
 #gpio6a1=0
 #gpio6a2=0
-#lvds 
+#lvds
 
 #gpio6a0=0
 #gpio6a1=1
@@ -409,24 +409,19 @@ endif
 #dual lvds
 
 #samyung_dtb := samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb
-samyung_dtb := samyung_ff_lvds.dtb samyung_ff_edp.dtb samyung_ff_duallvds.dtb
+samyung_dtb := samyung_ff_lcd_lvds.dtb samyung_ff_lcd_edp.dtb samyung_ff_lcd_duallvds.dtb
 
-samyung: $(samyung_dtb) kernel.img $(LOGO) $(LOGO_KERNEL)
+samyung: $(samyung_dtb) kernel.img logo_lcd_lvds.bmp logo_lcd_edp.bmp logo_lcd_duallvds.bmp
 	$(Q) if [ -f $(srctree)/$(LOGO) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO) $(objtree)/; fi
 	$(Q) if [ -f $(srctree)/$(LOGO_KERNEL) -a "$(srctree)" != "$(objtree)" ]; then cp -a $(srctree)/$(LOGO_KERNEL) $(objtree)/; fi
-	$(Q) ln -sf samyung_ff_lvds.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb
-	$(Q) ln -sf samyung_ff_edp.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb
-	$(Q) ln -sf samyung_ff_duallvds.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb
-
 	$(Q)scripts/resource_tool \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_lvds.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=0.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=1#gpio6a2=0.dtb \
-	$(objtree)/arch/arm/boot/dts/samyung_ff_#gpio6a0=0#gpio6a1=0#gpio6a2=1.dtb \
-	$(LOGO) $(LOGO_KERNEL)
+	$(objtree)/arch/arm/boot/dts/samyung_ff_lcd_lvds.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_lcd_lvds.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_lcd_edp.dtb \
+	$(objtree)/arch/arm/boot/dts/samyung_ff_lcd_duallvds.dtb \
+	$(srctree)/logo_lcd_lvds.bmp \
+	$(srctree)/logo_lcd_edp.bmp \
+	$(srctree)/logo_lcd_duallvds.bmp
 	@echo '  Image:  resource.img (with $*.dtb $(LOGO) $(LOGO_KERNEL)) is ready'
 	$(Q) if [ -x $(srctree)/scripts/mkbootimg ]; then \
 		$(srctree)/scripts/mkbootimg \

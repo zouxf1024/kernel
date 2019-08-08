@@ -1,3 +1,7 @@
 /dts-v1/;
 #include "samyung_ff.dtsi"
 #include "samyung_ff_duallvds.dtsi"
+
+/ {
+	model = "SAMYUNG-3288 Board DUALLVDS (Linux Opensource)";
+};

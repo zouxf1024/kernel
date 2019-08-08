@@ -1,3 +1,7 @@
 /dts-v1/;
 #include "samyung_ff.dtsi"
 #include "samyung_ff_edp.dtsi"
+
+/ {
+	model = "SAMYUNG-3288 Board EDP (Linux Opensource)";
+};

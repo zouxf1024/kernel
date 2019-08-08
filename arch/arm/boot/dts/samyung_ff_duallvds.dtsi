@@ -1,44 +1,3 @@
-/*
- * Copyright (c) 2015~2017 Fuzhou Rockchip Electronics Co., Ltd
- *
- * This file is dual-licensed: you can use it either under the terms
- * of the GPL or the X11 license, at your option. Note that this dual
- * licensing only applies to this file, and not this project as a
- * whole.
- *
- *  a) This file is free software; you can redistribute it and/or
- *     modify it under the terms of the GNU General Public License as
- *     published by the Free Software Foundation; either version 2 of the
- *     License, or (at your option) any later version.
- *
- *     This file is distributed in the hope that it will be useful,
- *     but WITHOUT ANY WARRANTY; without even the implied warranty of
- *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *     GNU General Public License for more details.
- *
- * Or, alternatively,
- *
- *  b) Permission is hereby granted, free of charge, to any person
- *     obtaining a copy of this software and associated documentation
- *     files (the "Software"), to deal in the Software without
- *     restriction, including without limitation the rights to use,
- *     copy, modify, merge, publish, distribute, sublicense, and/or
- *     sell copies of the Software, and to permit persons to whom the
- *     Software is furnished to do so, subject to the following
- *     conditions:
- *
- *     The above copyright notice and this permission notice shall be
- *     included in all copies or substantial portions of the Software.
- *
- *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- *     OTHER DEALINGS IN THE SOFTWARE.
- */
 
 #include <dt-bindings/display/media-bus-format.h>
 
@@ -78,7 +37,7 @@
 			232 233 234 235 236 237 238 239
 			240 241 242 243 244 245 246 247
 			248 249 250 251 252 253 254 255>;
-		default-brightness-level = <200>;
+		default-brightness-level = <50>;
 		enable-gpios = <&gpio1 26 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&bl_en>;
@@ -111,24 +70,24 @@
 	compatible ="simple-panel";
 	power-supply = <&vcc_lcd>;
 	backlight = <&backlight>;
-	bus-format = <MEDIA_BUS_FMT_RGB666_1X18>;
+	bus-format = <MEDIA_BUS_FMT_RGB888_1X24>;
 	enable-delay-ms = <10>;
 	rockchip,data-mapping = "vesa";
 	rockchip,data-width = <24>;
-	rockchip,output = "lvds";
+	rockchip,output = "duallvds";
 
 	display-timings {
 		native-mode = <&timing0>;
 		timing0: timing0 {
-			clock-frequency = <51200000>;
-			hactive = <1024>;
-			vactive = <600>;
-			hback-porch = <160>;
-			hfront-porch = <160>;
-			vback-porch = <23>;
-			vfront-porch = <12>;
-			hsync-len = <140>;
-			vsync-len = <20>;
+			clock-frequency = <74900000>;
+			hactive = <1920>;
+			vactive = <1080>;
+			hback-porch = <100>;
+			hfront-porch = <40>;
+			vback-porch = <20>;
+			vfront-porch = <20>;
+			hsync-len = <40>;
+			vsync-len = <10>;
 			hsync-active = <0>;
 			vsync-active = <0>;
 			de-active = <0>;
@@ -136,6 +95,8 @@
 		};
 	};
 };
+
+
 
 &pinctrl {
 	backlight {
