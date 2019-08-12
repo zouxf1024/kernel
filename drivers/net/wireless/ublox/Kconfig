@@ -1,8 +1,8 @@
 config EMMY_MLAN_SDIO
-	bool
+	tristate
 
 config EMMY_SD8XXX
-	bool
+	tristate
 
 config EMMY_MLAN
 	tristate "Ublox EMMY-MLAN"
