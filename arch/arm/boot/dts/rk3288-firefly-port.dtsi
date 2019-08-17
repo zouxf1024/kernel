@@ -509,26 +509,6 @@
 	status = "disabled";
 };
 
-&spi0 {
-	status = "okay";
-	max-freq = <48000000>;
-
-	spi_wk2xxx: spi-wk2xxx@00 {
-		status = "disabled";
-		compatible = "firefly,spi-wk2xxx";
-		reg = <0x00>;
-		spi-max-frequency = <10000000>;
-		power-gpio = <&gpio3 14 GPIO_ACTIVE_HIGH>;
-		reset-gpio = <&gpio0 18 GPIO_ACTIVE_HIGH>;
-		irq-gpio = <&gpio0 7 IRQ_TYPE_EDGE_FALLING>;
-		cs-gpio = <&gpio5 13 GPIO_ACTIVE_HIGH>;
-		/* spi-wk2xxx driver support SPI_CPOL | SPI_CPHA | SPI_CS_HIGH */
-		//spi-cpha;     /* SPI mode: CPHA=1 */
-		//spi-cpol;     /* SPI mode: CPOL=1 */
-		//spi-cs-high;
-	};
-};
-
 &vopb {
 	status = "okay";
 };

@@ -323,9 +323,12 @@
 	status = "okay";
 };
 
-&spi_wk2xxx {
-	//status = "okay";
-	status = "disabled";
+&spi1 {
+	status = "okay";
+};
+
+&fiq_debugger {
+	status = "okay";
 };
 
 &uart0 {
@@ -337,7 +340,7 @@
 };
 
 &uart2 {
-	status = "okay";
+	status = "disabled";
 };
 
 &uart3 {
