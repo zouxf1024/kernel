@@ -321,10 +321,20 @@
 
 &spi0 {
 	status = "okay";
+	dev@0 {
+		compatible = "rockchip,spidev";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+	};
 };
 
-&spi1 {
+&spi2 {
 	status = "okay";
+	dev@0 {
+		compatible = "rockchip,spidev";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+	};
 };
 
 &fiq_debugger {
