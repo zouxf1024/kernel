@@ -357,10 +357,11 @@
 */
 };
 
+/*
 &fiq_debugger {
-	status = "okay";
+	status = "disabled";
 };
-
+*/
 &uart0 {
 	status = "okay";
 };
