@@ -97,6 +97,7 @@
 //		pinctrl-0 = <&uart2_xfer>;
 //	};
 
+
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
