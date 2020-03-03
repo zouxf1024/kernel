@@ -370,6 +370,7 @@
 };
 
 &pwm0 {
+/*
 	interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_HIGH>;
 	compatible = "rockchip,remotectl-pwm";
 	pinctrl-names = "default";
@@ -394,6 +395,8 @@
             <0xf1   KEY_LEFT>,
             <0xe5   KEY_RIGHT>;
     };
+*/
+	status = "okay";
 };
 
 &pwm1 {
