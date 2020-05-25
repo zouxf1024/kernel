@@ -23,6 +23,13 @@
 #include <linux/pwm_backlight.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/of_gpio.h>
+#include <linux/interrupt.h>
+#include <linux/delay.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
+#include <linux/rockchip/grf.h>
+
 
 struct pwm_bl_data {
 	struct pwm_device	*pwm;
@@ -31,10 +38,15 @@ struct pwm_bl_data {
 	unsigned int		lth_brightness;
 	unsigned int		*levels;
 	bool			enabled;
+	struct regmap		*regmap_base;
 	struct regulator	*power_supply;
 	struct gpio_desc	*enable_gpio;
+	struct gpio_desc	*ext_gpio;
+	struct gpio_desc	*out_gpio;
+	bool			ext_enabled;
 	unsigned int		scale;
 	bool			legacy;
+	unsigned int		irq;
 	int			(*notify)(struct device *,
 					  int brightness);
 	void			(*notify_after)(struct device *,
@@ -97,6 +109,7 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	struct pwm_bl_data *pb = bl_get_data(bl);
 	int brightness = bl->props.brightness;
 	int duty_cycle;
+	static u32 gpio_iomux_val;
 
 	if (bl->props.power != FB_BLANK_UNBLANK ||
 	    bl->props.fb_blank != FB_BLANK_UNBLANK ||
@@ -106,12 +119,63 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	if (pb->notify)
 		brightness = pb->notify(pb->dev, brightness);
 
-	if (brightness > 0) {
+	// [ 20200520 Modified by jyyang to control the backlight for suspend mode
+	if (brightness > 0) 
+	{
 		duty_cycle = compute_duty_cycle(pb, brightness);
 		pwm_config(pb->pwm, duty_cycle, pb->period);
-		pwm_backlight_power_on(pb, brightness);
-	} else
-		pwm_backlight_power_off(pb);
+
+		if (pb->ext_enabled) {
+			printk("backlight on : %d \n", brightness);
+			pwm_backlight_power_on(pb, brightness);
+		}
+		else {
+			printk("Disable suspend mode control(backlight ON) \n");
+			pb->ext_enabled = true;
+			// Disable irq
+			free_irq(pb->irq, bl);
+
+			// Set gpio output
+			gpiod_direction_output_raw(pb->out_gpio, 0);
+			// Set output low
+			gpiod_set_value(pb->out_gpio, 0);
+			msleep(20);
+			//gpiod_set_value(pb->out_gpio, 1);
+
+			// Get io mux value for uart3 tx
+			regmap_read(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, &gpio_iomux_val);
+			// Set alternate function for uart3 tx
+			if (!(gpio_iomux_val & BIT(0)))
+				regmap_write(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, 
+						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));	
+		}
+	} else {
+		if (pb->ext_enabled) {
+			printk("backlight off \n");
+			pwm_backlight_power_off(pb);
+		}
+		else {
+			printk("Disable suspend mode control(backlight OFF) \n");
+			pb->ext_enabled = true;
+			// Disable irq
+			free_irq(pb->irq, bl);
+
+			// Set gpio output
+			gpiod_direction_output_raw(pb->out_gpio, 0);
+			// Set output low
+			gpiod_set_value(pb->out_gpio, 0);
+			msleep(20);
+			//gpiod_set_value(pb->out_gpio, 1);
+
+			// Get io mux value for uart3 tx
+			regmap_read(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, &gpio_iomux_val);
+			// Set alternate function for uart3 tx
+			if (!(gpio_iomux_val & BIT(0)))
+				regmap_write(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX,
+						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));
+		}
+	}
+	// ] Modified by jyyang to control the backlight for suspend mode
 
 	if (pb->notify_after)
 		pb->notify_after(pb->dev, brightness);
@@ -178,6 +242,9 @@ static int pwm_backlight_parse_dt(struct device *dev,
 	}
 
 	data->enable_gpio = -EINVAL;
+
+	// 20200520 Added by jyyang to get the gpio number
+	data->ext_gpio = of_get_named_gpio(node, "ext-gpios", 0);
 	return 0;
 }
 
@@ -195,13 +262,39 @@ static int pwm_backlight_parse_dt(struct device *dev,
 }
 #endif
 
+// [ 20200520 Added by jyyang to check the suspend mode
+static irqreturn_t pwm_irq(int irq, void *dev_id)
+{
+	struct backlight_device *bl = dev_id;
+	struct pwm_bl_data *pb = bl_get_data(bl);
+	int state = gpiod_get_value(pb->ext_gpio);
+
+	printk("##### pwm_irq : %d \n", state);
+
+	pb->ext_enabled = true;
+
+	if (state) {
+		bl->props.power = FB_BLANK_UNBLANK;
+		pwm_backlight_update_status(bl);
+	}
+	else {
+		bl->props.power = FB_BLANK_NORMAL;
+		pwm_backlight_power_off(pb);
+	}
+
+	pb->ext_enabled = false;
+
+	return IRQ_HANDLED;
+}
+// ] 20200520 Added by jyyang to check the suspend mode
+
 static int pwm_backlight_probe(struct platform_device *pdev)
 {
 	struct platform_pwm_backlight_data *data = dev_get_platdata(&pdev->dev);
 	struct platform_pwm_backlight_data defdata;
 	struct backlight_properties props;
 	struct backlight_device *bl;
-	struct device_node *node = pdev->dev.of_node;
+	struct device_node *node = pdev->dev.of_node, *np;
 	struct pwm_bl_data *pb;
 	int initial_blank = FB_BLANK_UNBLANK;
 	struct pwm_args pargs;
@@ -280,10 +373,51 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		if (node && node->phandle &&
 		    gpiod_get_direction(pb->enable_gpio) == GPIOF_DIR_OUT &&
 		    gpiod_get_value(pb->enable_gpio) == 0)
-			initial_blank = FB_BLANK_POWERDOWN;
+			;//initial_blank = FB_BLANK_POWERDOWN;	// 20200520 Deleted by jyyang
 		else
 			gpiod_direction_output(pb->enable_gpio, 1);
 	}
+
+	// [ 20200518 Added by jyyang to check the suspend mode
+	pb->ext_gpio = devm_gpiod_get_optional(&pdev->dev, "ext",
+		       				GPIOD_ASIS);
+
+	if (IS_ERR(pb->ext_gpio)) {
+		printk("## error ext_gpio \n");
+	}
+
+	if (!pb->ext_gpio && gpio_is_valid(data->ext_gpio)) {
+		ret = devm_gpio_request_one(&pdev->dev, data->ext_gpio,
+						GPIOF_IN, "ext-gpios");
+		if (ret < 0) {
+			printk("## failed to request GPIO#%d: %d \n",
+					data->ext_gpio, ret);
+		}
+
+		pb->ext_gpio = gpio_to_desc(data->ext_gpio);
+	}
+
+	if (pb->ext_gpio) {
+		printk("## set direction input for ext_gpio \n");
+		gpiod_direction_input(pb->ext_gpio);
+	}
+
+	pb->out_gpio = devm_gpiod_get_optional(&pdev->dev, "out",
+						GPIOD_ASIS);
+
+	if (IS_ERR(pb->out_gpio)) {
+		printk("## error out_gpio \n");
+	}
+
+	if(!pb->out_gpio && gpio_is_valid(data->out_gpio)) {
+		ret = devm_gpio_request_one(&pdev->dev, data->ext_gpio,
+						GPIOF_IN, "out-gpios");
+		if (ret < 0) {
+			printk("## failed to request GPIO#%d: %d \n", 
+					data->out_gpio, ret);
+		}
+	}
+	// ] 20200518 Added by jyyang to check the suspend mode
 
 	pb->power_supply = devm_regulator_get(&pdev->dev, "power");
 	if (IS_ERR(pb->power_supply)) {
@@ -346,9 +480,45 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 
 	bl->props.brightness = data->dft_brightness;
 	bl->props.power = initial_blank;
-	backlight_update_status(bl);
+
+	// [ 20200520 Added by jyyang to check the suspend mode
+	pb->ext_enabled = true;
+
+	if (pb->ext_gpio) {
+		if (gpiod_get_value(pb->ext_gpio)) {
+			backlight_update_status(bl);
+		}
+		else {
+			bl->props.power = FB_BLANK_NORMAL;
+			pwm_backlight_power_off(pb);
+		}
+	}
+	else {
+		backlight_update_status(bl);
+	}
+
+	/* request the GPIOS */
+	pb->irq = gpio_to_irq(data->ext_gpio);
+	ret = request_irq(pb->irq, pwm_irq, 
+			  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, 
+			  "pwm-backlight", bl);
+	if (ret) {
+		printk("unable to request IRQ %d \n", pb->irq);
+	}
+
+	pb->ext_enabled = false;
+
+	np = of_parse_phandle(node, "rockchip,grf", 0);
+	if (np)
+	{
+		pb->regmap_base = syscon_node_to_regmap(np);
+		if (IS_ERR(pb->regmap_base))
+			printk("### ERROOR regmap base address \n");
+	}
+	// ] 20200520 Added by jyyang to check the suspend mode
 
 	platform_set_drvdata(pdev, bl);
+
 	return 0;
 
 err_alloc:

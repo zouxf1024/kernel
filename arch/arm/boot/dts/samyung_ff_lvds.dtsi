@@ -38,7 +38,10 @@
 			240 241 242 243 244 245 246 247
 			248 249 250 251 252 253 254 255>;
 		default-brightness-level = <200>;
+		rockchip,grf = <&grf>;
 		enable-gpios = <&gpio1 26 GPIO_ACTIVE_HIGH>;
+		ext-gpios = <&gpio7 7 GPIO_ACTIVE_HIGH>;
+		out-gpios = <&gpio7 8 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&bl_en>;
 		pwms = <&pwm1 0 1000000 1>;
