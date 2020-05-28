@@ -29,6 +29,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/rockchip/grf.h>
+#include <linux/kthread.h>
 
 
 struct pwm_bl_data {
@@ -43,10 +44,9 @@ struct pwm_bl_data {
 	struct gpio_desc	*enable_gpio;
 	struct gpio_desc	*ext_gpio;
 	struct gpio_desc	*out_gpio;
-	bool			ext_enabled;
 	unsigned int		scale;
 	bool			legacy;
-	unsigned int		irq;
+	struct task_struct	*ph_thread;
 	int			(*notify)(struct device *,
 					  int brightness);
 	void			(*notify_after)(struct device *,
@@ -111,6 +111,12 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	int duty_cycle;
 	static u32 gpio_iomux_val;
 
+	if (bl->props.ctl_state == 0) {
+		printk("cannot control the backlight \n");
+		bl->props.power = FB_BLANK_POWERDOWN;
+		return 0;
+	}
+
 	if (bl->props.power != FB_BLANK_UNBLANK ||
 	    bl->props.fb_blank != FB_BLANK_UNBLANK ||
 	    bl->props.state & BL_CORE_FBBLANK)
@@ -124,16 +130,15 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	{
 		duty_cycle = compute_duty_cycle(pb, brightness);
 		pwm_config(pb->pwm, duty_cycle, pb->period);
-
-		if (pb->ext_enabled) {
-			printk("backlight on : %d \n", brightness);
-			pwm_backlight_power_on(pb, brightness);
-		}
-		else {
+		printk("backlight on : %d \n", brightness);
+		bl->props.power = FB_BLANK_UNBLANK;
+		pwm_backlight_power_on(pb, brightness);
+		
+		if (bl->props.ctl_state && pb->ph_thread) {
 			printk("Disable suspend mode control(backlight ON) \n");
-			pb->ext_enabled = true;
-			// Disable irq
-			free_irq(pb->irq, bl);
+			// stop thread 
+			kthread_stop(pb->ph_thread);
+			pb->ph_thread = NULL;
 
 			// Set gpio output
 			gpiod_direction_output_raw(pb->out_gpio, 0);
@@ -150,15 +155,15 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));	
 		}
 	} else {
-		if (pb->ext_enabled) {
-			printk("backlight off \n");
-			pwm_backlight_power_off(pb);
-		}
-		else {
+		printk("backlight off \n");
+		pwm_backlight_power_off(pb);
+		bl->props.power = FB_BLANK_POWERDOWN;
+		
+		if (bl->props.ctl_state && pb->ph_thread) {
 			printk("Disable suspend mode control(backlight OFF) \n");
-			pb->ext_enabled = true;
-			// Disable irq
-			free_irq(pb->irq, bl);
+			// stop thread 
+			kthread_stop(pb->ph_thread);
+			pb->ph_thread = NULL;
 
 			// Set gpio output
 			gpiod_direction_output_raw(pb->out_gpio, 0);
@@ -263,28 +268,38 @@ static int pwm_backlight_parse_dt(struct device *dev,
 #endif
 
 // [ 20200520 Added by jyyang to check the suspend mode
-static irqreturn_t pwm_irq(int irq, void *dev_id)
+static int pwm_monitor_thread(void *arg)
 {
-	struct backlight_device *bl = dev_id;
+	struct backlight_device *bl = arg;
 	struct pwm_bl_data *pb = bl_get_data(bl);
-	int state = gpiod_get_value(pb->ext_gpio);
+	int state, cur_state;
 
-	printk("##### pwm_irq : %d \n", state);
+	state = gpiod_get_value(pb->ext_gpio);
 
-	pb->ext_enabled = true;
+	printk("start pwm_monitor_thread \n");
 
-	if (state) {
-		bl->props.power = FB_BLANK_UNBLANK;
-		pwm_backlight_update_status(bl);
+	while(!kthread_should_stop())
+	{
+		cur_state = gpiod_get_value(pb->ext_gpio);	
+		if (cur_state && state != cur_state) {
+			state = cur_state;
+			bl->props.ctl_state = 1;
+			bl->props.power = FB_BLANK_UNBLANK;
+			pwm_backlight_update_status(bl);
+		}
+		/*
+		else {
+			bl->props.power = FB_BLANK_POWERDOWN;
+			pwm_backlight_power_off(pb);
+		}
+		*/
+
+		ssleep(1);
 	}
-	else {
-		bl->props.power = FB_BLANK_NORMAL;
-		pwm_backlight_power_off(pb);
-	}
 
-	pb->ext_enabled = false;
+	printk("end pwm_monitor_thread \n");
 
-	return IRQ_HANDLED;
+	return 0;
 }
 // ] 20200520 Added by jyyang to check the suspend mode
 
@@ -482,31 +497,29 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	bl->props.power = initial_blank;
 
 	// [ 20200520 Added by jyyang to check the suspend mode
-	pb->ext_enabled = true;
-
 	if (pb->ext_gpio) {
 		if (gpiod_get_value(pb->ext_gpio)) {
+			bl->props.ctl_state = 1;
 			backlight_update_status(bl);
 		}
 		else {
-			bl->props.power = FB_BLANK_NORMAL;
+			bl->props.power = 0;
+			bl->props.power = FB_BLANK_POWERDOWN;
 			pwm_backlight_power_off(pb);
 		}
 	}
 	else {
+		bl->props.ctl_state = 1;
 		backlight_update_status(bl);
 	}
 
 	/* request the GPIOS */
-	pb->irq = gpio_to_irq(data->ext_gpio);
-	ret = request_irq(pb->irq, pwm_irq, 
-			  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, 
-			  "pwm-backlight", bl);
-	if (ret) {
-		printk("unable to request IRQ %d \n", pb->irq);
+	if (bl->props.power == FB_BLANK_POWERDOWN)
+	{
+		pb->ph_thread = kthread_run(pwm_monitor_thread, bl, "pwm_monitor_thread");
+		if (pb->ph_thread == NULL)
+			printk("### ERROR create pwm thread\n");
 	}
-
-	pb->ext_enabled = false;
 
 	np = of_parse_phandle(node, "rockchip,grf", 0);
 	if (np)
@@ -534,6 +547,13 @@ static int pwm_backlight_remove(struct platform_device *pdev)
 
 	backlight_device_unregister(bl);
 	pwm_backlight_power_off(pb);
+
+	// [ 20200528 Added by jyyang to remove thread
+	if (pb->ph_thread) {
+		kthread_stop(pb->ph_thread);
+		pb->ph_thread = NULL;
+	}
+	// ] 20200528 Added by jyyang to remove thread 
 
 	if (pb->exit)
 		pb->exit(&pdev->dev);

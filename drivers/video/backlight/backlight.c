@@ -124,6 +124,41 @@ static void backlight_generate_event(struct backlight_device *bd,
 	sysfs_notify(&bd->dev.kobj, NULL, "actual_brightness");
 }
 
+static ssize_t bl_state_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	struct backlight_device *bd = to_backlight_device(dev);
+
+	return sprintf(buf, "%d\n", bd->props.ctl_state);
+}
+
+static ssize_t bl_state_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	int rc;
+	struct backlight_device *bd = to_backlight_device(dev);
+	unsigned long state;
+
+	rc = kstrtoul(buf, 0, &state);
+	if (rc)
+		return rc;
+
+	rc = -ENXIO;
+	mutex_lock(&bd->ops_lock);
+	if (bd->ops) {
+		pr_debug("set state to %lu\n", state);
+		if (bd->props.ctl_state != state) {
+			bd->props.ctl_state = state;
+			backlight_update_status(bd);
+		}
+		rc = count;
+	}
+	mutex_unlock(&bd->ops_lock);
+
+	return rc;
+}
+static DEVICE_ATTR_RW(bl_state);
+
 static ssize_t bl_power_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
@@ -285,6 +320,7 @@ static void bl_device_release(struct device *dev)
 }
 
 static struct attribute *bl_device_attrs[] = {
+	&dev_attr_bl_state.attr,
 	&dev_attr_bl_power.attr,
 	&dev_attr_brightness.attr,
 	&dev_attr_actual_brightness.attr,
