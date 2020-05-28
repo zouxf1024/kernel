@@ -44,6 +44,7 @@ struct pwm_bl_data {
 	struct gpio_desc	*enable_gpio;
 	struct gpio_desc	*ext_gpio;
 	struct gpio_desc	*out_gpio;
+	bool			stop_irq;
 	unsigned int		scale;
 	bool			legacy;
 	struct task_struct	*ph_thread;
@@ -109,7 +110,6 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	struct pwm_bl_data *pb = bl_get_data(bl);
 	int brightness = bl->props.brightness;
 	int duty_cycle;
-	static u32 gpio_iomux_val;
 
 	if (bl->props.ctl_state == 0) {
 		printk("cannot control the backlight \n");
@@ -128,57 +128,22 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 	// [ 20200520 Modified by jyyang to control the backlight for suspend mode
 	if (brightness > 0) 
 	{
+		printk("backlight on : %d \n", brightness);
 		duty_cycle = compute_duty_cycle(pb, brightness);
 		pwm_config(pb->pwm, duty_cycle, pb->period);
-		printk("backlight on : %d \n", brightness);
+
 		bl->props.power = FB_BLANK_UNBLANK;
 		pwm_backlight_power_on(pb, brightness);
 		
-		if (bl->props.ctl_state && pb->ph_thread) {
-			printk("Disable suspend mode control(backlight ON) \n");
-			// stop thread 
-			kthread_stop(pb->ph_thread);
-			pb->ph_thread = NULL;
-
-			// Set gpio output
-			gpiod_direction_output_raw(pb->out_gpio, 0);
-			// Set output low
-			gpiod_set_value(pb->out_gpio, 0);
-			msleep(20);
-			//gpiod_set_value(pb->out_gpio, 1);
-
-			// Get io mux value for uart3 tx
-			regmap_read(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, &gpio_iomux_val);
-			// Set alternate function for uart3 tx
-			if (!(gpio_iomux_val & BIT(0)))
-				regmap_write(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, 
-						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));	
-		}
+		if (bl->props.ctl_state && pb->ph_thread && !pb->stop_irq) 
+			pb->stop_irq = true;
 	} else {
 		printk("backlight off \n");
 		pwm_backlight_power_off(pb);
 		bl->props.power = FB_BLANK_POWERDOWN;
 		
-		if (bl->props.ctl_state && pb->ph_thread) {
-			printk("Disable suspend mode control(backlight OFF) \n");
-			// stop thread 
-			kthread_stop(pb->ph_thread);
-			pb->ph_thread = NULL;
-
-			// Set gpio output
-			gpiod_direction_output_raw(pb->out_gpio, 0);
-			// Set output low
-			gpiod_set_value(pb->out_gpio, 0);
-			msleep(20);
-			//gpiod_set_value(pb->out_gpio, 1);
-
-			// Get io mux value for uart3 tx
-			regmap_read(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, &gpio_iomux_val);
-			// Set alternate function for uart3 tx
-			if (!(gpio_iomux_val & BIT(0)))
-				regmap_write(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX,
-						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));
-		}
+		if (bl->props.ctl_state && pb->ph_thread && !pb->stop_irq) 
+			pb->stop_irq = true;
 	}
 	// ] Modified by jyyang to control the backlight for suspend mode
 
@@ -272,20 +237,19 @@ static int pwm_monitor_thread(void *arg)
 {
 	struct backlight_device *bl = arg;
 	struct pwm_bl_data *pb = bl_get_data(bl);
-	int state, cur_state;
-
-	state = gpiod_get_value(pb->ext_gpio);
+	int state;
+	static u32 gpio_iomux_val;
 
 	printk("start pwm_monitor_thread \n");
 
 	while(!kthread_should_stop())
 	{
-		cur_state = gpiod_get_value(pb->ext_gpio);	
-		if (cur_state && state != cur_state) {
-			state = cur_state;
+		state = gpiod_get_value(pb->ext_gpio);	
+		if (state) {
 			bl->props.ctl_state = 1;
 			bl->props.power = FB_BLANK_UNBLANK;
 			pwm_backlight_update_status(bl);
+			pb->stop_irq = true;
 		}
 		/*
 		else {
@@ -294,9 +258,32 @@ static int pwm_monitor_thread(void *arg)
 		}
 		*/
 
+		if (bl->props.ctl_state && pb->ph_thread && pb->stop_irq) {
+			printk("Disable suspend mode control \n");
+			// Set gpio output
+			gpiod_direction_output(pb->out_gpio, 0);
+			// Set output low
+			gpiod_set_value(pb->out_gpio, 0);
+			msleep(20);
+			//gpiod_set_value(pb->out_gpio, 1);
+
+			// Get io mux value for uart3 tx
+			regmap_read(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX, &gpio_iomux_val);
+			// Set alternate function for uart3 tx
+			if (!(gpio_iomux_val & BIT(0)))
+				regmap_write(pb->regmap_base, RK3288_GRF_GPIO7B_IOMUX,
+						gpio_iomux_val | (BIT(17) | BIT(16) | BIT(0)));
+
+			break;
+		}
+
 		ssleep(1);
 	}
 
+	if (pb->ph_thread) {
+		kthread_stop(pb->ph_thread);
+		pb->ph_thread = NULL;
+	}
 	printk("end pwm_monitor_thread \n");
 
 	return 0;
@@ -501,6 +488,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		if (gpiod_get_value(pb->ext_gpio)) {
 			bl->props.ctl_state = 1;
 			backlight_update_status(bl);
+			pb->stop_irq = true;
 		}
 		else {
 			bl->props.power = 0;
@@ -511,10 +499,11 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 	else {
 		bl->props.ctl_state = 1;
 		backlight_update_status(bl);
+		pb->stop_irq = true;
 	}
 
 	/* request the GPIOS */
-	if (bl->props.power == FB_BLANK_POWERDOWN)
+	//if (bl->props.power == FB_BLANK_POWERDOWN)
 	{
 		pb->ph_thread = kthread_run(pwm_monitor_thread, bl, "pwm_monitor_thread");
 		if (pb->ph_thread == NULL)
