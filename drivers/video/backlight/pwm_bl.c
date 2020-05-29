@@ -280,10 +280,13 @@ static int pwm_monitor_thread(void *arg)
 		ssleep(1);
 	}
 
+	/*
+	// Don't use this code. It will be occurred the system hang !!!.
 	if (pb->ph_thread) {
 		kthread_stop(pb->ph_thread);
 		pb->ph_thread = NULL;
 	}
+	*/
 	printk("end pwm_monitor_thread \n");
 
 	return 0;
