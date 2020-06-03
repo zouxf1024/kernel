@@ -42,7 +42,6 @@
 		enable-gpios = <&gpio1 26 GPIO_ACTIVE_HIGH>;
 		ext-gpios = <&gpio7 7 GPIO_ACTIVE_HIGH>;
 		out-gpios = <&gpio7 8 GPIO_ACTIVE_HIGH>;
-		buzzer-gpios = <&gpio2 13 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&bl_en>;
 		pwms = <&pwm1 0 1000000 1>;
